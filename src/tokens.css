@@ -1,0 +1,108 @@
+/* @sprintmode/ui — Design Tokens */
+/* Source of truth: _jockey/DESIGN_SYSTEM.md */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  /* Brand */
+  --blue:        hsl(221, 83%, 53%);
+  --blue-hover:  hsl(221, 83%, 45%);
+  --blue-10:     hsla(221, 83%, 53%, 0.1);
+  --blue-20:     hsla(221, 83%, 53%, 0.2);
+
+  /* Text */
+  --foreground:  hsl(0, 0%, 9%);
+  --muted:       hsl(220, 9%, 40%);
+
+  /* Surfaces */
+  --bg:          hsl(0, 0%, 100%);
+  --bg-subtle:   hsl(220, 14%, 97%);
+  --bg-card:     hsl(0, 0%, 100%);
+
+  /* Borders */
+  --border:      hsl(214, 32%, 91%);
+
+  /* Semantic */
+  --green:       hsl(142, 71%, 45%);
+  --green-light: hsl(142, 71%, 95%);
+  --red:         hsl(0, 84%, 60%);
+  --red-light:   hsl(0, 84%, 96%);
+  --amber:       hsl(38, 92%, 50%);
+  --amber-light: hsl(38, 92%, 95%);
+
+  /* Layout */
+  --radius:      0.75rem;
+  --radius-sm:   0.5rem;
+  --max-w:       80rem;
+  --max-w-app:   72rem;
+  --sidebar-w:   248px;
+
+  /* Font */
+  --font: 'Noto Sans', system-ui, -apple-system, sans-serif;
+
+  /* Product colors */
+  --color-sprint-mode:    #2362ea;
+  --color-studios:        #7947d1;
+  --color-mode:           #f4930a;
+  --color-hub:            #2362ea;
+  --color-sprint-capital: #1fac6a;
+  --color-privacyai:      #0fb67f;
+
+  /* Product tints */
+  --tint-sprint-mode:    #e9effc;
+  --tint-studios:        #f1ecfa;
+  --tint-mode:           #fdf4e6;
+  --tint-hub:            #e9effc;
+  --tint-sprint-capital: #e8f6f0;
+  --tint-privacyai:      #e7f7f2;
+
+  /* Accent — products override this */
+  --accent:      var(--blue);
+  --accent-10:   var(--blue-10);
+  --accent-20:   var(--blue-20);
+  --accent-hover: var(--blue-hover);
+  --accent-tint: var(--tint-sprint-mode);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground:  hsl(0, 0%, 93%);
+    --muted:       hsl(220, 9%, 60%);
+    --bg:          hsl(220, 14%, 10%);
+    --bg-subtle:   hsl(220, 14%, 8%);
+    --bg-card:     hsl(220, 14%, 13%);
+    --border:      hsl(214, 20%, 20%);
+    --blue-10:     hsla(221, 83%, 53%, 0.15);
+    --blue-20:     hsla(221, 83%, 53%, 0.25);
+    --green-light: hsl(142, 40%, 15%);
+    --red-light:   hsl(0, 40%, 15%);
+    --amber-light: hsl(38, 40%, 15%);
+
+    --tint-sprint-mode:    hsl(221, 50%, 14%);
+    --tint-studios:        hsl(262, 40%, 14%);
+    --tint-mode:           hsl(38, 60%, 12%);
+    --tint-hub:            hsl(221, 50%, 14%);
+    --tint-sprint-capital: hsl(152, 40%, 12%);
+    --tint-privacyai:      hsl(158, 40%, 12%);
+  }
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  color: var(--foreground);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body, input, textarea, button, select {
+  font-family: var(--font);
+}
+
+a { color: var(--accent); }
+h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+p { margin: 0; }
+hr { border: none; border-top: 1px solid var(--border); }

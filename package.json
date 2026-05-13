@@ -1,0 +1,24 @@
+{
+  "name": "@nomadahq/sm-ui",
+  "version": "0.1.0",
+  "description": "Sprint Mode shared platform UI \u2014 components, design tokens, auth helpers, login",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nomadahq/sprint-mode-ui"
+  },
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./auth": "./src/auth.js",
+    "./css": "./src/tokens.css",
+    "./css/shell": "./src/shell.css",
+    "./css/components": "./src/components.css"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18",
+    "react-router-dom": ">=6"
+  },
+  "license": "UNLICENSED",
+  "private": false
+}

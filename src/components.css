@@ -1,0 +1,109 @@
+/* @sprintmode/ui — Component Styles */
+/* All classes use sm-* prefix. Products theme via --accent override. */
+
+/* ======= BREADCRUMB ======= */
+.sm-bc { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+.sm-bc-product { color: var(--accent); font-weight: 600; }
+
+/* ======= CARD ======= */
+.sm-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
+.sm-card-body { padding: 20px 24px; }
+.sm-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.sm-card-title { font-size: 15px; font-weight: 700; color: var(--foreground); }
+
+/* ======= STATS GRID ======= */
+.sm-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+@media (max-width: 768px) { .sm-stats { grid-template-columns: 1fr 1fr; } }
+.sm-stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+.sm-stat-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 6px; }
+.sm-stat-value { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.sm-stat-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+/* ======= PILLS / BADGES ======= */
+.sm-pill { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.sm-pill-green { background: var(--green-light); color: hsl(142, 71%, 30%); }
+.sm-pill-amber { background: var(--amber-light); color: hsl(38, 60%, 30%); }
+.sm-pill-red { background: var(--red-light); color: hsl(0, 84%, 40%); }
+.sm-pill-blue { background: var(--blue-10); color: var(--blue); }
+.sm-pill-gray { background: var(--bg-subtle); color: var(--muted); }
+.sm-pill-accent { background: var(--accent-tint); color: var(--accent); }
+
+.sm-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.sm-badge-green { background: var(--green-light); color: hsl(142, 71%, 30%); }
+.sm-badge-blue { background: var(--blue-10); color: var(--blue); }
+.sm-badge-amber { background: var(--amber-light); color: hsl(38, 92%, 30%); }
+.sm-badge-red { background: var(--red-light); color: hsl(0, 84%, 45%); }
+.sm-badge-gray { background: var(--bg-subtle); color: var(--muted); }
+
+/* ======= BUTTONS ======= */
+.sm-btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 13px; font-weight: 600; border: none; cursor: pointer; transition: all 0.15s; text-decoration: none; line-height: 1; }
+.sm-btn-primary { background: var(--accent); color: #fff; }
+.sm-btn-primary:hover { background: var(--accent-hover); }
+.sm-btn-secondary { background: var(--bg-card); color: var(--foreground); border: 1px solid var(--border); }
+.sm-btn-secondary:hover { background: var(--bg-subtle); border-color: var(--accent); color: var(--accent); }
+.sm-btn-danger { background: var(--red); color: #fff; }
+.sm-btn-danger:hover { opacity: 0.9; }
+.sm-btn-sm { padding: 6px 14px; font-size: 12px; }
+.sm-btn-lg { padding: 14px 28px; font-size: 16px; }
+.sm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ======= TABS ======= */
+.sm-tabs { display: flex; gap: 3px; background: var(--bg-subtle); border-radius: 10px; padding: 3px; margin-bottom: 24px; }
+.sm-tab { padding: 8px 18px; border-radius: 8px; border: none; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: all 0.15s; }
+.sm-tab.active { background: var(--accent); color: #fff; }
+.sm-tab:hover:not(.active) { background: var(--border); color: var(--foreground); }
+
+/* ======= PROGRESS ======= */
+.sm-progress { height: 8px; background: var(--bg-subtle); border-radius: 4px; overflow: hidden; }
+.sm-progress-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+/* ======= DATA TABLE ======= */
+.sm-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.sm-table th { text-align: left; padding: 8px 12px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); }
+.sm-table td { padding: 12px; border-bottom: 1px solid var(--border); color: var(--foreground); }
+.sm-table tr:last-child td { border-bottom: none; }
+.sm-table tr:hover td { background: var(--bg-subtle); }
+
+/* ======= FORM INPUTS ======= */
+.sm-input, .sm-textarea, .sm-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--font);
+  color: var(--foreground);
+  background: var(--bg);
+  line-height: 1.4;
+}
+.sm-input:focus, .sm-textarea:focus, .sm-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-10);
+}
+.sm-textarea { resize: vertical; min-height: 80px; }
+.sm-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* ======= EMPTY STATE ======= */
+.sm-empty { text-align: center; padding: 48px 24px; color: var(--muted); }
+.sm-empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+.sm-empty h3 { font-size: 16px; font-weight: 600; color: var(--foreground); margin-bottom: 8px; }
+.sm-empty p { font-size: 14px; line-height: 1.6; max-width: 320px; margin: 0 auto; }
+
+/* ======= SCORE RING ======= */
+.sm-score-ring { width: 120px; height: 120px; position: relative; flex-shrink: 0; }
+.sm-score-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.sm-score-ring circle { fill: none; stroke-width: 8; stroke-linecap: round; }
+.sm-score-ring .track { stroke: var(--bg-subtle); }
+.sm-score-ring .fill { stroke: var(--accent); }
+.sm-score-number { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.sm-score-number .num { font-size: 32px; font-weight: 800; color: var(--accent); line-height: 1; }
+.sm-score-number .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
