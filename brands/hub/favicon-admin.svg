@@ -1,7 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="112" fill="#4f5d93"/>
-  <g transform="translate(76, 76) scale(15)" fill="none" stroke="#eef0f8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
-  </g>
+  <rect width="32" height="32" rx="112" fill="#4f5d93"/>
+  <g transform="translate(76, 76) scale(15)" fill="none" stroke="#eef0f8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></g>
 </svg>

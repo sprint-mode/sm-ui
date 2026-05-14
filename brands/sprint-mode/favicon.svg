@@ -1,7 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <svg width="32" height="32" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="112" fill="#e9effc"/>
-  <g transform="translate(76, 76) scale(15)" fill="none" stroke="#2362ea" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/>
-  </g>
+  <rect width="32" height="32" rx="112" fill="#e9effc"/>
+  <g transform="translate(76, 76) scale(15)" fill="none" stroke="#2362ea" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/></g>
 </svg>
