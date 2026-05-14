@@ -369,7 +369,7 @@ export default function Layout(props) {
       if (saved) return JSON.parse(saved)
     } catch (e) {}
     var d = {}
-    navSections.forEach(function(s, i) { d[s.key || s.label] = i > 0 })
+    navSections.forEach(function(s) { d[s.key || s.label] = true })
     return d
   })
   var collapsedState = _cs[0]; var setCollapsedState = _cs[1]
