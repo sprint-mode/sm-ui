@@ -250,7 +250,7 @@ export default function Layout({ navConfig, logoSrc, logoAlt, onLogout, profileP
               <div className="portal-dropdown-company">{session.company_name || ''}</div>
               <hr />
               <a href={profilePath || '/client/profile'}>Profile</a>
-              <a href={onLogout || '/api/auth/logout'}>Sign out</a>
+              <a href={onLogout || ('/api/auth/logout?redirect=' + encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/auth/login'))}>Sign out</a>
             </div>
           )}
         </aside>
