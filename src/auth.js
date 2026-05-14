@@ -86,3 +86,73 @@ export function generateId(prefix) {
   var hex = Array.from(crypto.getRandomValues(new Uint8Array(8))).map(function(b) { return b.toString(16).padStart(2, '0') }).join('')
   return prefix + '_' + hex
 }
+
+// ═══ SM API CLIENT ═══
+// This is the ONLY approved way for portal workers to call the SM API.
+// SM API requires the X-SM-Platform header on all CF-Access service token calls.
+// Hand-rolled fetch() with just CF-Access headers will be rejected with 403.
+
+var SM_UI_VERSION = '0.1.0'
+var SM_API_DEFAULT = 'https://api.sprintmode.ai'
+
+/**
+ * Create an SM API client for portal workers.
+ * This adds the required X-SM-Platform header automatically.
+ * SM API will reject portal calls without this header.
+ *
+ * @param {Object} env - Worker env (needs SM_API_CLIENT_ID, SM_API_CLIENT_SECRET)
+ * @param {Object} [opts] - Options
+ * @param {string} [opts.baseUrl] - Override API base URL (default: https://api.sprintmode.ai)
+ * @returns {Object} Client with get/post/patch/del methods
+ *
+ * @example
+ * import { createSmApiClient } from '@nomadahq/sm-ui/auth'
+ * var smApi = createSmApiClient(env)
+ * var company = await smApi.get('/api/companies/co_123')
+ * var contact = await smApi.post('/api/contacts', { email: 'a@b.com' })
+ * await smApi.patch('/api/contacts/ct_123', { full_name: 'Updated' })
+ */
+export function createSmApiClient(env, opts) {
+  var baseUrl = (opts && opts.baseUrl) || env.SM_API_URL || SM_API_DEFAULT
+
+  async function request(method, path, body, extraHeaders) {
+    var headers = {
+      'Content-Type': 'application/json',
+      'X-SM-Platform': 'sm-ui/' + SM_UI_VERSION,
+      'CF-Access-Client-Id': env.SM_API_CLIENT_ID || '',
+      'CF-Access-Client-Secret': env.SM_API_CLIENT_SECRET || ''
+    }
+    if (extraHeaders) {
+      Object.keys(extraHeaders).forEach(function(k) { headers[k] = extraHeaders[k] })
+    }
+    var fetchOpts = { method: method, headers: headers }
+    if (body && method !== 'GET') fetchOpts.body = JSON.stringify(body)
+    var resp = await fetch(baseUrl + path, fetchOpts)
+    if (!resp.ok) {
+      var text = await resp.text()
+      var parsed
+      try { parsed = JSON.parse(text) } catch (e) { parsed = { ok: false, error: text } }
+      parsed._status = resp.status
+      return parsed
+    }
+    return resp.json()
+  }
+
+  return {
+    get: function(path, extraHeaders) { return request('GET', path, null, extraHeaders) },
+    post: function(path, body, extraHeaders) { return request('POST', path, body, extraHeaders) },
+    patch: function(path, body, extraHeaders) { return request('PATCH', path, body, extraHeaders) },
+    put: function(path, body, extraHeaders) { return request('PUT', path, body, extraHeaders) },
+    del: function(path, extraHeaders) { return request('DELETE', path, null, extraHeaders) },
+    /** Pass a browser cookie string to forward the user's session alongside service auth */
+    withCookie: function(cookieStr) {
+      return {
+        get: function(path) { return request('GET', path, null, { 'Cookie': cookieStr }) },
+        post: function(path, body) { return request('POST', path, body, { 'Cookie': cookieStr }) },
+        patch: function(path, body) { return request('PATCH', path, body, { 'Cookie': cookieStr }) },
+        put: function(path, body) { return request('PUT', path, body, { 'Cookie': cookieStr }) },
+        del: function(path) { return request('DELETE', path, null, { 'Cookie': cookieStr }) }
+      }
+    }
+  }
+}
