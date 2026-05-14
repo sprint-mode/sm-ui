@@ -1,8 +1,7 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap');
 /* @sprintmode/ui — Design Tokens */
 /* Source of truth: _jockey/DESIGN_SYSTEM.md */
 
-@import url('https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.min.css');
-@import url('https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-mono/style.min.css');
 
 :root {
   /* Brand */
