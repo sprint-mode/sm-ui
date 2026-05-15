@@ -50,6 +50,11 @@ export default function Login({ productName, logoSrc, authBase }) {
   var params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
   var redirect = params.get('redirect') || '/'
 
+  // Resolve logo for current theme (data-theme attribute)
+  var isDark = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark'
+  var themeLogoSrc = logoSrc && isDark ? logoSrc.replace('.png', '-dark.png') : logoSrc
+  var defaultLogo = isDark ? '/logo-sprint-mode-horizontal-dark.png' : '/logo-sprint-mode-horizontal.png'
+
   function handleGoogle() {
     window.location.href = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
   }
@@ -91,10 +96,10 @@ export default function Login({ productName, logoSrc, authBase }) {
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          {logoSrc ? (
-            <picture><source srcSet={logoSrc.replace('.png', '-dark.png')} media="(prefers-color-scheme: dark)" /><img src={logoSrc} alt={productName || 'Sprint Mode'} style={{ height: 40, width: 'auto' }} /></picture>
+          {themeLogoSrc ? (
+            <img src={themeLogoSrc} alt={productName || 'Sprint Mode'} style={{ height: 40, width: 'auto' }} />
           ) : (
-            <picture><source srcSet="/logo-sprint-mode-horizontal-dark.png" media="(prefers-color-scheme: dark)" /><img src="/logo-sprint-mode-horizontal.png" alt="Sprint Mode" style={{ height: 40, width: "auto" }} /></picture>
+            <img src={defaultLogo} alt="Sprint Mode" style={{ height: 40, width: 'auto' }} />
           )}
           {productName && (
             <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 8 }}>{productName}</div>

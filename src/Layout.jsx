@@ -383,6 +383,14 @@ export default function Layout(props) {
   var initials = session ? (session.name || session.email || '?').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase() : '?'
   var logo = logoSrc || '/logo-sprint-mode-horizontal.png'
   var alt = logoAlt || 'Sprint Mode'
+  // Resolve logo for current theme — data-theme attribute (portal-controlled) over OS
+  var themeLogo = logo
+  if (typeof document !== 'undefined') {
+    var dt = document.documentElement.getAttribute('data-theme')
+    if (dt === 'dark' && logo.indexOf('.png') !== -1) {
+      themeLogo = logo.replace('.png', '-dark.png')
+    }
+  }
   var hasHeader = !!(title || headerRight)
 
   // ── Collapsible section state (admin pattern) ──
@@ -429,7 +437,7 @@ export default function Layout(props) {
                     <span className="shell-header-title">{title}</span>
                   </>
                 ) : (
-                  <picture><source srcSet={logo.replace(".png", "-dark.png")} media="(prefers-color-scheme: dark)" /><img src={logo} alt={alt} style={{ height: 24, width: 'auto' }} /></picture>
+                  <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
                 )}
               </a>
               {headerRight && <div className="shell-header-right">{headerRight}</div>}
@@ -444,7 +452,7 @@ export default function Layout(props) {
         <aside className={'portal-sidebar' + (mobileOpen ? ' open' : '')} id="portalSidebar">
           {!hasHeader && (
             <div className="portal-sidebar-logo">
-              <picture><source srcSet={logo.replace(".png", "-dark.png")} media="(prefers-color-scheme: dark)" /><img src={logo} alt={alt} style={{ height: 24, width: 'auto' }} /></picture>
+              <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
             </div>
           )}
           <nav className="portal-sidebar-nav">
@@ -537,7 +545,7 @@ export default function Layout(props) {
             <span style={{ display: 'block', width: 18, height: 2, background: 'var(--foreground)', borderRadius: 1 }} />
             <span style={{ display: 'block', width: 18, height: 2, background: 'var(--foreground)', borderRadius: 1 }} />
           </button>
-          <picture><source srcSet={logo.replace(".png", "-dark.png")} media="(prefers-color-scheme: dark)" /><img src={logo} alt={alt} style={{ height: 24, width: 'auto' }} /></picture>
+          <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
         </div>
 
         {/* Overlay */}
