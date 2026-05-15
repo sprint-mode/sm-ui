@@ -500,6 +500,29 @@ export default function Layout(props) {
     return function() { document.removeEventListener('click', handler) }
   }, [])
 
+  // ── Collapsible section state (admin pattern) ──
+  // MUST be above the loading early-return — hooks cannot be called conditionally
+  var _cs = useState(function() {
+    if (!navSections) return {}
+    try {
+      var saved = typeof localStorage !== 'undefined' ? localStorage.getItem('sm-nav-collapsed') : null
+      if (saved) return JSON.parse(saved)
+    } catch (e) {}
+    var d = {}
+    if (navSections) navSections.forEach(function(s) { d[s.key || s.label] = true })
+    return d
+  })
+  var collapsedState = _cs[0]; var setCollapsedState = _cs[1]
+
+  function toggleCollapse(key) {
+    setCollapsedState(function(prev) {
+      var next = Object.assign({}, prev)
+      next[key] = !prev[key]
+      try { localStorage.setItem('sm-nav-collapsed', JSON.stringify(next)) } catch (e) {}
+      return next
+    })
+  }
+
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}><div className="spinner" /></div>
 
   // ── Build sections ──
@@ -579,6 +602,8 @@ export default function Layout(props) {
   }
   var cmdkItems = cmdKItems || autoCmdKItems
 
+  var logoutHref = onLogout || ('/api/auth/logout?redirect=' + encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/auth/login'))
+
   // ── Standard header-right items (rendered after custom headerRight) ──
   var standardHeaderRight = hasHeader && session ? React.createElement(React.Fragment, null,
     cmdKEnabled ? React.createElement('button', {
@@ -595,30 +620,6 @@ export default function Layout(props) {
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref })
   ) : null
-
-  // ── Collapsible section state (admin pattern) ──
-  var _cs = useState(function() {
-    if (!navSections) return {}
-    try {
-      var saved = typeof localStorage !== 'undefined' ? localStorage.getItem('sm-nav-collapsed') : null
-      if (saved) return JSON.parse(saved)
-    } catch (e) {}
-    var d = {}
-    navSections.forEach(function(s) { d[s.key || s.label] = true })
-    return d
-  })
-  var collapsedState = _cs[0]; var setCollapsedState = _cs[1]
-
-  function toggleCollapse(key) {
-    setCollapsedState(function(prev) {
-      var next = Object.assign({}, prev)
-      next[key] = !prev[key]
-      try { localStorage.setItem('sm-nav-collapsed', JSON.stringify(next)) } catch (e) {}
-      return next
-    })
-  }
-
-  var logoutHref = onLogout || ('/api/auth/logout?redirect=' + encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/auth/login'))
 
   return (
     <SessionContext.Provider value={session}>
