@@ -149,17 +149,23 @@ function HeaderUserMenu(props) {
   }, [])
 
   var initials = session ? (session.name || session.email || '?').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase() : '?'
+  var displayName = session ? (session.name ? session.name.split(' ')[0] : (session.email ? session.email.split('@')[0] : '')) : ''
+  var roleLabel = session && session.role ? session.role.replace(/_/g, ' ') : (session && session.portal_role ? session.portal_role.replace(/_/g, ' ') : '')
 
   return React.createElement('div', { ref: ref, style: { position: 'relative' } },
     React.createElement('button', {
       onClick: function() { setOpen(function(o) { return !o }) },
       className: 'shell-header-avatar',
-      style: { width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--accent-10)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, cursor: 'pointer', padding: 0, flexShrink: 0 }
-    }, initials),
-    open ? React.createElement('div', { style: { position: 'absolute', right: 0, top: 40, width: 220, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 6, zIndex: 100 } },
+      style: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 4px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer', transition: 'border-color .2s', flexShrink: 0 }
+    },
+      React.createElement('div', { style: { width: 26, height: 26, borderRadius: 6, background: 'var(--accent-10)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600 } }, initials),
+      React.createElement('span', { style: { fontSize: 13, color: 'var(--foreground)', fontWeight: 500, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, displayName)
+    ),
+    open ? React.createElement('div', { style: { position: 'absolute', right: 0, top: 42, width: 220, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 6, zIndex: 100 } },
       React.createElement('div', { style: { padding: '8px 10px', fontSize: 12, color: 'var(--muted)', borderBottom: '1px solid var(--border)', marginBottom: 4 } },
-        React.createElement('div', { style: { fontWeight: 600, color: 'var(--foreground)', fontSize: 13 } }, session && (session.name || session.email)),
-        session && session.company_name ? React.createElement('div', { style: { marginTop: 2 } }, session.company_name) : null
+        React.createElement('div', { style: { fontWeight: 600, color: 'var(--foreground)', fontSize: 13 } }, session && session.name),
+        session && session.email ? React.createElement('div', null, session.email) : null,
+        roleLabel ? React.createElement('div', { style: { marginTop: 2 } }, roleLabel) : (session && session.company_name ? React.createElement('div', { style: { marginTop: 2 } }, session.company_name) : null)
       ),
       profilePath ? React.createElement('a', { href: profilePath, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Profile') : null,
       React.createElement('a', { href: logoutHref, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Sign out')
