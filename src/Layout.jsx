@@ -452,7 +452,7 @@ export default function Layout(props) {
   }, [])
 
   // ── View-As / Impersonation ──
-  var isSuperAdmin = session && (session.role === 'super_admin')
+  var isSuperAdmin = session && (session.role === 'super_admin' || session.portal_role === 'super_admin' || session.role === 'admin' || session.portal_role === 'admin')
   var showViewAs = viewAsEnabled && isSuperAdmin
   var _va = useState(null); var viewAs = _va[0]; var setViewAs = _va[1]
   var _au = useState([]); var allUsers = _au[0]; var setAllUsers = _au[1]
