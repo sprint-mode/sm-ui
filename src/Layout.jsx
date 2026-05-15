@@ -668,7 +668,7 @@ export default function Layout(props) {
                 <div className="shell-header-right">
                   {viewAsSelect}
                   {headerRight}
-                  {!headerRight && standardHeaderRight}
+                  {standardHeaderRight}
                 </div>
               )}
             </div>
