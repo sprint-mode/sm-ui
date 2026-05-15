@@ -92,9 +92,9 @@ export default function Login({ productName, logoSrc, authBase }) {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           {logoSrc ? (
-            <picture><source srcSet={logoSrc.replace('.png', '-dark.png')} media="(prefers-color-scheme: dark)" /><img src={logoSrc} alt={productName || 'Sprint Mode'} style={{ height: 32, width: 'auto' }} /></picture>
+            <picture><source srcSet={logoSrc.replace('.png', '-dark.png')} media="(prefers-color-scheme: dark)" /><img src={logoSrc} alt={productName || 'Sprint Mode'} style={{ height: 40, width: 'auto' }} /></picture>
           ) : (
-            <picture><source srcSet="/logo-sprint-mode-horizontal-dark.png" media="(prefers-color-scheme: dark)" /><img src="/logo-sprint-mode-horizontal.png" alt="Sprint Mode" style={{ height: 32, width: "auto" }} /></picture>
+            <picture><source srcSet="/logo-sprint-mode-horizontal-dark.png" media="(prefers-color-scheme: dark)" /><img src="/logo-sprint-mode-horizontal.png" alt="Sprint Mode" style={{ height: 40, width: "auto" }} /></picture>
           )}
           {productName && (
             <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 8 }}>{productName}</div>
