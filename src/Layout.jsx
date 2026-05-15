@@ -126,6 +126,7 @@ function SidebarSection({ label, Logo, sectionIcon, sectionColor, items, color, 
                 className={function(p) {
                   var cls = 'ps-item'
                   if (p.isActive) cls += ' active'
+                  if (item.locked) cls += ' locked'
                   return cls
                 }}
               >
@@ -247,6 +248,7 @@ export default function Layout(props) {
   var viewAsEnabled = props.viewAsEnabled
   var viewAsApi = props.viewAsApi || '/api/db/admin-users'
   var viewAsDetailApi = props.viewAsDetailApi
+  var headerIcon = props.headerIcon
   var onLogout = props.onLogout
   var profilePath = props.profilePath
 
@@ -430,9 +432,9 @@ export default function Layout(props) {
                 {title ? (
                   <>
                     <div className="shell-header-logo-icon">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                      {headerIcon || <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
                         <rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/>
-                      </svg>
+                      </svg>}
                     </div>
                     <span className="shell-header-title">{title}</span>
                   </>

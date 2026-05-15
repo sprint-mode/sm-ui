@@ -34,6 +34,7 @@
 .ps-item svg { opacity: 0.55; flex-shrink: 0; }
 .ps-item.active svg { opacity: 1; }
 .ps-item.disabled { opacity: 0.35; cursor: not-allowed; pointer-events: none; }
+.ps-item.locked { opacity: 0.35; }
 
 /* Product-accent active state — set via data attribute */
 .ps-section[data-product] .ps-item.active { background: var(--section-tint, var(--bg-subtle)); color: var(--section-color, var(--foreground)); }
