@@ -519,12 +519,8 @@ export default function Layout(props) {
   // MUST be above the loading early-return — hooks cannot be called conditionally
   var _cs = useState(function() {
     if (!navSections) return {}
-    try {
-      var saved = typeof localStorage !== 'undefined' ? localStorage.getItem('sm-nav-collapsed') : null
-      if (saved) return JSON.parse(saved)
-    } catch (e) {}
     var d = {}
-    if (navSections) navSections.forEach(function(s) { d[s.key || s.label] = true })
+    navSections.forEach(function(s) { d[s.key || s.label] = true })
     return d
   })
   var collapsedState = _cs[0]; var setCollapsedState = _cs[1]
