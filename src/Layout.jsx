@@ -186,7 +186,7 @@ function HeaderUserMenu(props) {
 var PRODUCT_COLORS = {
   'sprint-mode':    { color: '#2362ea', tint: '#e9effc' },
   'studios':        { color: '#7947d1', tint: '#f1ecfa' },
-  'mode':           { color: '#f4930a', tint: '#fdf4e6' },
+  'mode':           { color: '#0D9488', tint: '#e6f5f3' },
   'hub':            { color: '#4f5d93', tint: '#eef0f8' },
   'sprint-capital': { color: '#1fac6a', tint: '#e8f6f0' },
   'privacyai':      { color: '#0fb67f', tint: '#e7f7f2' },
