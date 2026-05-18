@@ -696,7 +696,6 @@ export default function Layout(props) {
                 <SidebarSection
                   key={section.key}
                   label={section.nav.label}
-                  Logo={PRODUCT_LOGOS[section.key]}
                   sectionIcon={section.nav.sectionIcon}
                   sectionColor={section.nav.sectionColor}
                   items={section.nav.items}
