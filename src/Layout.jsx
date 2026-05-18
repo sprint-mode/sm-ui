@@ -214,8 +214,11 @@ function canViewSection(perms, role, key) {
 function canViewProduct(perms, role, product) {
   if (!product) return true
   if (role === 'super_admin' || role === 'admin') return true
-  if (!perms || !perms.products) return false
-  return !!perms.products[product]
+  if (!perms) return false
+  // Check products map (legacy) or sections map (unified)
+  if (perms.products && perms.products[product]) return true
+  if (perms.sections && perms.sections[product]) return !!perms.sections[product].view
+  return false
 }
 
 // ═══ SIDEBAR SECTION ═══
