@@ -220,7 +220,7 @@ function canViewProduct(perms, role, product) {
 
 // ═══ SIDEBAR SECTION ═══
 
-function SidebarSection({ label, Logo, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle }) {
+function SidebarSection({ label, Logo, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat }) {
   var isExternallyManaged = collapsed !== undefined && onToggle !== undefined
   var _useState = useState(defaultOpen !== false)
   var internalOpen = _useState[0]
@@ -252,20 +252,22 @@ function SidebarSection({ label, Logo, sectionIcon, sectionColor, items, color, 
 
   return (
     <div className={'ps-section' + (open ? '' : ' collapsed')} data-product={product} style={sectionStyle}>
-      <button className="ps-section-header" onClick={handleToggle}>
-        {sectionIcon && (
-          <span className="ps-section-icon" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: 20, height: 20, borderRadius: 5, flexShrink: 0,
-            background: sectionColor ? (sectionColor.includes('hsl') ? sectionColor.replace(')', ', 0.12)').replace('hsl(', 'hsla(') : sectionColor + '1f') : (color ? color + '1f' : 'transparent'),
-            color: sectionColor || color,
-          }}>{sectionIcon}</span>
-        )}
-        {!sectionIcon && Logo && <Logo />}
-        {label}
-        <svg className="ps-section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-      {open && (
+      {!flat && (
+        <button className="ps-section-header" onClick={handleToggle}>
+          {sectionIcon && (
+            <span className="ps-section-icon" style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 20, height: 20, borderRadius: 5, flexShrink: 0,
+              background: sectionColor ? (sectionColor.includes('hsl') ? sectionColor.replace(')', ', 0.12)').replace('hsl(', 'hsla(') : sectionColor + '1f') : (color ? color + '1f' : 'transparent'),
+              color: sectionColor || color,
+            }}>{sectionIcon}</span>
+          )}
+          {!sectionIcon && Logo && <Logo />}
+          {label}
+          <svg className="ps-section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+      )}
+      {(flat || open) && (
         <div className="ps-section-items">
           {items.map(function(item) {
             if (item.external) {
@@ -703,6 +705,7 @@ export default function Layout(props) {
                   color={pc.color}
                   tint={pc.tint}
                   product={section.key}
+                  flat={section.flat || section.nav.flat}
                   collapsed={navSections ? collapsedState[section.key] : undefined}
                   onToggle={navSections ? function() { toggleCollapse(section.key) } : undefined}
                 />
