@@ -286,6 +286,20 @@ function SidebarSection({ label, Logo, sectionIcon, sectionColor, items, color, 
                 </span>
               )
             }
+            var stepEl = null
+            if (item.step != null) {
+              if (item.completed) {
+                stepEl = React.createElement('span', { className: 'ps-step done' },
+                  React.createElement('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 3, strokeLinecap: 'round', strokeLinejoin: 'round' },
+                    React.createElement('polyline', { points: '20 6 9 17 4 12' })
+                  )
+                )
+              } else {
+                stepEl = React.createElement('span', { className: 'ps-step' }, item.step)
+              }
+            } else if (item.Icon) {
+              stepEl = React.createElement(item.Icon)
+            }
             return (
               <NavLink
                 key={item.to}
@@ -295,10 +309,11 @@ function SidebarSection({ label, Logo, sectionIcon, sectionColor, items, color, 
                   var cls = 'ps-item'
                   if (p.isActive) cls += ' active'
                   if (item.locked) cls += ' locked'
+                  if (item.completed) cls += ' completed'
                   return cls
                 }}
               >
-                {item.step != null ? <span className="ps-step">{item.step}</span> : item.Icon && <item.Icon />}
+                {stepEl}
                 {' '}{item.label}
               </NavLink>
             )

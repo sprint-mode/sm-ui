@@ -43,6 +43,8 @@
 /* Step numbers in sidebar */
 .ps-step { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; flex-shrink: 0; border: 1.5px solid var(--border); color: var(--muted); background: var(--bg); }
 .ps-section[data-product] .ps-item.active .ps-step { border-color: var(--section-color, var(--accent)); color: var(--section-color, var(--accent)); background: var(--section-tint, var(--accent-tint)); }
+.ps-step.done { border-color: hsl(142,71%,45%); color: hsl(142,71%,45%); background: hsla(142,71%,45%,0.1); }
+.ps-item.completed { opacity: 0.7; }
 
 /* User section */
 .portal-sidebar-user { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
