@@ -625,7 +625,8 @@ export default function Layout(props) {
     allUsers.filter(function(u) {
       return u.email !== (session && session.email)
     }).map(function(u) {
-      return React.createElement('option', { key: u.email || u.id, value: u.email }, u.name || u.company_name || u.email.split('@')[0])
+      var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
+      return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
     })
   ) : null
 
