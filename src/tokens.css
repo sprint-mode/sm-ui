@@ -48,6 +48,7 @@
   --color-hub:            #4f5d93;
   --color-sprint-capital: #1fac6a;
   --color-privacyai:      #0891b2;
+  --color-dev-portal:      #4a4a52;
 
   /* Product tints */
   --tint-sprint-mode:    #e9effc;
@@ -56,6 +57,7 @@
   --tint-hub:            #eef0f8;
   --tint-sprint-capital: #e8f6f0;
   --tint-privacyai:      #e8f4f8;
+  --tint-dev-portal:       #f0f0f2;
 
   /* Accent — products override via [data-product] */
   --accent:      var(--blue);
@@ -72,6 +74,7 @@
 [data-product="hub"]         { --accent: #4f5d93; --accent-hover: #434f7e; --accent-10: rgba(79,93,147,.1); --accent-20: rgba(79,93,147,.2); --accent-tint: #eef0f8; }
 [data-product="capital"]     { --accent: #1fac6a; --accent-hover: #189b5d; --accent-10: rgba(31,172,106,.1); --accent-20: rgba(31,172,106,.2); --accent-tint: #e8f6f0; }
 [data-product="privacyai"]   { --accent: #0891b2; --accent-hover: #077d9b; --accent-10: rgba(8,145,178,.1); --accent-20: rgba(8,145,178,.2); --accent-tint: #e8f4f8; }
+[data-product="dev-portal"]   { --accent: #4a4a52; --accent-hover: #3a3a42; --accent-10: rgba(74,74,82,.1); --accent-20: rgba(74,74,82,.2); --accent-tint: #f0f0f2; }
 
 /* Manual dark mode override */
 [data-theme="dark"] {
@@ -93,6 +96,7 @@
     --tint-hub:            hsl(228, 30%, 16%);
     --tint-sprint-capital: hsl(152, 40%, 12%);
     --tint-privacyai:      hsl(192, 40%, 13%);
+  --tint-dev-portal:       #f0f0f2;
 }
 
 /* Auto dark: OS dark preference when no manual light override */
@@ -116,6 +120,7 @@
     --tint-hub:            hsl(228, 30%, 16%);
     --tint-sprint-capital: hsl(152, 40%, 12%);
     --tint-privacyai:      hsl(192, 40%, 13%);
+  --tint-dev-portal:       #f0f0f2;
   }
 }
 
