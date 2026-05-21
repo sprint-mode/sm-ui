@@ -48,7 +48,7 @@
   --color-hub:            #4f5d93;
   --color-sprint-capital: #1fac6a;
   --color-privacyai:      #0891b2;
-  --color-dev-portal:      #a3e635;
+  --color-dev-portal:      #4a4a52;
 
   /* Product tints */
   --tint-sprint-mode:    #e9effc;
@@ -57,7 +57,7 @@
   --tint-hub:            #eef0f8;
   --tint-sprint-capital: #e8f6f0;
   --tint-privacyai:      #e8f4f8;
-  --tint-dev-portal:       #1a1b26;
+  --tint-dev-portal:       #f0f0f2;
   }
 }
 
