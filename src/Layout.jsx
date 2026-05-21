@@ -485,6 +485,22 @@ export default function Layout(props) {
   var _va = useState(null); var viewAs = _va[0]; var setViewAs = _va[1]
   var _au = useState([]); var allUsers = _au[0]; var setAllUsers = _au[1]
 
+  // Auto-seed viewAs from session.viewing_as (set when admin opens portal via View Portal button)
+  useEffect(function() {
+    if (!session || !session.viewing_as || viewAs) return
+    var va = session.viewing_as
+    // viewing_as has: contact_id, email, name, company_id, company_name, portal_role, products
+    setViewAs({
+      email: va.email || '',
+      name: va.name || va.company_name || '',
+      company_id: va.company_id,
+      company_name: va.company_name || '',
+      portal_role: va.portal_role || 'member',
+      role: va.portal_role || 'member',
+      products: va.products || [],
+    })
+  }, [session])
+
   useEffect(function() {
     if (!showViewAs) return
     fetch(viewAsApi, { credentials: 'include' })
