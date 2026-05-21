@@ -6,7 +6,7 @@
     "DevAI"
   ],
   "color": "#4a4a52",
-  "tint": "#ececed",
+  "tint": "#b8b8bc",
   "font": "Geist",
   "fontMono": "Geist Mono",
   "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
@@ -15,6 +15,6 @@
     "--accent-hover": "#3a3a42",
     "--accent-10": "rgba(74,74,82,0.1)",
     "--accent-20": "rgba(74,74,82,0.2)",
-    "--tint": "#ececed"
+    "--tint": "#b8b8bc"
   }
 }
