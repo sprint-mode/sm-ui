@@ -104,7 +104,7 @@ export var ProductIcon = function(p) {
     'hub':            { bg: '#eef0f8', Logo: LogoHub },
     'sprint-capital': { bg: '#e8f6f0', Logo: LogoSprintCapital },
     'privacyai':      { bg: '#e8f4f8', Logo: LogoPrivacyAI },
-    'dev-portal':     { bg: '#f0f0f2', Logo: LogoDevPortal },
+    'dev-portal':     { bg: '#ececed', Logo: LogoDevPortal },
   }
   var c = colors[product] || colors['sprint-mode']
   var size = p.size || 40
