@@ -4,16 +4,16 @@
     "Signal",
     "SignalAI"
   ],
-  "color": "#c24576",
-  "tint": "#f9ecf1",
+  "color": "#c94277",
+  "tint": "#fceef3",
   "font": "Geist",
   "fontMono": "Geist Mono",
   "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
   "css": {
-    "--accent": "#c24576",
-    "--accent-hover": "#a83b65",
-    "--accent-10": "rgba(194,69,118,0.1)",
-    "--accent-20": "rgba(194,69,118,0.2)",
-    "--tint": "#f9ecf1"
+    "--accent": "#c94277",
+    "--accent-hover": "#b03868",
+    "--accent-10": "rgba(201, 66, 119, 0.1)",
+    "--accent-20": "rgba(201, 66, 119, 0.2)",
+    "--tint": "#fceef3"
   }
 }
