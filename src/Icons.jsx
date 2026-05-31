@@ -75,7 +75,7 @@ export var IconChevronUp = function(p) { return <svg {...S} {...p}><polyline poi
 // These are 24x24 stroke icons matching the brand logo design.
 // Wrap in a tint background div for the "app icon" look.
 
-export var LogoSprintMode = function(p) {
+export var LogoAPIMode = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#2362ea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/></svg>
 }
 export var LogoStudios = function(p) {
@@ -87,7 +87,7 @@ export var LogoMode = function(p) {
 export var LogoHub = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#4f5d93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
 }
-export var LogoSprintCapital = function(p) {
+export var LogoAPICapital = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#1fac6a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
 }
 export var LogoPrivacyAI = function(p) {
@@ -106,7 +106,7 @@ export var ProductIcon = function(p) {
     'privacyai':      { bg: '#e8f4f8', Logo: LogoPrivacyAI },
     'dev-portal':     { bg: '#b8b8bc', Logo: LogoDevPortal },
     'signal':         { bg: '#f9ecf1', Logo: LogoSignal },
-    'sprint':         { bg: '#faeadf', Logo: LogoSprint },
+    'api':             { bg: '#faeadf', Logo: LogoAPI } },
   }
   var c = colors[product] || colors['sprint-mode']
   var size = p.size || 40
@@ -127,7 +127,7 @@ export var LogoSignal = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#c24576" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
 }
 
-// Sprint — terminal prompt icon (API)
-export var LogoSprint = function(p) {
+// API — terminal prompt icon
+export var LogoAPI = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
 }

@@ -1,8 +1,8 @@
 {
-  "name": "sprint",
+  "name": "api",
   "displayNames": [
-    "Sprint",
-    "SprintAI"
+    "API",
+    "SprintAI API"
   ],
   "color": "#c2410c",
   "tint": "#faeadf",
