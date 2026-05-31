@@ -50,6 +50,7 @@
   --color-privacyai:      #0891b2;
   --color-dev-portal:      #4a4a52;
   --color-signal:          #c24576;
+  --color-sprint:          #c2410c;
 
   /* Product tints */
   --tint-sprint-mode:    #e9effc;
@@ -60,6 +61,7 @@
   --tint-privacyai:      #e8f4f8;
   --tint-dev-portal:       #b8b8bc;
   --tint-signal:           #f9ecf1;
+  --tint-sprint:           #faeadf;
 
   /* Accent — default to sprint-mode blue */
   --accent:    #2362ea;
@@ -76,6 +78,7 @@
 [data-product="investor"]     { --accent: #2362ea; --accent-10: rgba(35, 98, 234, 0.1); }
 [data-product="dev-portal"]   { --accent: #4a4a52; --accent-10: rgba(74, 74, 82, 0.1); }
 [data-product="signal"]       { --accent: #c24576; --accent-hover: #a83b65; --accent-10: rgba(194,69,118,.1); --accent-20: rgba(194,69,118,.2); --accent-tint: #f9ecf1; }
+[data-product="sprint"]        { --accent: #c2410c; --accent-hover: #a3370a; --accent-10: rgba(194,65,12,.1); --accent-20: rgba(194,65,12,.2); --accent-tint: #faeadf; }
 
 *, *::before, *::after { box-sizing: border-box; }
 

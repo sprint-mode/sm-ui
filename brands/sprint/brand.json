@@ -1,0 +1,19 @@
+{
+  "name": "sprint",
+  "displayNames": [
+    "Sprint",
+    "SprintAI"
+  ],
+  "color": "#c2410c",
+  "tint": "#faeadf",
+  "font": "Geist",
+  "fontMono": "Geist Mono",
+  "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
+  "css": {
+    "--accent": "#c2410c",
+    "--accent-hover": "#a3370a",
+    "--accent-10": "rgba(194,65,12,0.1)",
+    "--accent-20": "rgba(194,65,12,0.2)",
+    "--tint": "#faeadf"
+  }
+}
