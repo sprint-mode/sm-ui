@@ -34,7 +34,7 @@ var MailIcon = function() {
   )
 }
 
-export default function Login({ productName, logoSrc, authBase }) {
+export default function Login({ productName, logoSrc, authBase, icon, title, byLine, iconBg, iconColor }) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')
@@ -52,9 +52,17 @@ export default function Login({ productName, logoSrc, authBase }) {
   // Always use absolute URL so SM API redirects back to portal, not to itself
   var redirect = rawRedirect.indexOf('http') === 0 ? rawRedirect : (typeof window !== 'undefined' ? window.location.origin : '') + rawRedirect
 
-  // Resolve logo for current theme (data-theme attribute)
-  var darkLogoSrc = logoSrc ? logoSrc.replace('.png', '-dark.png') : '/logo-sprint-mode-horizontal-dark.png'
-  var lightLogoSrc = logoSrc || '/logo-sprint-mode-horizontal.png'
+  // SSO header: icon badge + title + optional byLine, centered
+  // Matches portal header spec exactly — 36px badge, 17px/500 title, 13px/400 muted byLine
+  // icon = React element (e.g. Logo component from sm-ui)
+  // iconBg = tint color for badge background
+  // iconColor = accent color (used if icon not provided, renders default chevron)
+  // title = product name shown at 17px/500
+  // byLine = secondary text e.g. "by Sprint Mode" at 13px/400 muted
+  // logoSrc kept for backward compat but ignored — use icon+title props instead
+
+  var displayTitle = title || productName || 'Sprint Mode'
+  var badgeBg = iconBg || 'var(--accent-10)'
 
   function handleGoogle() {
     window.location.href = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
@@ -95,22 +103,17 @@ export default function Login({ productName, logoSrc, authBase }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)', padding: 20 }}>
       <div style={{ width: '100%', maxWidth: 400 }}>
-        {/* Logo */}
+        {/* SSO header — icon badge + title + byLine, centered, matches portal header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          {logoSrc ? (
-            <picture>
-              <source srcSet={darkLogoSrc} media="(prefers-color-scheme: dark)" />
-              <img src={lightLogoSrc} alt={productName || 'Sprint Mode'} style={{ height: 32, width: 'auto' }} />
-            </picture>
-          ) : (
-            <picture>
-              <source srcSet="/logo-sprint-mode-horizontal-dark.png" media="(prefers-color-scheme: dark)" />
-              <img src="/logo-sprint-mode-horizontal.png" alt="Sprint Mode" style={{ height: 32, width: 'auto' }} />
-            </picture>
-          )}
-          {productName && (
-            <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 8 }}>{productName}</div>
-          )}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 9, background: badgeBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              {icon || <svg viewBox="0 0 24 24" fill="none" stroke={iconColor || 'var(--accent)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="20" height="20"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/></svg>}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 17, fontWeight: 500, color: 'var(--foreground)' }}>{displayTitle}</span>
+              {byLine && <span style={{ fontSize: 13, fontWeight: 400, color: 'hsl(220, 9%, 40%)' }}>{byLine}</span>}
+            </div>
+          </div>
         </div>
 
         {/* Card */}
