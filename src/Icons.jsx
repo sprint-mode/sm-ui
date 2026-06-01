@@ -106,7 +106,7 @@ export var ProductIcon = function(p) {
     'privacyai':      { bg: '#e8f4f8', Logo: LogoPrivacyAI },
     'dev-portal':     { bg: '#b8b8bc', Logo: LogoDevPortal },
     'signal':         { bg: '#f9ecf1', Logo: LogoSignal },
-    'api':             { bg: '#faeadf', Logo: LogoAPI } },
+    'api':             { bg: '#faeadf', Logo: LogoAPI },
   }
   var c = colors[product] || colors['sprint-mode']
   var size = p.size || 40
