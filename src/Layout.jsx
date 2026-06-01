@@ -441,6 +441,7 @@ export default function Layout(props) {
   var cmdKPlaceholder = (props.cmdK && props.cmdK.placeholder) || 'Jump to...'
   var cmdKItems = props.cmdKItems // optional custom items; auto-built from nav if omitted
   var showCompanyName = props.showCompanyName // when true, appends " // {session.company_name}" to title
+  var byLine = props.byLine // e.g. "by Sprint Mode" — shown after product name in muted secondary style
 
   // Session state — use prop or auto-fetch
   var _s = useState(sessionProp || null); var session = _s[0]; var setSession = _s[1]
@@ -703,11 +704,12 @@ export default function Layout(props) {
                 {title ? (
                   <>
                     <div className="shell-header-logo-icon">
-                      {headerIcon || <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="16" height="16">
+                      {headerIcon || <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18">
                         <rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/>
                       </svg>}
                     </div>
                     <span className="shell-header-title">{title}{showCompanyName && session && session.company_name ? React.createElement('span', { className: 'shell-header-company' }, ' // ' + session.company_name) : null}</span>
+                    {byLine ? React.createElement('span', { className: 'shell-header-byline' }, byLine) : null}
                   </>
                 ) : (
                   <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
