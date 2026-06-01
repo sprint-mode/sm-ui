@@ -53,9 +53,8 @@ export default function Login({ productName, logoSrc, authBase }) {
   var redirect = rawRedirect.indexOf('http') === 0 ? rawRedirect : (typeof window !== 'undefined' ? window.location.origin : '') + rawRedirect
 
   // Resolve logo for current theme (data-theme attribute)
-  var isDark = typeof document !== 'undefined' && document.documentElement.getAttribute('data-theme') === 'dark'
-  var themeLogoSrc = logoSrc && isDark ? logoSrc.replace('.png', '-dark.png') : logoSrc
-  var defaultLogo = isDark ? '/logo-sprint-mode-horizontal-dark.png' : '/logo-sprint-mode-horizontal.png'
+  var darkLogoSrc = logoSrc ? logoSrc.replace('.png', '-dark.png') : '/logo-sprint-mode-horizontal-dark.png'
+  var lightLogoSrc = logoSrc || '/logo-sprint-mode-horizontal.png'
 
   function handleGoogle() {
     window.location.href = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
@@ -98,10 +97,16 @@ export default function Login({ productName, logoSrc, authBase }) {
       <div style={{ width: '100%', maxWidth: 400 }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          {themeLogoSrc ? (
-            <img src={themeLogoSrc} alt={productName || 'Sprint Mode'} style={{ height: 40, width: 'auto' }} />
+          {logoSrc ? (
+            <picture>
+              <source srcSet={darkLogoSrc} media="(prefers-color-scheme: dark)" />
+              <img src={lightLogoSrc} alt={productName || 'Sprint Mode'} style={{ height: 32, width: 'auto' }} />
+            </picture>
           ) : (
-            <img src={defaultLogo} alt="Sprint Mode" style={{ height: 40, width: 'auto' }} />
+            <picture>
+              <source srcSet="/logo-sprint-mode-horizontal-dark.png" media="(prefers-color-scheme: dark)" />
+              <img src="/logo-sprint-mode-horizontal.png" alt="Sprint Mode" style={{ height: 32, width: 'auto' }} />
+            </picture>
           )}
           {productName && (
             <div style={{ fontSize: 14, color: 'var(--muted)', marginTop: 8 }}>{productName}</div>
