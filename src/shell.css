@@ -71,10 +71,11 @@
 .shell-with-header > :not(.shell-header) { /* let flexbox handle it */ }
 .shell-header { background: var(--bg-card, var(--bg)); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 9000; flex-shrink: 0; }
 .shell-header-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 20px; gap: 16px; }
-.shell-header-logo { display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--foreground); flex-shrink: 0; }
-.shell-header-logo-icon { width: 30px; height: 30px; border-radius: 7px; background: var(--accent); display: flex; align-items: center; justify-content: center; color: #fff; }
-.shell-header-title { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+.shell-header-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--foreground); flex-shrink: 0; }
+.shell-header-logo-icon { width: 36px; height: 36px; border-radius: 9px; background: var(--accent); display: flex; align-items: center; justify-content: center; color: #fff; }
+.shell-header-title { font-size: 17px; font-weight: 500; letter-spacing: -0.3px; }
 .shell-header-company { font-weight: 400; color: var(--muted); }
+.shell-header-byline { font-size: 13px; font-weight: 400; color: var(--muted); }
 .shell-header-right { display: flex; align-items: center; gap: 10px; }
 
 /* With header: column layout (header on top, shell-body fills rest) */
