@@ -43,6 +43,8 @@ export {
   IconSearch, IconPlay, IconUserPlus, IconMonitor, IconMoon, IconSun,
   IconPipeline, IconSend, IconShield, IconGridPlus, IconLink, IconPackage,
   IconQuestion, IconPaperclip, IconChevronUp,
+  IconAddressBook, IconChartHistogram, IconReportMoney, IconMoneybag,
+  IconActivityHeartbeat, IconMessageCircle, IconGlobe, IconDevWindow,
   LogoSprintMode, LogoStudios, LogoMode, LogoHub,
   LogoSprintCapital, LogoPrivacyAI,
   ProductIcon, LogoDevPortal, LogoSignal, LogoAPI,
