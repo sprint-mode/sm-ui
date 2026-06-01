@@ -82,7 +82,7 @@ export var LogoStudios = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#7947d1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
 }
 export var LogoMode = function(p) {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>
+  return <svg viewBox="0 0 24 24" fill="none" stroke="#0c917b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>
 }
 export var LogoHub = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#4f5d93" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -100,7 +100,7 @@ export var ProductIcon = function(p) {
   var colors = {
     'sprint-mode':    { bg: '#e9effc', Logo: LogoSprintMode },
     'studios':        { bg: '#f1ecfa', Logo: LogoStudios },
-    'mode':           { bg: '#e6f5f3', Logo: LogoMode },
+    'mode':           { bg: '#e6f4f1', Logo: LogoMode },
     'hub':            { bg: '#eef0f8', Logo: LogoHub },
     'sprint-capital': { bg: '#e8f6f0', Logo: LogoSprintCapital },
     'privacyai':      { bg: '#e8f4f8', Logo: LogoPrivacyAI },
