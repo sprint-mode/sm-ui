@@ -68,3 +68,4 @@ export {
 // import '@sprintmode/ui/css'
 
 export { NotificationBell } from './NotificationBell.jsx'
+export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.jsx'
