@@ -81,6 +81,7 @@ export var IconPackage = function(p) { return <svg {...S} {...p}><line x1="16.5"
 export var IconQuestion = function(p) { return <svg {...S} {...p}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg> }
 export var IconPaperclip = function(p) { return <svg {...S} {...p}><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg> }
 export var IconChevronUp = function(p) { return <svg {...S} {...p}><polyline points="18 15 12 9 6 15"/></svg> }
+export var IconHeadset = function(p) { return <svg {...S} {...p}><path d="M3 11l0 -2a9 9 0 0 1 18 0l0 2"/><path d="M21 17a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h3z"/><path d="M3 17a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2h-3z"/></svg> }
 
 // These are 24x24 stroke icons matching the brand logo design.
 // Wrap in a tint background div for the "app icon" look.

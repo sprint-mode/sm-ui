@@ -42,7 +42,7 @@ export {
   IconFolder, IconClipboard, IconPalette, IconEdit, IconReceipt,
   IconSearch, IconPlay, IconUserPlus, IconMonitor, IconMoon, IconSun,
   IconPipeline, IconSend, IconShield, IconGridPlus, IconLink, IconPackage,
-  IconQuestion, IconPaperclip, IconChevronUp,
+  IconQuestion, IconPaperclip, IconChevronUp, IconHeadset,
   IconAddressBook, IconChartHistogram, IconReportMoney, IconMoneybag,
   IconActivityHeartbeat, IconMessageCircle, IconGlobe, IconDevWindow,
   LogoSprintMode, LogoStudios, LogoMode, LogoHub,
