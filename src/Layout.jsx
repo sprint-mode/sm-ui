@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from 'r
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { getSession, clearSession } from './api.js'
 import { IconChevron, IconSearch, IconMoon, IconSun, IconUser } from './Icons.jsx'
+import { NotificationBell } from './NotificationBell.jsx'
 
 // ═══ SESSION CONTEXT ═══
 
@@ -688,6 +689,7 @@ export default function Layout(props) {
       onClick: theme.toggle, 'aria-label': 'Toggle theme',
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
+    React.createElement(NotificationBell, { apiBase: 'https://api.sprintmode.ai' }),
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref })
   ) : null
 

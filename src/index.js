@@ -66,3 +66,5 @@ export {
 
 // NOTE: CSS imports are at '@sprintmode/ui/css'
 // import '@sprintmode/ui/css'
+
+export { NotificationBell } from './NotificationBell.jsx'
