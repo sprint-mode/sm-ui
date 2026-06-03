@@ -148,6 +148,7 @@ export function CmdK(props) {
 
 function HeaderUserMenu(props) {
   var session = props.session; var profilePath = props.profilePath; var logoutHref = props.logoutHref
+  var userMenuExtra = props.userMenuExtra
   var _open = useState(false); var open = _open[0]; var setOpen = _open[1]
   var ref = useRef(null)
 
@@ -177,6 +178,7 @@ function HeaderUserMenu(props) {
         roleLabel ? React.createElement('div', { style: { marginTop: 2 } }, roleLabel) : (session && session.company_name ? React.createElement('div', { style: { marginTop: 2 } }, session.company_name) : null)
       ),
       profilePath ? React.createElement('a', { href: profilePath, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Profile') : null,
+      userMenuExtra || null,
       React.createElement('a', { href: logoutHref, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Sign out')
     ) : null
   )
@@ -443,6 +445,7 @@ export default function Layout(props) {
   var cmdKItems = props.cmdKItems // optional custom items; auto-built from nav if omitted
   var showCompanyName = props.showCompanyName // when true, appends " // {session.company_name}" to title
   var byLine = props.byLine // e.g. "by Sprint Mode" — shown after product name in muted secondary style
+  var userMenuExtra = props.userMenuExtra // optional React element rendered in user menu between Profile and Sign out
 
   // Session state — use prop or auto-fetch
   var _s = useState(sessionProp || null); var session = _s[0]; var setSession = _s[1]
@@ -690,7 +693,7 @@ export default function Layout(props) {
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
     React.createElement(NotificationBell, { apiBase: 'https://api.sprintmode.ai' }),
-    React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref })
+    React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
 
   return (
