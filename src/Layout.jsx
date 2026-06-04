@@ -944,18 +944,24 @@ export default function Layout(props) {
   var logoutHref = onLogout || ('/api/auth/logout?redirect=' + encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/auth/login'))
 
   // ── Standard header-right items (rendered after custom headerRight) ──
-  var viewAsSelect = showViewAs && allUsers.length > 0 ? React.createElement('select', {
-    value: viewAs ? viewAs.email : '',
-    onChange: function(e) { handleViewAs(e.target.value) },
-    style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', maxWidth: 200 }
-  },
-    React.createElement('option', { value: '' }, 'View as...'),
-    allUsers.filter(function(u) {
-      return u.email !== (session && session.email)
-    }).map(function(u) {
-      var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
-      return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
-    })
+  var viewAsSelect = showViewAs && allUsers.length > 0 ? React.createElement(React.Fragment, null,
+    React.createElement('select', {
+      value: viewAs ? viewAs.email : '',
+      onChange: function(e) { handleViewAs(e.target.value) },
+      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', maxWidth: 200 }
+    },
+      React.createElement('option', { value: '' }, 'View as...'),
+      allUsers.filter(function(u) {
+        return u.email !== (session && session.email)
+      }).map(function(u) {
+        var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
+        return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
+      })
+    ),
+    viewAs ? React.createElement('button', {
+      onClick: function() { setViewAs(null) },
+      style: { padding: '5px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--accent-10)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }
+    }, '✕ Exit') : null
   ) : null
 
   var standardHeaderRight = hasHeader && session ? React.createElement(React.Fragment, null,
