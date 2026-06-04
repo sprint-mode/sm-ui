@@ -331,6 +331,12 @@ function HeaderUserMenu(props) {
   var initials = session ? (session.name || session.email || '?').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase() : '?'
   var displayName = session ? (session.name ? session.name.split(' ')[0] : (session.email ? session.email.split('@')[0] : '')) : ''
   var roleLabel = session && session.role ? session.role.replace(/_/g, ' ') : (session && session.portal_role ? session.portal_role.replace(/_/g, ' ') : '')
+  var photo = session && session.photo
+
+  // Avatar: photo if available, initials fallback
+  var avatarEl = photo
+    ? React.createElement('img', { src: photo, alt: '', style: { width: 26, height: 26, borderRadius: 6, objectFit: 'cover', display: 'block', flexShrink: 0 } })
+    : React.createElement('div', { style: { width: 26, height: 26, borderRadius: 6, background: 'var(--accent-10)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, flexShrink: 0 } }, initials)
 
   return React.createElement('div', { ref: ref, style: { position: 'relative' } },
     React.createElement('button', {
@@ -338,7 +344,7 @@ function HeaderUserMenu(props) {
       className: 'shell-header-avatar',
       style: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 8px 4px 4px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer', transition: 'border-color .2s', flexShrink: 0 }
     },
-      React.createElement('div', { style: { width: 26, height: 26, borderRadius: 6, background: 'var(--accent-10)', color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600 } }, initials),
+      avatarEl,
       React.createElement('span', { style: { fontSize: 13, color: 'var(--foreground)', fontWeight: 500, maxWidth: 100, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, displayName)
     ),
     open ? React.createElement('div', { style: { position: 'absolute', right: 0, top: 42, width: 220, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 6, zIndex: 100 } },
@@ -351,6 +357,85 @@ function HeaderUserMenu(props) {
       userMenuExtra || null,
       React.createElement('a', { href: logoutHref, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Sign out')
     ) : null
+  )
+}
+
+// ═══ PORTAL SWITCHER ═══
+// Fetches the current user's active SM portals (/api/my-portals) and renders
+// a switcher list. Returns null if the user only has one portal (no point switching).
+// Consume: import { PortalSwitcher } from '@nomadahq/sm-ui' then pass as userMenuExtra.
+
+var PORTAL_DOMAINS = {
+  admin:     'admin.sprintmode.ai',
+  studios:   'studios.sprintmode.ai',
+  mode:      'mode.sprintmode.ai',
+  signal:    'signal.sprintmode.ai',
+  investors: 'investors.sprintmode.ai',
+  dev:       'dev.sprintmode.ai',
+}
+
+var PORTAL_PRODUCT_KEY = {
+  admin:     'sprint-mode',
+  studios:   'studios',
+  mode:      'mode',
+  signal:    'signal',
+  investors: 'sprint-capital',
+  dev:       'dev-portal',
+}
+
+var PORTAL_SHORT_NAME = {
+  admin:     'Admin',
+  dev:       'Dev',
+  investors: 'Investors',
+  mode:      'Mode',
+  signal:    'Signal',
+  studios:   'Studios',
+}
+
+export function PortalSwitcher() {
+  var _p = useState(null); var portals = _p[0]; var setPortals = _p[1]
+
+  useEffect(function() {
+    fetch('/api/my-portals', { credentials: 'include' })
+      .then(function(r) { return r.json() })
+      .then(function(data) {
+        if (data.ok && data.data && data.data.portals) setPortals(data.data.portals)
+      })
+      .catch(function() {})
+  }, [])
+
+  if (!portals || portals.length <= 1) return null
+
+  var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
+
+  return React.createElement('div', { style: { borderTop: '1px solid var(--border)', marginTop: 2, paddingTop: 4 } },
+    React.createElement('div', {
+      style: { padding: '6px 10px', fontSize: 11, color: 'var(--muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.5px' }
+    }, 'Portals'),
+    portals.map(function(p) {
+      var domain = PORTAL_DOMAINS[p.portal] || (p.portal + '.sprintmode.ai')
+      var isCurrent = currentHost === domain
+      var productKey = PORTAL_PRODUCT_KEY[p.portal] || 'sprint-mode'
+      var shortName = PORTAL_SHORT_NAME[p.portal] || p.name || p.portal
+      return React.createElement('a', {
+        key: p.portal,
+        href: 'https://' + domain,
+        target: isCurrent ? undefined : '_blank',
+        rel: isCurrent ? undefined : 'noopener noreferrer',
+        style: {
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '5px 10px', borderRadius: 6, fontSize: 13,
+          color: isCurrent ? 'var(--accent)' : 'var(--foreground)',
+          textDecoration: 'none',
+          background: isCurrent ? 'var(--accent-10, hsla(215,80%,55%,.08))' : 'transparent',
+          fontWeight: isCurrent ? 500 : 400,
+        }
+      },
+        React.createElement(ProductIcon, { product: productKey, size: 20 }),
+        React.createElement('span', null, shortName),
+        !isCurrent ? React.createElement('span', { style: { marginLeft: 'auto', opacity: 0.25, fontSize: 10 } }, '\u2197') : null
+      )
+    })
   )
 }
 
@@ -803,6 +888,7 @@ export default function Layout(props) {
   })
 
   var initials = session ? (session.name || session.email || '?').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase() : '?'
+  var sessionPhoto = session && session.photo
   var logo = logoSrc || '/logo-sprint-mode-horizontal.png'
   var alt = logoAlt || 'Sprint Mode'
   // Resolve logo for current theme — data-theme attribute (portal-controlled) over OS
@@ -965,7 +1051,11 @@ export default function Layout(props) {
           {/* Default user section (only if no header) */}
           {!hasHeader && (
             <div className="portal-sidebar-user">
-              <button className="portal-avatar" onClick={function(e) { e.stopPropagation(); setDropdownOpen(!dropdownOpen) }}>{initials}</button>
+              <button className="portal-avatar" onClick={function(e) { e.stopPropagation(); setDropdownOpen(!dropdownOpen) }}>
+                {sessionPhoto
+                  ? React.createElement('img', { src: sessionPhoto, alt: '', style: { width: '100%', height: '100%', borderRadius: 'inherit', objectFit: 'cover', display: 'block' } })
+                  : initials}
+              </button>
               <div>
                 <div className="portal-sidebar-user-name">{session ? (session.name || session.email) : ''}</div>
                 <div className="portal-sidebar-user-co">{session ? (session.company_name || '') : ''}</div>
