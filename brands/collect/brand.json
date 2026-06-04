@@ -1,0 +1,19 @@
+{
+  "name": "collect",
+  "displayNames": [
+    "Collect",
+    "CollectAI"
+  ],
+  "color": "#dc2626",
+  "tint": "#fce8e8",
+  "font": "Geist",
+  "fontMono": "Geist Mono",
+  "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
+  "css": {
+    "--accent": "#dc2626",
+    "--accent-hover": "#b91c1c",
+    "--accent-10": "rgba(220,38,38,0.1)",
+    "--accent-20": "rgba(220,38,38,0.2)",
+    "--tint": "#fce8e8"
+  }
+}

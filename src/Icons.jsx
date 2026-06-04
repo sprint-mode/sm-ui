@@ -118,6 +118,7 @@ export var ProductIcon = function(p) {
     'dev-portal':     { bg: '#b8b8bc', Logo: LogoDevPortal },
     'signal':         { bg: '#f9ecf1', Logo: LogoSignal },
     'api':             { bg: '#faeadf', Logo: LogoAPI },
+    'collect':        { bg: '#fce8e8', Logo: LogoCollect },
   }
   var c = colors[product] || colors['sprint-mode']
   var size = p.size || 40
@@ -141,4 +142,9 @@ export var LogoSignal = function(p) {
 // API — terminal prompt icon
 export var LogoAPI = function(p) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="#c2410c" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+}
+
+// Collect — receipt-refund (Tabler)
+export var LogoCollect = function(p) {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="18" height="18" {...p}><path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16l-3 -2l-2 2l-2 -2l-2 2l-2 -2l-3 2"/><path d="M15 14v-2a2 2 0 0 0 -2 -2h-4l2 -2m0 4l-2 -2"/></svg>
 }
