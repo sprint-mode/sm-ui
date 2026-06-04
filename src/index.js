@@ -20,7 +20,7 @@ export {
 } from './components.jsx'
 
 // Layout shell with session context + view-as system + cmd+k + theme
-export { default as Layout, useSession, ViewAsContext, useViewAs, CmdK, useTheme } from './Layout.jsx'
+export { default as Layout, useSession, ViewAsContext, useViewAs, CmdK, useTheme, PortalSwitcher } from './Layout.jsx'
 
 // Login page
 export { default as Login } from './Login.jsx'
