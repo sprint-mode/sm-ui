@@ -392,27 +392,48 @@ var PORTAL_SHORT_NAME = {
   studios:   'Studios',
 }
 
+// Module-level cache — fetched once per page load, instant on subsequent menu opens
+var _portalCache = null
+var _portalFetch = null
+
 export function PortalSwitcher() {
-  var _p = useState(null); var portals = _p[0]; var setPortals = _p[1]
+  var _p = useState(_portalCache); var portals = _p[0]; var setPortals = _p[1]
 
   useEffect(function() {
-    fetch('/api/my-portals', { credentials: 'include' })
-      .then(function(r) { return r.json() })
-      .then(function(data) {
-        if (data.ok && data.data && data.data.portals) setPortals(data.data.portals)
-      })
-      .catch(function() {})
+    if (_portalCache) { setPortals(_portalCache); return }
+    if (!_portalFetch) {
+      _portalFetch = fetch('/api/my-portals', { credentials: 'include' })
+        .then(function(r) { return r.json() })
+        .then(function(data) {
+          if (data.ok && data.data && data.data.portals) {
+            _portalCache = data.data.portals
+            return _portalCache
+          }
+          return []
+        })
+        .catch(function() { return [] })
+    }
+    _portalFetch.then(function(list) { setPortals(list) })
   }, [])
 
   if (!portals || portals.length <= 1) return null
 
   var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
 
+  // Admin always first, then alphabetical by short name
+  var sorted = portals.slice().sort(function(a, b) {
+    if (a.portal === 'admin') return -1
+    if (b.portal === 'admin') return 1
+    var na = PORTAL_SHORT_NAME[a.portal] || a.portal
+    var nb = PORTAL_SHORT_NAME[b.portal] || b.portal
+    return na.localeCompare(nb)
+  })
+
   return React.createElement('div', { style: { borderTop: '1px solid var(--border)', marginTop: 2, paddingTop: 4 } },
     React.createElement('div', {
       style: { padding: '6px 10px', fontSize: 11, color: 'var(--muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.5px' }
     }, 'Portals'),
-    portals.map(function(p) {
+    sorted.map(function(p) {
       var domain = PORTAL_DOMAINS[p.portal] || (p.portal + '.sprintmode.ai')
       var isCurrent = currentHost === domain
       var productKey = PORTAL_PRODUCT_KEY[p.portal] || 'sprint-mode'
