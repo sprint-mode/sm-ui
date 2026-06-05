@@ -722,8 +722,10 @@ export default function Layout(props) {
   var cmdKOnSearch = props.onSearch // async callback for server-side search
   var cmdKRecentKey = props.recentKey // localStorage key for recent items
   var showCompanyName = props.showCompanyName // when true, appends " // {session.company_name}" to title
-  var byLine = props.byLine // e.g. "by Sprint Mode" — shown after product name in muted secondary style
+  var byLine = props.byLine // e.g. "by Sprint Mode" -- shown after product name in muted secondary style
   var userMenuExtra = props.userMenuExtra // optional React element rendered in user menu between Profile and Sign out
+  var notificationApiBase = props.notificationApiBase || 'https://api.sprintmode.ai' // base URL for NotificationBell polls
+  var viewAsAnyRole = props.viewAsAnyRole // when true, any logged-in user gets View As (non-admin portals only)
 
   // Session state — use prop or auto-fetch
   var _s = useState(sessionProp || null); var session = _s[0]; var setSession = _s[1]
@@ -763,8 +765,11 @@ export default function Layout(props) {
   }, [])
 
   // ── View-As / Impersonation ──
+  // View As gate:
+  // viewAsAnyRole=true  -> any logged-in session can use View As (product/client portals)
+  // viewAsAnyRole=false -> only super_admin/admin can use View As (admin portal default)
   var isSuperAdmin = session && (session.role === 'super_admin' || session.portal_role === 'super_admin' || session.role === 'admin' || session.portal_role === 'admin')
-  var showViewAs = viewAsEnabled && isSuperAdmin
+  var showViewAs = viewAsEnabled && (viewAsAnyRole ? !!session : isSuperAdmin)
   var _va = useState(null); var viewAs = _va[0]; var setViewAs = _va[1]
   var _au = useState([]); var allUsers = _au[0]; var setAllUsers = _au[1]
 
@@ -971,13 +976,13 @@ export default function Layout(props) {
     },
       React.createElement(IconSearch, null),
       React.createElement('span', null, 'Search'),
-      React.createElement('kbd', { style: { fontSize: 11, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle)', color: 'var(--muted)', lineHeight: 1.4 } }, '\u2318K')
+      React.createElement('kbd', { style: { fontSize: 11, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle)', color: 'var(--muted)', lineHeight: 1.4 } }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1) ? '\u2318K' : 'Ctrl+K')
     ) : null,
     React.createElement('button', {
       onClick: theme.toggle, 'aria-label': 'Toggle theme',
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
-    React.createElement(NotificationBell, { apiBase: 'https://api.sprintmode.ai' }),
+    React.createElement(NotificationBell, { apiBase: notificationApiBase }),
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
 
