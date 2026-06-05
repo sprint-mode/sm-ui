@@ -1,23 +1,12 @@
-// ProfileCard.jsx -- shared profile card for @nomadahq/sm-ui
+// ProfileCard.jsx -- shared self-service profile card for @nomadahq/sm-ui
 //
-// Two modes:
-//   mode="self"  -- for any portal's /profile page (Studios, Signal, Investors, Dev, Docs)
-//                   calls GET /api/profile at apiBase, shows editable name/title/phone,
-//                   read-only email/role, avatar editor, all emails, Slack link, GWS groups
-//   mode="admin" -- for admin CRM contact card usage, receives contact data as props,
-//                   all fields displayed read-only (editing happens in ContactDetail)
+// Usage:
+//   <ProfileCard variant="self" apiBase="https://api.sprintmode.ai" />
+//   <ProfileCard variant="self" backHref="/dashboard" />
 //
-// Usage (self):
-//   <ProfileCard mode="self" apiBase="https://api.sprintmode.ai" />
-//   <ProfileCard mode="self" />  // apiBase defaults to https://api.sprintmode.ai
+// variant="self": fetches GET /api/profile at apiBase, shows editable name/title/phone,
+//   read-only email/role, avatar editor, all emails, Slack link, GWS groups, notifications.
 //
-// Usage (admin — embed inside ContactDetail or similar):
-//   <ProfileCard mode="admin" contact={contact} session={session} />
-//
-// API shape consumed (GET /api/profile returns { ok, profile: {...} }):
-//   profile: { id, full_name, email, title, phone, photo_url, portal_role,
-//              company_name, hire_date, emails[], payroll[], slack_profile_url,
-//              gws_groups[], contact_type }
 
 import React, { useState, useEffect, useRef } from 'react'
 
@@ -504,74 +493,17 @@ function SelfProfileCard({ apiBase, backHref }) {
 }
 
 // =============================================================================
-// ADMIN MODE -- embed inside CRM ContactDetail; receives data as props
-// =============================================================================
-
-function AdminProfileCard({ contact, session }) {
-  if (!contact) return null
-  var p = contact
-  var initials = (p.full_name || p.email || '?').split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
-  var role = p.portal_role || p.role || 'member'
-
-  return (
-    <div>
-      {/* Identity header */}
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14 }}>
-          <Avatar photoUrl={p.photo_url} initials={initials} size={52} editable={false} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--foreground, #111)' }}>{p.full_name || '(no name)'}</span>
-              <RoleBadge role={role} />
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--muted, #6b7280)' }}>
-              {p.email}
-              {p.company_name && <><span style={{ margin: '0 5px' }}>{'\u00B7'}</span>{p.company_name}</>}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Info grid */}
-      <div style={CARD_STYLE}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-          {[
-            ['Full name', p.full_name],
-            ['Title', p.title],
-            ['Email', p.email],
-            ['Phone', p.phone],
-            ['Company', p.company_name],
-            ['Hire date', fmtDate(p.hire_date)],
-          ].map(function(item, i) {
-            return item[1] ? (
-              <div key={i}>
-                <span style={LABEL}>{item[0]}</span>
-                <div style={VAL}>{item[1]}</div>
-              </div>
-            ) : null
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// =============================================================================
 // MAIN EXPORT
 // =============================================================================
 
 /**
  * ProfileCard
+ * Self-service profile page for any SM portal.
  * @param {object} props
- * @param {'self'|'admin'} props.mode
- * @param {string} [props.apiBase] - API base URL for mode="self" (default: https://api.sprintmode.ai)
- * @param {string} [props.backHref] - Back link href for mode="self"
- * @param {object} [props.contact] - Contact data object for mode="admin"
- * @param {object} [props.session] - Session object for mode="admin"
+ * @param {'self'} props.variant - Currently only 'self' is supported
+ * @param {string} [props.apiBase] - API base URL (default: https://api.sprintmode.ai)
+ * @param {string} [props.backHref] - Optional back link href shown above the page title
  */
 export function ProfileCard(props) {
-  if (props.mode === 'admin') {
-    return <AdminProfileCard contact={props.contact} session={props.session} />
-  }
   return <SelfProfileCard apiBase={props.apiBase} backHref={props.backHref} />
 }
