@@ -47,7 +47,7 @@
   --color-mode:           #0c917b;
   --color-hub:            #4f5d93;
   --color-sprint-capital: #1fac6a;
-  --color-privacyai:      #0fb67f;
+  --color-privacyai:      #0891b2;
   --color-dev-portal:      #4a4a52;
   --color-signal:          #c24576;
   --color-api:             #c2410c;
@@ -59,7 +59,7 @@
   --tint-mode:           #e6f4f1;
   --tint-hub:            #eef0f8;
   --tint-sprint-capital: #e8f6f0;
-  --tint-privacyai:      #e7f7f2;
+  --tint-privacyai:      #e6f5f8;
   --tint-dev-portal:       #b8b8bc;
   --tint-signal:           #f9ecf1;
   --tint-api:              #faeadf;
@@ -104,7 +104,7 @@
 [data-product="mode"]        { --accent: #0c917b; --accent-hover: #0a7d6a; --accent-10: rgba(12,145,123,.1); --accent-20: rgba(12,145,123,.2); --accent-tint: #e6f4f1; }
 [data-product="hub"]          { --accent: #4f5d93; --accent-10: rgba(79, 93, 147, 0.1); }
 [data-product="sprint-capital"] { --accent: #1fac6a; --accent-10: rgba(31, 172, 106, 0.1); }
-[data-product="privacyai"]    { --accent: #0fb67f; --accent-10: rgba(15, 182, 127, 0.1); }
+[data-product="privacyai"]    { --accent: #0891b2; --accent-10: rgba(8, 145, 178, 0.1); }
 [data-product="investor"]     { --accent: #2362ea; --accent-10: rgba(35, 98, 234, 0.1); }
 [data-product="dev-portal"]   { --accent: #4a4a52; --accent-10: rgba(74, 74, 82, 0.1); }
 [data-product="signal"]       { --accent: #c24576; --accent-hover: #a83b65; --accent-10: rgba(194,69,118,.1); --accent-20: rgba(194,69,118,.2); --accent-tint: #f9ecf1; }
