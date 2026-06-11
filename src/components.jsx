@@ -188,16 +188,15 @@ export function ScoreRing({ score, label }) {
 }
 
 // ── Explainer Drawer ─────────────────────────────────────────────────────────
-// Pull-down info drawer. Desktop: centered handle. Mobile: "i" button.
-// Usage: <Explainer title="Section Name">{...content...}</Explainer>
+// Info icon that opens a slide-down drawer. Inline next to any heading.
+// Usage: <Explainer title="Section">{...content...}</Explainer>
 
 export function Explainer({ children, title }) {
   var ref = React.useRef(null)
-  var open = React.useState(false)
-  var isOpen = open[0]
-  var setOpen = open[1]
+  var state = React.useState(false)
+  var isOpen = state[0]
+  var setOpen = state[1]
 
-  // Close on Escape
   React.useEffect(function() {
     if (!isOpen) return
     function onKey(e) { if (e.key === 'Escape') setOpen(false) }
@@ -205,7 +204,6 @@ export function Explainer({ children, title }) {
     return function() { document.removeEventListener('keydown', onKey) }
   }, [isOpen])
 
-  // Lock body scroll when open
   React.useEffect(function() {
     if (isOpen) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
@@ -213,25 +211,22 @@ export function Explainer({ children, title }) {
   }, [isOpen])
 
   return React.createElement(React.Fragment, null,
-    // Desktop: centered pull-tab
-    React.createElement('div', { className: 'sm-explainer-trigger' },
-      React.createElement('button', {
-        className: 'sm-explainer-handle',
-        onClick: function() { setOpen(true) },
-        'aria-label': 'Show explainer for ' + (title || 'this section'),
+    React.createElement('button', {
+      className: 'sm-explainer-icon',
+      onClick: function() { setOpen(true) },
+      'aria-label': 'Show guide' + (title ? ' for ' + title : ''),
+      title: title ? title + ' Guide' : 'Guide',
+    },
+      React.createElement('svg', {
+        xmlns: 'http://www.w3.org/2000/svg', width: 18, height: 18, viewBox: '0 0 24 24',
+        fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
       },
-        React.createElement('span', { className: 'sm-explainer-handle-icon' }, '▾'),
-        React.createElement('span', { className: 'sm-explainer-handle-label' }, title ? title + ' Guide' : 'Guide')
-      ),
-      // Mobile: compact info button
-      React.createElement('button', {
-        className: 'sm-explainer-info-btn',
-        onClick: function() { setOpen(true) },
-        'aria-label': 'Info',
-      }, 'ⓘ')
+        React.createElement('circle', { cx: 12, cy: 12, r: 10 }),
+        React.createElement('path', { d: 'M12 16v-4' }),
+        React.createElement('path', { d: 'M12 8h.01' })
+      )
     ),
 
-    // Backdrop + Drawer
     React.createElement('div', {
       className: 'sm-explainer-backdrop' + (isOpen ? ' sm-explainer-open' : ''),
       onClick: function(e) { if (e.target === e.currentTarget) setOpen(false) },
@@ -246,7 +241,7 @@ export function Explainer({ children, title }) {
             className: 'sm-explainer-close',
             onClick: function() { setOpen(false) },
             'aria-label': 'Close',
-          }, '✕')
+          }, '\u2715')
         ),
         React.createElement('div', { className: 'sm-explainer-body' }, children)
       )

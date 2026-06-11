@@ -35,7 +35,7 @@ export {
   IconUsers, IconUser, IconDollar, IconTerminal, IconGear,
   IconSessions, IconEye, IconLayers, IconStar, IconCheck,
   IconRefresh, IconWarn, IconSpark, IconClick, IconPercent,
-  IconCloud, IconExternal, IconFile, IconMsg, IconBill,
+  IconCloud, IconInfoCircle, IconExternal, IconFile, IconMsg, IconBill,
   IconPortfolio, IconExpand, IconWrench, IconPlus, IconX,
   IconMail, IconChevron,
   IconArrowUp, IconArrowDown, IconArrowLeft, IconArrowRight,

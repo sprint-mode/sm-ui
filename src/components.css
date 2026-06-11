@@ -110,70 +110,29 @@
 
 /* ── Explainer Drawer ─────────────────────────────────────────────────────── */
 
-.sm-explainer-trigger {
-  display: flex;
-  justify-content: center;
-  padding: 0;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-}
-
-/* Desktop: centered pull-tab handle */
-.sm-explainer-handle {
+/* Inline icon button — sits next to any heading */
+.sm-explainer-icon {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 14px;
-  border: 1px solid var(--border);
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-  background: var(--bg-card);
-  color: var(--muted);
-  font: 500 12px/1 var(--font);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
-  border-top: none;
-}
-.sm-explainer-handle:hover {
-  color: var(--foreground);
-  background: var(--bg-subtle);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-}
-.sm-explainer-handle-icon {
-  font-size: 10px;
-  transition: transform 0.2s;
-}
-.sm-explainer-handle:hover .sm-explainer-handle-icon {
-  transform: translateY(1px);
-}
-.sm-explainer-handle-label {
-  letter-spacing: 0.02em;
-}
-
-/* Mobile: info button (hidden on desktop) */
-.sm-explainer-info-btn {
-  display: none;
+  justify-content: center;
   width: 28px;
   height: 28px;
+  border: none;
   border-radius: 50%;
-  border: 1px solid var(--border);
-  background: var(--bg-card);
-  color: var(--blue);
-  font-size: 16px;
-  line-height: 1;
+  background: transparent;
+  color: var(--muted);
   cursor: pointer;
-  position: absolute;
-  right: 0;
-  top: -2px;
+  transition: color 0.15s, background 0.15s;
+  vertical-align: middle;
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+.sm-explainer-icon:hover {
+  color: var(--blue);
+  background: var(--blue-10);
 }
 
-@media (max-width: 640px) {
-  .sm-explainer-handle { display: none; }
-  .sm-explainer-info-btn { display: flex; align-items: center; justify-content: center; }
-}
-
-/* Backdrop */
+/* Backdrop — content area only */
 .sm-explainer-backdrop {
   position: fixed;
   top: 0;
@@ -190,7 +149,7 @@
   pointer-events: auto;
 }
 
-/* Drawer */
+/* Drawer — slides down over content only */
 .sm-explainer-drawer {
   position: fixed;
   top: 0;
@@ -270,13 +229,9 @@
   border-radius: 4px;
 }
 
-@media (max-width: 640px) {
-  .sm-explainer-drawer { max-height: 85vh; }
-  .sm-explainer-header { padding: 14px 16px 10px; }
-  .sm-explainer-body { padding: 16px; }
-}
-
 @media (max-width: 768px) {
   .sm-explainer-backdrop { left: 0; }
-  .sm-explainer-drawer { left: 0; }
+  .sm-explainer-drawer { left: 0; max-height: 85vh; }
+  .sm-explainer-header { padding: 14px 16px 10px; }
+  .sm-explainer-body { padding: 16px; }
 }

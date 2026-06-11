@@ -1,6 +1,6 @@
 {
   "name": "@nomadahq/sm-ui",
-  "version": "0.5.17",
+  "version": "0.5.18",
   "description": "Sprint Mode shared platform UI — components, design tokens, auth helpers, login",
   "repository": {
     "type": "git",
