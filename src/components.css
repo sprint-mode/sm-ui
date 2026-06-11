@@ -113,8 +113,10 @@
 .sm-explainer-trigger {
   display: flex;
   justify-content: center;
-  padding: 0 0 4px;
-  position: relative;
+  padding: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
 }
 
 /* Desktop: centered pull-tab handle */
@@ -174,7 +176,10 @@
 /* Backdrop */
 .sm-explainer-backdrop {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: var(--sidebar-w, 248px);
   z-index: 999;
   background: rgba(0,0,0,0);
   pointer-events: none;
@@ -189,12 +194,12 @@
 .sm-explainer-drawer {
   position: fixed;
   top: 0;
-  left: 0;
+  left: var(--sidebar-w, 248px);
   right: 0;
   max-height: 75vh;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border);
-  border-radius: 0 0 var(--radius) var(--radius);
+  border-radius: 0 0 var(--radius) 0;
   box-shadow: 0 8px 32px rgba(0,0,0,0.12);
   transform: translateY(-100%);
   transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
@@ -269,4 +274,9 @@
   .sm-explainer-drawer { max-height: 85vh; }
   .sm-explainer-header { padding: 14px 16px 10px; }
   .sm-explainer-body { padding: 16px; }
+}
+
+@media (max-width: 768px) {
+  .sm-explainer-backdrop { left: 0; }
+  .sm-explainer-drawer { left: 0; }
 }
