@@ -17,6 +17,7 @@ export {
   Empty,
   Spinner,
   ScoreRing,
+  Explainer,
 } from './components.jsx'
 
 // Layout shell with session context + view-as system + cmd+k + theme
