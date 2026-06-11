@@ -186,3 +186,70 @@ export function ScoreRing({ score, label }) {
     </div>
   )
 }
+
+// ── Explainer Drawer ─────────────────────────────────────────────────────────
+// Pull-down info drawer. Desktop: centered handle. Mobile: "i" button.
+// Usage: <Explainer title="Section Name">{...content...}</Explainer>
+
+export function Explainer({ children, title }) {
+  var ref = React.useRef(null)
+  var open = React.useState(false)
+  var isOpen = open[0]
+  var setOpen = open[1]
+
+  // Close on Escape
+  React.useEffect(function() {
+    if (!isOpen) return
+    function onKey(e) { if (e.key === 'Escape') setOpen(false) }
+    document.addEventListener('keydown', onKey)
+    return function() { document.removeEventListener('keydown', onKey) }
+  }, [isOpen])
+
+  // Lock body scroll when open
+  React.useEffect(function() {
+    if (isOpen) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return function() { document.body.style.overflow = '' }
+  }, [isOpen])
+
+  return React.createElement(React.Fragment, null,
+    // Desktop: centered pull-tab
+    React.createElement('div', { className: 'sm-explainer-trigger' },
+      React.createElement('button', {
+        className: 'sm-explainer-handle',
+        onClick: function() { setOpen(true) },
+        'aria-label': 'Show explainer for ' + (title || 'this section'),
+      },
+        React.createElement('span', { className: 'sm-explainer-handle-icon' }, '▾'),
+        React.createElement('span', { className: 'sm-explainer-handle-label' }, title ? title + ' Guide' : 'Guide')
+      ),
+      // Mobile: compact info button
+      React.createElement('button', {
+        className: 'sm-explainer-info-btn',
+        onClick: function() { setOpen(true) },
+        'aria-label': 'Info',
+      }, 'ⓘ')
+    ),
+
+    // Backdrop + Drawer
+    React.createElement('div', {
+      className: 'sm-explainer-backdrop' + (isOpen ? ' sm-explainer-open' : ''),
+      onClick: function(e) { if (e.target === e.currentTarget) setOpen(false) },
+    },
+      React.createElement('div', {
+        ref: ref,
+        className: 'sm-explainer-drawer' + (isOpen ? ' sm-explainer-open' : ''),
+      },
+        React.createElement('div', { className: 'sm-explainer-header' },
+          title ? React.createElement('h3', { className: 'sm-explainer-title' }, title) : null,
+          React.createElement('button', {
+            className: 'sm-explainer-close',
+            onClick: function() { setOpen(false) },
+            'aria-label': 'Close',
+          }, '✕')
+        ),
+        React.createElement('div', { className: 'sm-explainer-body' }, children)
+      )
+    )
+  )
+}

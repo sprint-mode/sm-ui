@@ -107,3 +107,166 @@
 .sm-score-number { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .sm-score-number .num { font-size: 32px; font-weight: 800; color: var(--accent); line-height: 1; }
 .sm-score-number .lbl { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+/* ── Explainer Drawer ─────────────────────────────────────────────────────── */
+
+.sm-explainer-trigger {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 4px;
+  position: relative;
+}
+
+/* Desktop: centered pull-tab handle */
+.sm-explainer-handle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--bg-card);
+  color: var(--muted);
+  font: 500 12px/1 var(--font);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  border-top: none;
+}
+.sm-explainer-handle:hover {
+  color: var(--foreground);
+  background: var(--bg-subtle);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+.sm-explainer-handle-icon {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+.sm-explainer-handle:hover .sm-explainer-handle-icon {
+  transform: translateY(1px);
+}
+.sm-explainer-handle-label {
+  letter-spacing: 0.02em;
+}
+
+/* Mobile: info button (hidden on desktop) */
+.sm-explainer-info-btn {
+  display: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--blue);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+  top: -2px;
+}
+
+@media (max-width: 640px) {
+  .sm-explainer-handle { display: none; }
+  .sm-explainer-info-btn { display: flex; align-items: center; justify-content: center; }
+}
+
+/* Backdrop */
+.sm-explainer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  background: rgba(0,0,0,0);
+  pointer-events: none;
+  transition: background 0.3s ease;
+}
+.sm-explainer-backdrop.sm-explainer-open {
+  background: rgba(0,0,0,0.35);
+  pointer-events: auto;
+}
+
+/* Drawer */
+.sm-explainer-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  max-height: 75vh;
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  transform: translateY(-100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sm-explainer-drawer.sm-explainer-open {
+  transform: translateY(0);
+}
+
+.sm-explainer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.sm-explainer-title {
+  font: 600 16px/1.3 var(--font);
+  color: var(--foreground);
+  margin: 0;
+}
+.sm-explainer-close {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.sm-explainer-close:hover {
+  background: var(--bg-subtle);
+  color: var(--foreground);
+}
+
+.sm-explainer-body {
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  font: 400 14px/1.65 var(--font);
+  color: var(--foreground);
+}
+.sm-explainer-body h4 {
+  font: 600 13px/1.3 var(--font);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 24px 0 8px;
+}
+.sm-explainer-body h4:first-child { margin-top: 0; }
+.sm-explainer-body p { margin: 0 0 12px; }
+.sm-explainer-body ul { margin: 0 0 12px; padding-left: 20px; }
+.sm-explainer-body li { margin: 0 0 6px; }
+.sm-explainer-body strong { font-weight: 600; color: var(--foreground); }
+.sm-explainer-body code {
+  font: 400 13px var(--font-mono);
+  background: var(--bg-subtle);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .sm-explainer-drawer { max-height: 85vh; }
+  .sm-explainer-header { padding: 14px 16px 10px; }
+  .sm-explainer-body { padding: 16px; }
+}
