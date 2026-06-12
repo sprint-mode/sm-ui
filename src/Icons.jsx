@@ -152,3 +152,5 @@ export var LogoCollect = function(p) {
 }
 export var IconSpeakerphone = function(p) { return <svg {...S} {...p}><path d="M18 8a3 3 0 0 1 0 6"/><path d="M10 8v11a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-5"/><path d="M12 8h0l4.524-3.77a.9.9 0 0 1 1.476.692v12.156a.9.9 0 0 1-1.476.692L12 14H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h8"/></svg> }
 export var IconPencilPlus = function(p) { return <svg {...S} {...p}><path d="M4 20h4l10.5-10.5a2.828 2.828 0 1 0-4-4L4 16v4"/><path d="M13.5 6.5l4 4"/><path d="M16 19h6"/><path d="M19 16v6"/></svg> }
+
+export var IconBell = function(p) { return <svg {...S} {...p}><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3H4a4 4 0 0 0 2-3v-3a7 7 0 0 1 4-6"/><path d="M9 17v1a3 3 0 0 0 6 0v-1"/></svg> }
