@@ -44,7 +44,7 @@ export {
   IconSearch, IconPlay, IconUserPlus, IconMonitor, IconMoon, IconSun,
   IconPipeline, IconSend, IconShield, IconGridPlus, IconLink, IconPackage,
   IconQuestion, IconPaperclip, IconChevronUp, IconHeadset,
-  IconAddressBook, IconChartHistogram, IconReportMoney, IconMoneybag,
+  IconAddressBook, IconChartHistogram, IconReportMoney, IconMoneybag, IconPencilPlus,
   IconActivityHeartbeat, IconMessageCircle, IconGlobe, IconDevWindow,
   LogoSprintMode, LogoStudios, LogoMode, LogoHub,
   LogoSprintCapital, LogoPrivacyAI,
