@@ -30,26 +30,7 @@ export { default as Login } from './Login.jsx'
 export { default as ApiDocs } from './ApiDocs.jsx'
 
 // Icons
-export {
-  IconGrid, IconCode, IconDoc, IconContract, IconLock, IconTrend,
-  IconUsers, IconUser, IconDollar, IconTerminal, IconGear,
-  IconSessions, IconEye, IconLayers, IconStar, IconCheck,
-  IconRefresh, IconWarn, IconSpark, IconClick, IconPercent,
-  IconCloud, IconInfoCircle, IconExternal, IconFile, IconMsg, IconBill,
-  IconPortfolio, IconExpand, IconWrench, IconPlus, IconX,
-  IconMail, IconChevron,
-  IconArrowUp, IconArrowDown, IconArrowLeft, IconArrowRight,
-  IconChevronRight, IconChevronDown, IconRocket, IconTarget,
-  IconFolder, IconClipboard, IconPalette, IconEdit, IconReceipt,
-  IconSearch, IconPlay, IconUserPlus, IconMonitor, IconMoon, IconSun,
-  IconPipeline, IconSend, IconShield, IconGridPlus, IconLink, IconPackage,
-  IconQuestion, IconPaperclip, IconChevronUp, IconHeadset,
-  IconAddressBook, IconChartHistogram, IconReportMoney, IconMoneybag, IconPencilPlus,
-  IconActivityHeartbeat, IconMessageCircle, IconGlobe, IconDevWindow,
-  LogoSprintMode, LogoStudios, LogoMode, LogoHub,
-  LogoSprintCapital, LogoPrivacyAI,
-  ProductIcon, LogoDevPortal, LogoSignal, LogoAPI, LogoCollect,
-} from './Icons.jsx'
+export * from './Icons.jsx'
 
 // Client-side API helpers
 export {
