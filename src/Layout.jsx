@@ -366,30 +366,45 @@ function HeaderUserMenu(props) {
 // Consume: import { PortalSwitcher } from '@nomadahq/sm-ui' then pass as userMenuExtra.
 
 var PORTAL_DOMAINS = {
-  admin:     'admin.sprintmode.ai',
-  studios:   'studios.sprintmode.ai',
-  mode:      'mode.sprintmode.ai',
-  signal:    'signal.sprintmode.ai',
-  investors: 'investors.sprintmode.ai',
-  dev:       'dev.sprintmode.ai',
+  admin:          'admin.sprintmode.ai',
+  studios:        'studios.sprintmode.ai',
+  mode:           'mode.sprintmode.ai',
+  signal:         'signal.sprintmode.ai',
+  investors:      'investors.sprintmode.ai',
+  dev:            'dev.sprintmode.ai',
+  docs:           'docs.sprintmode.ai',
+  privacyai:      'dashboard.privacyai.com',
+  'privacyai-docs': 'docs.privacyai.com',
+  nomada:         'nomadahq.com',
+  safeshepherd:   'safeshepherd.com',
 }
 
 var PORTAL_PRODUCT_KEY = {
-  admin:     'sprint-mode',
-  studios:   'studios',
-  mode:      'mode',
-  signal:    'signal',
-  investors: 'sprint-capital',
-  dev:       'dev-portal',
+  admin:          'sprint-mode',
+  studios:        'studios',
+  mode:           'mode',
+  signal:         'signal',
+  investors:      'sprint-capital',
+  dev:            'dev-portal',
+  docs:           'sprint-mode',
+  privacyai:      'privacyai',
+  'privacyai-docs': 'privacyai',
+  nomada:         'hub',
+  safeshepherd:   'privacyai',
 }
 
 var PORTAL_SHORT_NAME = {
-  admin:     'Admin',
-  dev:       'Dev',
-  investors: 'Investors',
-  mode:      'Mode',
-  signal:    'Signal',
-  studios:   'Studios',
+  admin:          'Admin',
+  dev:            'Dev',
+  docs:           'Sprint Mode Docs',
+  investors:      'Investors',
+  mode:           'Mode',
+  nomada:         'Nomada',
+  privacyai:      'PrivacyAI',
+  'privacyai-docs': 'PrivacyAI Docs',
+  safeshepherd:   'Safe Shepherd',
+  signal:         'Signal',
+  studios:        'Studios',
 }
 
 // Module-level cache — fetched once per page load, instant on subsequent menu opens
