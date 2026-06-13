@@ -415,6 +415,20 @@ export function PortalSwitcher() {
   var _p = useState(_portalCache); var portals = _p[0]; var setPortals = _p[1]
 
   useEffect(function() {
+    // PORTAL-SESSION-1: try to read portals from parent session context first.
+    // The session is available via window.__SM_SESSION (set by Layout when session loads).
+    // Falls back to /api/my-portals API call for portals not yet returning session.portals.
+    var sessionPortals = (typeof window !== 'undefined' && window.__SM_SESSION && window.__SM_SESSION.portals) || null
+    if (sessionPortals) {
+      var list = Object.entries(sessionPortals)
+        .filter(function(entry) { return entry[1].access })
+        .map(function(entry) { return { portal: entry[0], role: 'member', name: PORTAL_SHORT_NAME[entry[0]] || entry[0], portal_type: 'sm' } })
+      _portalCache = list
+      setPortals(list)
+      return
+    }
+
+    // Legacy fallback: fetch from /api/my-portals
     if (_portalCache) { setPortals(_portalCache); return }
     if (!_portalFetch) {
       _portalFetch = fetch('https://api.sprintmode.ai/api/my-portals', { credentials: 'include' })
@@ -766,6 +780,13 @@ export default function Layout(props) {
     if (sessionProp) { setSession(sessionProp); setLoading(false) }
   }, [sessionProp])
 
+  // PORTAL-SESSION-1: expose session globally for PortalSwitcher to read portals
+  useEffect(function() {
+    if (session && typeof window !== 'undefined') {
+      window.__SM_SESSION = session
+    }
+  }, [session])
+
   // Auto-fetch session only if no prop provided
   useEffect(function() {
     if (sessionProp) return
@@ -780,11 +801,17 @@ export default function Layout(props) {
   }, [])
 
   // ── View-As / Impersonation ──
-  // View As gate:
-  // viewAsAnyRole=true  -> any logged-in session can use View As (product/client portals)
-  // viewAsAnyRole=false -> only super_admin/admin can use View As (admin portal default)
+  // PORTAL-SESSION-1: prefer session.portals[portalSubdomain].view_as when available.
+  // Falls back to legacy is_sm_team/viewAsAnyRole for portals not yet bumped.
+  var portalSubdomain = props.portalSubdomain // portal_configs subdomain — e.g. 'studios', 'admin'
+  var canViewAsFromSession = portalSubdomain && session && session.portals && session.portals[portalSubdomain]
+    ? session.portals[portalSubdomain].view_as
+    : null
+  // Legacy path: is_sm_team + viewAsAnyRole
   var isSuperAdmin = session && (session.role === 'super_admin' || session.portal_role === 'super_admin' || session.role === 'admin' || session.portal_role === 'admin' || session.is_sm_team)
-  var showViewAs = viewAsEnabled && (viewAsAnyRole ? !!session : isSuperAdmin)
+  var showViewAs = canViewAsFromSession !== null
+    ? (viewAsEnabled !== false && canViewAsFromSession) // new path: portals object decides
+    : (viewAsEnabled && (viewAsAnyRole ? !!session : isSuperAdmin)) // legacy path
   var _va = useState(null); var viewAs = _va[0]; var setViewAs = _va[1]
   var _au = useState([]); var allUsers = _au[0]; var setAllUsers = _au[1]
 
