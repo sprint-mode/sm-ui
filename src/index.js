@@ -54,3 +54,4 @@ export { ProfileCard } from './ProfileCard.jsx'
 export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.jsx'
 
 export { UpdateAttachments } from './UpdateAttachments.jsx'
+export { PortalUpdates } from './PortalUpdates.jsx'
