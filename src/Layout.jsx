@@ -398,7 +398,21 @@ export function PortalSwitcher() {
     if (sessionPortals) {
       var list = Object.entries(sessionPortals)
         .filter(function(entry) { return entry[1].access })
-        .map(function(entry) { return { portal: entry[0], role: 'member', name: entry[0], portal_type: 'sm', brand_color: null, brand_tint: null, icon_key: null, logo_mark_url: null, custom_domain: null } })
+        .map(function(entry) {
+          var sub = entry[0]
+          var p = entry[1]
+          return {
+            portal: sub,
+            role: 'member',
+            name: p.name || sub,
+            portal_type: p.portal_type || 'sm',
+            brand_color: p.brand_color || null,
+            brand_tint: p.brand_tint || null,
+            icon_key: p.icon_key || null,
+            logo_mark_url: p.logo_mark_url || null,
+            custom_domain: p.custom_domain || null,
+          }
+        })
       _portalCache = list
       setPortals(list)
       return
