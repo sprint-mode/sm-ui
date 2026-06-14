@@ -365,46 +365,22 @@ function HeaderUserMenu(props) {
 // a switcher list. Returns null if the user only has one portal (no point switching).
 // Consume: import { PortalSwitcher } from '@nomadahq/sm-ui' then pass as userMenuExtra.
 
-var PORTAL_DOMAINS = {
-  admin:          'admin.sprintmode.ai',
-  studios:        'studios.sprintmode.ai',
-  mode:           'mode.sprintmode.ai',
-  signal:         'signal.sprintmode.ai',
-  investors:      'investors.sprintmode.ai',
-  dev:            'dev.sprintmode.ai',
-  docs:           'docs.sprintmode.ai',
-  privacyai:      'dashboard.privacyai.com',
-  'privacyai-docs': 'docs.privacyai.com',
-  nomada:         'nomadahq.com',
-  safeshepherd:   'safeshepherd.com',
-}
-
-var PORTAL_PRODUCT_KEY = {
-  admin:          'sprint-mode',
-  studios:        'studios',
-  mode:           'mode',
-  signal:         'signal',
-  investors:      'sprint-capital',
-  dev:            'dev-portal',
-  docs:           'sprint-mode',
-  privacyai:      'privacyai',
-  'privacyai-docs': 'privacyai',
-  nomada:         'hub',
-  safeshepherd:   'privacyai',
-}
-
-var PORTAL_SHORT_NAME = {
-  admin:          'Admin',
-  dev:            'Dev',
-  docs:           'Sprint Mode Docs',
-  investors:      'Investors',
-  mode:           'Mode',
-  nomada:         'Nomada',
-  privacyai:      'PrivacyAI',
-  'privacyai-docs': 'PrivacyAI Docs',
-  safeshepherd:   'Safe Shepherd',
-  signal:         'Signal',
-  studios:        'Studios',
+// Inline SVG path strings for each icon_key used in portal_configs.
+// Extracted from sm-ui/src/Icons.jsx. All use viewBox="0 0 24 24",
+// strokeWidth 2, stroke currentColor, fill none (set on the wrapping svg element).
+// Unknown keys fall back to 'grid'.
+var ICON_KEY_SVG_PATHS = {
+  'grid':        '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
+  'code':        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
+  'bar-chart':   '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  'file-text':   '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/>',
+  'terminal':    '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 7l5 5l-5 5"/><path d="M12 19l7 0"/>',
+  'book-open':   '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  'trending-up': '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  'layers':      '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
+  'shield':      '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/>',
+  'lock':        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/>',
+  'book':        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/>',
 }
 
 // Module-level cache — fetched once per page load, instant on subsequent menu opens
@@ -422,7 +398,7 @@ export function PortalSwitcher() {
     if (sessionPortals) {
       var list = Object.entries(sessionPortals)
         .filter(function(entry) { return entry[1].access })
-        .map(function(entry) { return { portal: entry[0], role: 'member', name: PORTAL_SHORT_NAME[entry[0]] || entry[0], portal_type: 'sm' } })
+        .map(function(entry) { return { portal: entry[0], role: 'member', name: entry[0], portal_type: 'sm', brand_color: null, brand_tint: null, icon_key: null, logo_mark_url: null, custom_domain: null } })
       _portalCache = list
       setPortals(list)
       return
@@ -449,12 +425,12 @@ export function PortalSwitcher() {
 
   var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
 
-  // Admin always first, then alphabetical by short name
+  // Admin always first, then alphabetical by name
   var sorted = portals.slice().sort(function(a, b) {
     if (a.portal === 'admin') return -1
     if (b.portal === 'admin') return 1
-    var na = PORTAL_SHORT_NAME[a.portal] || a.portal
-    var nb = PORTAL_SHORT_NAME[b.portal] || b.portal
+    var na = a.name || a.portal
+    var nb = b.name || b.portal
     return na.localeCompare(nb)
   })
 
@@ -463,10 +439,38 @@ export function PortalSwitcher() {
       style: { padding: '6px 10px', fontSize: 11, color: 'var(--muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.5px' }
     }, 'Portals'),
     sorted.map(function(p) {
-      var domain = PORTAL_DOMAINS[p.portal] || (p.portal + '.sprintmode.ai')
+      // Domain: use custom_domain from API, else fall back to subdomain.sprintmode.ai
+      var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
       var isCurrent = currentHost === domain
-      var productKey = PORTAL_PRODUCT_KEY[p.portal] || 'sprint-mode'
-      var shortName = PORTAL_SHORT_NAME[p.portal] || p.name || p.portal
+      var shortName = p.name || p.portal
+
+      // Icon: uploaded logo_mark_url > icon_key SVG > grid fallback
+      var iconEl
+      if (p.logo_mark_url) {
+        iconEl = React.createElement('img', {
+          src: p.logo_mark_url, width: 14, height: 14,
+          alt: shortName,
+          style: { borderRadius: 2, objectFit: 'contain', display: 'block' }
+        })
+      } else {
+        var paths = ICON_KEY_SVG_PATHS[p.icon_key] || ICON_KEY_SVG_PATHS['grid']
+        iconEl = React.createElement('svg', {
+          width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none',
+          stroke: p.brand_color || '#2362ea', strokeWidth: '2',
+          strokeLinecap: 'round', strokeLinejoin: 'round',
+          dangerouslySetInnerHTML: { __html: paths }
+        })
+      }
+
+      // Tinted badge wrapper
+      var badge = React.createElement('div', {
+        style: {
+          width: 22, height: 22, borderRadius: 5,
+          background: p.brand_tint || '#e9effc',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0
+        }
+      }, iconEl)
+
       return React.createElement('a', {
         key: p.portal,
         href: 'https://' + domain,
@@ -481,7 +485,7 @@ export function PortalSwitcher() {
           fontWeight: isCurrent ? 500 : 400,
         }
       },
-        React.createElement(ProductIcon, { product: productKey, size: 20 }),
+        badge,
         React.createElement('span', null, shortName),
         !isCurrent ? React.createElement('span', { style: { marginLeft: 'auto', opacity: 0.25, fontSize: 10 } }, '\u2197') : null
       )
