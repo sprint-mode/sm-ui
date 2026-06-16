@@ -1190,7 +1190,7 @@ export default function Layout(props) {
               <button className="shell-viewas-exit" onClick={function() { setViewAs(null) }}>Exit</button>
             </div>
           )}
-          {children || <Outlet />}
+          <div key={viewAs ? viewAs.id || viewAs.email : '__self__'}>{children || <Outlet />}</div>
         </main>
 
         </div>{/* .shell-body */}
