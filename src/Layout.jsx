@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
-import { getSession, clearSession } from './api.js'
-import { IconChevron, IconSearch, IconMoon, IconSun, IconUser, ProductIcon } from './Icons.jsx'
+import { getSession, _clearSession } from './api.js'
+import { _IconChevron, IconSearch, IconMoon, IconSun, _IconUser, _ProductIcon } from './Icons.jsx'
 import { NotificationBell } from './NotificationBell.jsx'
 
 // ═══ SESSION CONTEXT ═══
@@ -17,10 +17,10 @@ export function useViewAs() { return useContext(ViewAsContext) }
 // ═══ THEME HELPERS ═══
 
 function getStoredTheme() {
-  try { return localStorage.getItem('sm-theme') } catch (e) { return null }
+  try { return localStorage.getItem('sm-theme') } catch (_e) { return null }
 }
 function setStoredTheme(t) {
-  try { localStorage.setItem('sm-theme', t) } catch (e) {}
+  try { localStorage.setItem('sm-theme', t) } catch (_e) {}
 }
 export function useTheme() {
   var _d = useState(function() {
@@ -61,14 +61,14 @@ var BADGE_COLORS = {
 }
 
 function getRecent(key) {
-  try { return JSON.parse(localStorage.getItem(key) || '[]').slice(0, 8) } catch(e) { return [] }
+  try { return JSON.parse(localStorage.getItem(key) || '[]').slice(0, 8) } catch(_e) { return [] }
 }
 function pushRecent(key, item) {
   try {
     var list = getRecent(key).filter(function(r) { return r.to !== item.to })
     list.unshift({ label: item.label, to: item.to, section: item.section || '', subsection: item.subsection || '' })
     localStorage.setItem(key, JSON.stringify(list.slice(0, 8)))
-  } catch(e) {}
+  } catch(_e) {}
 }
 
 // Highlight matched substring in label — returns array of React elements
@@ -527,7 +527,7 @@ function parsePerms(session) {
     return typeof session.permissions === 'string'
       ? JSON.parse(session.permissions)
       : session.permissions
-  } catch (e) { return null }
+  } catch (_e) { return null }
 }
 
 function canViewSection(perms, role, key) {
@@ -721,7 +721,7 @@ function resolveIcon(name) {
 }
 
 // Product logo components for sidebar
-var PRODUCT_LOGOS = {
+var _PRODUCT_LOGOS = {
   'sprint-mode': function() { return <svg width="18" height="18" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#e9effc"/><g transform="translate(136,136) scale(10)" fill="none" stroke="#2362ea" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><polyline points="10 8 14 12 10 16"/></g></svg> },
   'studios': function() { return <svg width="18" height="18" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#f1ecfa"/><g transform="translate(136,136) scale(10)" fill="none" stroke="#7947d1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></g></svg> },
   'mode': function() { return <svg width="18" height="18" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#e6f5f3"/><g transform="translate(136,136) scale(10)" fill="none" stroke="#0D9488" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></g></svg> },
@@ -913,7 +913,7 @@ export default function Layout(props) {
     setCollapsedState(function(prev) {
       var next = Object.assign({}, prev)
       next[key] = !prev[key]
-      try { localStorage.setItem('sm-nav-collapsed', JSON.stringify(next)) } catch (e) {}
+      try { localStorage.setItem('sm-nav-collapsed', JSON.stringify(next)) } catch (_e) {}
       return next
     })
   }

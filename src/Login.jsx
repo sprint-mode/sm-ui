@@ -34,7 +34,7 @@ var MailIcon = function() {
   )
 }
 
-export default function Login({ productName, logoSrc, authBase, icon, title, byLine, iconBg, iconColor }) {
+export default function Login({ productName, _logoSrc, authBase, icon, title, byLine, iconBg, iconColor }) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')

@@ -39,7 +39,7 @@ export async function verifyJWT(token, secret) {
     var payload = JSON.parse(atob(pad(parts[1].replace(/-/g, '+').replace(/_/g, '/'))))
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) return null
     return payload
-  } catch (e) { return null }
+  } catch (_e) { return null }
 }
 
 /**
@@ -131,7 +131,7 @@ export function createSmApiClient(env, opts) {
     if (!resp.ok) {
       var text = await resp.text()
       var parsed
-      try { parsed = JSON.parse(text) } catch (e) { parsed = { ok: false, error: text } }
+      try { parsed = JSON.parse(text) } catch (_e) { parsed = { ok: false, error: text } }
       parsed._status = resp.status
       return parsed
     }
