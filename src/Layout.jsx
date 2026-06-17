@@ -934,8 +934,14 @@ export default function Layout(props) {
         pendingHeading = { key: section.key || section.label, heading: section.label }
         return
       }
+      // Pre-flushed headings from admin App.jsx (have .heading but not type:'heading')
+      // pass through directly — they've already been visibility-checked upstream.
+      if (section.heading) {
+        sections.push(section)
+        return
+      }
       if (section.product && !canViewProduct(effectivePerms, effectiveRole, section.product)) return
-      var visibleItems = section.items.filter(function(item) {
+      var visibleItems = (section.items || []).filter(function(item) {
         return canViewSection(effectivePerms, effectiveRole, item.permKey)
       })
       if (visibleItems.length === 0) return
