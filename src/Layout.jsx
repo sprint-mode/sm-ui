@@ -924,18 +924,15 @@ export default function Layout(props) {
   var sections = []
 
   if (navSections) {
-    // Admin pattern: explicit sections array with role filtering
-    // Headings are deferred until we confirm at least one following section
-    // has visible items — prevents empty group headers when view-as restricts all
-    // sections in a group.
-    var pendingHeading = null
+    // Admin pattern: explicit sections array with role filtering.
+    // Heading suppression is handled upstream by App.jsx (visibleGroups check).
+    // Layout renders headings immediately — no deferral needed.
     navSections.forEach(function(section) {
       if (section.type === 'heading') {
-        pendingHeading = { key: section.key || section.label, heading: section.label }
+        sections.push({ key: section.key || section.label, heading: section.label })
         return
       }
       // Pre-flushed headings from admin App.jsx (have .heading but not type:'heading')
-      // pass through directly — they've already been visibility-checked upstream.
       if (section.heading) {
         sections.push(section)
         return
@@ -945,8 +942,6 @@ export default function Layout(props) {
         return canViewSection(effectivePerms, effectiveRole, item.permKey)
       })
       if (visibleItems.length === 0) return
-      // This section has visible items — flush pending heading first
-      if (pendingHeading) { sections.push(pendingHeading); pendingHeading = null }
       sections.push({
         key: section.key || section.label,
         nav: {
