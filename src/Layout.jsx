@@ -1014,13 +1014,19 @@ export default function Layout(props) {
   var logoutHref = onLogout || ('/api/auth/logout?redirect=' + encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/auth/login'))
 
   // ── Standard header-right items (rendered after custom headerRight) ──
-  var viewAsSelect = showViewAs && allUsers.length > 0 ? React.createElement(React.Fragment, null,
+  // View-as select: always render when showViewAs is true, even when allUsers is empty.
+  // An empty list means no contacts yet — the dropdown should still appear so users can
+  // see the feature exists and isn't a permissions problem. Hidden only when showViewAs=false.
+  var viewAsSelect = showViewAs ? React.createElement(React.Fragment, null,
     React.createElement('select', {
       value: viewAs ? viewAs.email : '',
       onChange: function(e) { handleViewAs(e.target.value) },
-      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', maxWidth: 200 }
+      disabled: allUsers.length === 0,
+      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: allUsers.length === 0 ? 'var(--muted)' : 'var(--foreground)', fontSize: 13, cursor: allUsers.length === 0 ? 'default' : 'pointer', maxWidth: 200 }
     },
-      React.createElement('option', { value: '' }, 'View as...'),
+      allUsers.length === 0
+        ? React.createElement('option', { value: '' }, 'No users')
+        : React.createElement('option', { value: '' }, 'View as...'),
       allUsers.filter(function(u) {
         return u.email !== (session && session.email)
       }).map(function(u) {
