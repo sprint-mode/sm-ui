@@ -925,10 +925,13 @@ export default function Layout(props) {
 
   if (navSections) {
     // Admin pattern: explicit sections array with role filtering
+    // Headings are deferred until we confirm at least one following section
+    // has visible items — prevents empty group headers when view-as restricts all
+    // sections in a group.
+    var pendingHeading = null
     navSections.forEach(function(section) {
-      // Heading dividers — just a label, no items
       if (section.type === 'heading') {
-        sections.push({ key: section.key || section.label, heading: section.label })
+        pendingHeading = { key: section.key || section.label, heading: section.label }
         return
       }
       if (section.product && !canViewProduct(effectivePerms, effectiveRole, section.product)) return
@@ -936,6 +939,8 @@ export default function Layout(props) {
         return canViewSection(effectivePerms, effectiveRole, item.permKey)
       })
       if (visibleItems.length === 0) return
+      // This section has visible items — flush pending heading first
+      if (pendingHeading) { sections.push(pendingHeading); pendingHeading = null }
       sections.push({
         key: section.key || section.label,
         nav: {
