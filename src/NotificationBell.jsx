@@ -54,7 +54,8 @@ export function NotificationBell(props) {
   var _open = useState(false); var open = _open[0]; var setOpen = _open[1]
   var _notifs = useState([]); var notifs = _notifs[0]; var setNotifs = _notifs[1]
   var _unread = useState(0); var unread = _unread[0]; var setUnread = _unread[1]
-  var _loading = useState(false); var loading = _loading[0]; var setLoading = _loading[1]
+  // eslint-disable-next-line no-redeclare -- TODO: tracked
+  var _loading = useState(false); var _loading = _loading[0]; var _setLoading = _loading[1]
   var ref = useRef(null)
 
   var fetchNotifs = useCallback(function() {

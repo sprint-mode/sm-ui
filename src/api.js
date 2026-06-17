@@ -9,7 +9,7 @@ export async function getSession() {
       SESSION_CACHE = data
       return data
     }
-  } catch (e) { /* fall through */ }
+  } catch (_e) { /* fall through */ }
   return null
 }
 
@@ -46,7 +46,7 @@ export function formatDate(str) {
   if (!str) return '--'
   try {
     return new Date(str).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-  } catch (e) { return str }
+  } catch (_e) { return str }
 }
 
 export function formatRelative(str) {
@@ -60,7 +60,7 @@ export function formatRelative(str) {
     if (hrs < 24) return hrs + 'h ago'
     var days = Math.floor(hrs / 24)
     return days + 'd ago'
-  } catch (e) { return str }
+  } catch (_e) { return str }
 }
 
 export function escapeHtml(str) {
