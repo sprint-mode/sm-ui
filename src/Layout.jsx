@@ -423,7 +423,7 @@ export function PortalSwitcher() {
     // Legacy fallback: fetch from /api/my-portals
     if (_portalCache) { setPortals(_portalCache); return }
     if (!_portalFetch) {
-      _portalFetch = fetch('https://api.sprintmode.ai/api/my-portals', { credentials: 'include' })
+      _portalFetch = fetch('/api/my-portals', { credentials: 'include' })
         .then(function(r) { return r.json() })
         .then(function(data) {
           if (data.ok && data.data && data.data.portals) {
@@ -773,7 +773,7 @@ export default function Layout(props) {
   var showCompanyName = props.showCompanyName // when true, appends " // {session.company_name}" to title
   var byLine = props.byLine // e.g. "by Sprint Mode" -- shown after product name in muted secondary style
   var userMenuExtra = props.userMenuExtra // optional React element rendered in user menu between Profile and Sign out
-  var notificationApiBase = props.notificationApiBase || 'https://api.sprintmode.ai' // base URL for NotificationBell polls
+  var notificationApiBase = props.notificationApiBase !== undefined ? props.notificationApiBase : '' // base URL for NotificationBell polls; defaults to '' (relative, proxy-routed)
   var viewAsAnyRole = props.viewAsAnyRole // when true, any logged-in user gets View As (non-admin portals only)
   // Bug panel: read from prop (if explicitly passed) or portal config context (automatic for all portals)
   var portalCfg = usePortalConfig()
