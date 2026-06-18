@@ -4,6 +4,7 @@ import { getSession } from './api.js'
 import { IconSearch, IconMoon, IconSun } from './Icons.jsx'
 import { NotificationBell } from './NotificationBell.jsx'
 import { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
+import { usePortalConfig } from './usePortalConfig.jsx'
 
 // ═══ SESSION CONTEXT ═══
 
@@ -774,7 +775,10 @@ export default function Layout(props) {
   var userMenuExtra = props.userMenuExtra // optional React element rendered in user menu between Profile and Sign out
   var notificationApiBase = props.notificationApiBase || 'https://api.sprintmode.ai' // base URL for NotificationBell polls
   var viewAsAnyRole = props.viewAsAnyRole // when true, any logged-in user gets View As (non-admin portals only)
-  var bugPanelEnabled = props.bugPanel !== false && props.bugPanel !== 0 // enabled when truthy
+  // Bug panel: read from prop (if explicitly passed) or portal config context (automatic for all portals)
+  var portalCfg = usePortalConfig()
+  var bugPanelFlag = props.bugPanel !== undefined ? props.bugPanel : (portalCfg.config && portalCfg.config.bug_panel)
+  var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0
   var bugPanelAdmin = props.bugPanelAdmin // when true, admin triage mode
   var bugPanelProduct = props.portalSubdomain || 'sm' // product for bug reports
   var bugPanelLabel = props.bugPanelLabel // FAB label override
