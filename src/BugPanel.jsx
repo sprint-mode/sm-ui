@@ -133,7 +133,7 @@ var S = {
   // Buttons
   btnSm: function(bg, color, border) { return { fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '6px 12px', borderRadius: 6, cursor: 'pointer', border: border || 'none', background: bg, color: color } },
   // Comment
-  commentAvatar: function(initials) { return { width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-10, rgba(35,98,234,0.1))', color: 'var(--accent)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'var(--font-mono)' } },
+  commentAvatar: function() { return { width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-10, rgba(35,98,234,0.1))', color: 'var(--accent)', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'var(--font-mono)' } },
   commentInput: { flex: 1, padding: '6px 8px', fontSize: 12, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--foreground)', fontFamily: 'var(--font)', outline: 'none' },
   commentSubmit: { padding: '6px 12px', borderRadius: 6, border: 'none', background: 'var(--accent)', color: '#fff', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 },
   // Form
@@ -195,11 +195,10 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
 
   var sm = STATUS_META[bug.status] || STATUS_META.open
   var ai = null
-  try { ai = typeof bug.ai_classification === 'string' ? JSON.parse(bug.ai_classification) : bug.ai_classification } catch(e) {}
+  try { ai = typeof bug.ai_classification === 'string' ? JSON.parse(bug.ai_classification) : bug.ai_classification } catch(_e) {}
 
   function copyId(e) {
     e.stopPropagation()
-    var sid = shortId(bug.id)
     navigator.clipboard.writeText(bug.id).then(function() { setCopied(true); setTimeout(function() { setCopied(false) }, 1200) })
   }
 
@@ -275,7 +274,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
               <div style={S.sectionLabel}>Attachments</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {bug.attachments.map(function(att) {
-                  return <a key={att.id} href={apiBase + '/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename} target="_blank" rel="noopener"
+                  return <a key={att.id} href={apiBase + '/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename} target="_blank" rel="noreferrer"
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', textDecoration: 'none' }}
                     onClick={function(e) { e.stopPropagation() }}>
                     {att.type === 'image' ? '🖼' : '📄'} {att.filename}
@@ -414,7 +413,6 @@ export function BugPanel(props) {
   var apiBase = props.apiBase || ''
   var product = props.product || 'sm'
   var label = props.label || 'Report Bug'
-  var session = props.session
   var offsetFab = props.offsetFab // when true, push FAB up to avoid chatbot overlap
   var onClose = props.onClose // called when panel closes (for Layout integration)
   var visible = props.visible // controlled mode — Layout controls open/close
@@ -678,29 +676,6 @@ export function BugPanel(props) {
         }
       })
       .catch(function() { setSubmitting(false) })
-  }
-
-  function handleFileUpload(bugId, file) {
-    var fd = new FormData()
-    fd.append('file', file)
-    fetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
-      method: 'POST', credentials: 'include', body: fd
-    }).then(function() {
-      // Reload detail
-      if (expanded === bugId) {
-        fetch(apiBase + '/api/bugs/' + bugId, { credentials: 'include' })
-          .then(function(r) { return r.json() })
-          .then(function(d) {
-            if (d.ok && d.data) {
-              setBugs(function(prev) {
-                return prev.map(function(b) {
-                  return b.id === bugId ? Object.assign({}, b, { attachments: d.data.attachments }) : b
-                })
-              })
-            }
-          })
-      }
-    })
   }
 
   function closePanel() {
