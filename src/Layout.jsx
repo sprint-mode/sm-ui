@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
-import { getSession, _clearSession } from './api.js'
-import { _IconChevron, IconSearch, IconMoon, IconSun, _IconUser, _ProductIcon } from './Icons.jsx'
+import { getSession } from './api.js'
+import { IconSearch, IconMoon, IconSun } from './Icons.jsx'
 import { NotificationBell } from './NotificationBell.jsx'
 import { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
 
