@@ -317,13 +317,22 @@ export function DataTable(props) {
       var bv = b.sortValues ? b.sortValues[origIdx] : b.cells[origIdx]
       if (typeof av === 'object' && av !== null && av.props) av = av.props.children || ''
       if (typeof bv === 'object' && bv !== null && bv.props) bv = bv.props.children || ''
-      var na = parseFloat(String(av).replace(/[^0-9.-]/g, ''))
-      var nb = parseFloat(String(bv).replace(/[^0-9.-]/g, ''))
-      if (!isNaN(na) && !isNaN(nb)) return sort.dir === 'asc' ? na - nb : nb - na
-      var sa = String(av || '').toLowerCase()
-      var sb = String(bv || '').toLowerCase()
-      if (sa < sb) return sort.dir === 'asc' ? -1 : 1
-      if (sa > sb) return sort.dir === 'asc' ? 1 : -1
+      var sa = String(av || ''); var sb = String(bv || '')
+      // Date detection: YYYY-MM-DD or MM/DD/YYYY patterns
+      var dateRe = /^\d{4}-\d{2}-\d{2}$|^\d{1,2}\/\d{1,2}\/\d{2,4}$/
+      if (dateRe.test(sa.trim()) && dateRe.test(sb.trim())) {
+        var da = new Date(sa.trim()).getTime(); var db = new Date(sb.trim()).getTime()
+        if (!isNaN(da) && !isNaN(db)) return sort.dir === 'asc' ? da - db : db - da
+      }
+      // Pure numeric (no date separators)
+      var na = parseFloat(sa.replace(/[^0-9.-]/g, ''))
+      var nb = parseFloat(sb.replace(/[^0-9.-]/g, ''))
+      var looksNumA = /^[$\s]*-?[\d,.]+%?$/.test(sa.trim())
+      var looksNumB = /^[$\s]*-?[\d,.]+%?$/.test(sb.trim())
+      if (looksNumA && looksNumB && !isNaN(na) && !isNaN(nb)) return sort.dir === 'asc' ? na - nb : nb - na
+      var la = sa.toLowerCase(); var lb = sb.toLowerCase()
+      if (la < lb) return sort.dir === 'asc' ? -1 : 1
+      if (la > lb) return sort.dir === 'asc' ? 1 : -1
       return 0
     })
   }
@@ -357,6 +366,9 @@ export function DataTable(props) {
     return function(e) {
       e.preventDefault(); e.stopPropagation()
       resizing.current = true
+      // Disable draggable on parent th to prevent browser drag from stealing mouse events
+      var th = e.currentTarget.parentElement
+      if (th) th.setAttribute('draggable', 'false')
       var sx = e.clientX
       var sw = widthOf(key)
       var mv = function(ev) {
@@ -369,6 +381,7 @@ export function DataTable(props) {
       var up = function() {
         window.removeEventListener('mousemove', mv)
         window.removeEventListener('mouseup', up)
+        if (th) th.setAttribute('draggable', 'true')
         setTimeout(function() { resizing.current = false }, 0)
         if (storageKey) {
           setColWidths(function(p) { _dtWidthStore[storageKey] = p; return p })
