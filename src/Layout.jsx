@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { getSession, _clearSession } from './api.js'
 import { _IconChevron, IconSearch, IconMoon, IconSun, _IconUser, _ProductIcon } from './Icons.jsx'
 import { NotificationBell } from './NotificationBell.jsx'
+import { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
 
 // ═══ SESSION CONTEXT ═══
 
@@ -773,6 +774,10 @@ export default function Layout(props) {
   var userMenuExtra = props.userMenuExtra // optional React element rendered in user menu between Profile and Sign out
   var notificationApiBase = props.notificationApiBase || 'https://api.sprintmode.ai' // base URL for NotificationBell polls
   var viewAsAnyRole = props.viewAsAnyRole // when true, any logged-in user gets View As (non-admin portals only)
+  var bugPanelEnabled = props.bugPanel !== false && props.bugPanel !== 0 // enabled when truthy
+  var bugPanelAdmin = props.bugPanelAdmin // when true, admin triage mode
+  var bugPanelProduct = props.portalSubdomain || 'sm' // product for bug reports
+  var bugPanelLabel = props.bugPanelLabel // FAB label override
 
   // Session state — use prop or auto-fetch
   var _s = useState(sessionProp || null); var session = _s[0]; var setSession = _s[1]
@@ -780,18 +785,20 @@ export default function Layout(props) {
   var _m = useState(false); var mobileOpen = _m[0]; var setMobileOpen = _m[1]
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
+  var _bugPanelOpen = useState(false); var bugPanelOpen = _bugPanelOpen[0]; var setBugPanelOpen = _bugPanelOpen[1]
   var theme = useTheme()
   var navigate = useNavigate()
   var location = useLocation()
 
-  // Cmd+K global keyboard listener
+  // Cmd+K and Cmd+B global keyboard listeners
   useEffect(function() {
     var handler = function(e) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCmdkOpen(true) }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); if (bugPanelEnabled) setBugPanelOpen(function(v) { return !v }) }
     }
     window.addEventListener('keydown', handler)
     return function() { window.removeEventListener('keydown', handler) }
-  }, [])
+  }, [bugPanelEnabled])
 
   // Sync session prop changes
   useEffect(function() {
@@ -1055,6 +1062,7 @@ export default function Layout(props) {
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
     React.createElement(NotificationBell, { apiBase: notificationApiBase }),
+    bugPanelEnabled ? React.createElement(BugPanelHeaderButton, { onClick: function() { setBugPanelOpen(function(v) { return !v }) } }) : null,
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
 
@@ -1217,6 +1225,19 @@ export default function Layout(props) {
             placeholder={cmdKPlaceholder}
             onSearch={cmdKOnSearch}
             recentKey={cmdKRecentKey}
+          />
+        )}
+
+        {/* Bug Panel (BUG-TOOL-1) */}
+        {bugPanelEnabled && (
+          <BugPanel
+            visible={bugPanelOpen}
+            onClose={function() { setBugPanelOpen(false) }}
+            isAdmin={!!bugPanelAdmin}
+            apiBase={notificationApiBase}
+            product={bugPanelProduct}
+            label={bugPanelLabel}
+            session={session}
           />
         )}
       </div>
