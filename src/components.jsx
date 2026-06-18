@@ -248,3 +248,283 @@ export function Explainer({ children, title }) {
     )
   )
 }
+
+// ── Column width persistence (module-level, survives unmount/remount) ────────
+var _dtWidthStore = {}
+
+export function DataTable(props) {
+  var headers = props.headers || []
+  var rows = props.rows || []
+  var columnPicker = props.columnPicker || false
+  var storageKey = props.storageKey || null
+  var onRowClick = props.onRowClick || null
+  var empty = props.empty || null
+  var enableSort = props.sortable !== false
+
+  // Column visibility
+  var _vis = React.useState(function() {
+    var m = {}; headers.forEach(function(h) { m[h.key] = true }); return m
+  })
+  var colVis = _vis[0]; var setColVis = _vis[1]
+
+  // Column order
+  var _order = React.useState(function() { return headers.map(function(h) { return h.key }) })
+  var colOrder = _order[0]; var setColOrder = _order[1]
+
+  // Sorting
+  var _sort = React.useState({ col: null, dir: 'asc' })
+  var sort = _sort[0]; var setSort = _sort[1]
+
+  // Column widths — init from module store if storageKey present
+  var _widths = React.useState(function() {
+    return (storageKey && _dtWidthStore[storageKey]) || {}
+  })
+  var colWidths = _widths[0]; var setColWidths = _widths[1]
+
+  // Column picker dropdown
+  var _pickerOpen = React.useState(false)
+  var pickerOpen = _pickerOpen[0]; var setPickerOpen = _pickerOpen[1]
+  var pickerRef = React.useRef(null)
+
+  // Drag state
+  var dragKey = React.useRef(null)
+  var resizing = React.useRef(false)
+
+  // Close picker on outside click
+  React.useEffect(function() {
+    if (!pickerOpen) return
+    var onDoc = function(e) { if (pickerRef.current && !pickerRef.current.contains(e.target)) setPickerOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    return function() { document.removeEventListener('mousedown', onDoc) }
+  }, [pickerOpen])
+
+  // Build visible headers in order
+  var headerMap = {}
+  headers.forEach(function(h) { headerMap[h.key] = h })
+  var visibleHeaders = colOrder.filter(function(k) { return colVis[k] && headerMap[k] }).map(function(k) { return headerMap[k] })
+
+  // Map original header index for each visible header so cells align correctly
+  var cellIndexMap = visibleHeaders.map(function(h) {
+    return headers.indexOf(h)
+  })
+
+  // Sort rows
+  var sorted = rows
+  if (enableSort && sort.col !== null) {
+    sorted = rows.slice().sort(function(a, b) {
+      var origIdx = cellIndexMap[sort.col]
+      var av = a.sortValues ? a.sortValues[origIdx] : a.cells[origIdx]
+      var bv = b.sortValues ? b.sortValues[origIdx] : b.cells[origIdx]
+      if (typeof av === 'object' && av !== null && av.props) av = av.props.children || ''
+      if (typeof bv === 'object' && bv !== null && bv.props) bv = bv.props.children || ''
+      var na = parseFloat(String(av).replace(/[^0-9.-]/g, ''))
+      var nb = parseFloat(String(bv).replace(/[^0-9.-]/g, ''))
+      if (!isNaN(na) && !isNaN(nb)) return sort.dir === 'asc' ? na - nb : nb - na
+      var sa = String(av || '').toLowerCase()
+      var sb = String(bv || '').toLowerCase()
+      if (sa < sb) return sort.dir === 'asc' ? -1 : 1
+      if (sa > sb) return sort.dir === 'asc' ? 1 : -1
+      return 0
+    })
+  }
+
+  // No data
+  if (!rows || rows.length === 0) {
+    return empty || React.createElement(Empty, { title: 'No data', message: 'Nothing to show yet.' })
+  }
+
+  function widthOf(key) { return colWidths[key] || (headerMap[key] && headerMap[key].width) || 150 }
+
+  function handleSort(idx) {
+    if (resizing.current) return
+    setSort(function(prev) {
+      return { col: idx, dir: prev.col === idx && prev.dir === 'asc' ? 'desc' : 'asc' }
+    })
+  }
+
+  function onDrop(targetKey) {
+    var from = dragKey.current; dragKey.current = null
+    if (!from || from === targetKey) return
+    var order = colOrder.slice()
+    var fi = order.indexOf(from)
+    var ti = order.indexOf(targetKey)
+    if (fi < 0 || ti < 0) return
+    order.splice(ti, 0, order.splice(fi, 1)[0])
+    setColOrder(order)
+  }
+
+  function startResize(key) {
+    return function(e) {
+      e.preventDefault(); e.stopPropagation()
+      resizing.current = true
+      var sx = e.clientX
+      var sw = widthOf(key)
+      var mv = function(ev) {
+        setColWidths(function(p) {
+          var next = Object.assign({}, p)
+          next[key] = Math.max(60, sw + (ev.clientX - sx))
+          return next
+        })
+      }
+      var up = function() {
+        window.removeEventListener('mousemove', mv)
+        window.removeEventListener('mouseup', up)
+        setTimeout(function() { resizing.current = false }, 0)
+        if (storageKey) {
+          setColWidths(function(p) { _dtWidthStore[storageKey] = p; return p })
+        }
+      }
+      window.addEventListener('mousemove', mv)
+      window.addEventListener('mouseup', up)
+    }
+  }
+
+  var resizeStyle = { position: 'absolute', top: 0, right: 0, width: 7, height: '100%', cursor: 'col-resize', userSelect: 'none' }
+
+  return React.createElement('div', { style: { position: 'relative' } },
+    columnPicker && React.createElement('div', { ref: pickerRef, style: { position: 'absolute', top: -32, right: 0, zIndex: 10 } },
+      React.createElement('button', {
+        type: 'button',
+        onClick: function() { setPickerOpen(function(o) { return !o }) },
+        style: { fontSize: 11, padding: '3px 8px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--muted)', cursor: 'pointer' }
+      }, 'Columns'),
+      pickerOpen && React.createElement('div', {
+        style: { position: 'absolute', top: '100%', right: 0, marginTop: 4, width: 200, maxHeight: 300, overflowY: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.14)', padding: 6, zIndex: 200 }
+      }, headers.map(function(h) {
+        return React.createElement('label', { key: h.key, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', fontSize: 12, color: 'var(--muted)', cursor: 'pointer', borderRadius: 4 } },
+          React.createElement('input', { type: 'checkbox', checked: !!colVis[h.key], onChange: function() { setColVis(function(p) { var n = Object.assign({}, p); n[h.key] = !p[h.key]; return n }) } }),
+          React.createElement('span', null, h.label)
+        )
+      }))
+    ),
+    React.createElement('div', { style: { overflowX: 'auto', overflowY: 'auto', maxHeight: '72vh' } },
+      React.createElement('table', { style: { borderCollapse: 'collapse', tableLayout: 'fixed', width: 'max-content', minWidth: '100%' } },
+        React.createElement('colgroup', null, visibleHeaders.map(function(h) {
+          return React.createElement('col', { key: h.key, style: { width: widthOf(h.key) } })
+        })),
+        React.createElement('thead', null,
+          React.createElement('tr', null, visibleHeaders.map(function(h, i) {
+            var arrow = sort.col === i ? (sort.dir === 'asc' ? ' \u2191' : ' \u2193') : ''
+            var isNumeric = h.numeric
+            return React.createElement('th', {
+              key: h.key,
+              draggable: true,
+              onDragStart: function(e) { if (resizing.current) { e.preventDefault(); return } dragKey.current = h.key },
+              onDragOver: function(e) { e.preventDefault() },
+              onDrop: function() { onDrop(h.key) },
+              onClick: enableSort ? function() { handleSort(i) } : undefined,
+              style: { position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-subtle)', cursor: enableSort ? 'pointer' : 'grab', userSelect: 'none', whiteSpace: 'nowrap', textAlign: isNumeric ? 'right' : 'left', paddingRight: isNumeric ? 12 : undefined, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--muted)', padding: '8px 12px', borderBottom: '1px solid var(--border)' }
+            },
+              h.label + arrow,
+              React.createElement('span', {
+                draggable: false,
+                onClick: function(e) { e.stopPropagation() },
+                onMouseDown: startResize(h.key),
+                style: resizeStyle
+              })
+            )
+          }))
+        ),
+        React.createElement('tbody', null,
+          sorted.map(function(row, ri) {
+            return React.createElement('tr', {
+              key: row.key || ri,
+              onClick: onRowClick ? function() { onRowClick(row, ri) } : undefined,
+              style: Object.assign({}, onRowClick ? { cursor: 'pointer' } : {})
+            }, visibleHeaders.map(function(h, ci) {
+              var origIdx = cellIndexMap[ci]
+              var cell = row.cells[origIdx]
+              var isNumeric = h.numeric
+              var cellStr = String(cell == null ? '' : cell)
+              var numVal = isNumeric ? parseFloat(cellStr.replace(/[^0-9.-]/g, '')) : NaN
+              var isMoney = isNumeric && !isNaN(numVal)
+              return React.createElement('td', {
+                key: h.key,
+                style: {
+                  fontSize: 12,
+                  padding: '12px',
+                  borderBottom: '1px solid var(--border)',
+                  textAlign: isNumeric ? 'right' : 'left',
+                  paddingRight: isNumeric ? 12 : undefined,
+                  fontFamily: isMoney ? 'var(--font-mono)' : undefined,
+                  fontWeight: isMoney ? 600 : 400,
+                  color: isMoney ? (numVal < 0 ? 'var(--red)' : 'var(--foreground)') : 'var(--foreground)',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }
+              }, cell == null ? '\u2014' : cell)
+            }))
+          })
+        )
+      )
+    )
+  )
+}
+
+export function MultiSelect(props) {
+  var label = props.label || ''
+  var options = props.options || []
+  var selected = props.selected || []
+  var onChange = props.onChange || function() {}
+  var width = props.width || 'auto'
+  var placeholder = props.placeholder || 'Search...'
+  var className = props.className || ''
+
+  var _open = React.useState(false)
+  var open = _open[0]; var setOpen = _open[1]
+  var _q = React.useState('')
+  var q = _q[0]; var setQ = _q[1]
+  var ref = React.useRef(null)
+
+  React.useEffect(function() {
+    var onDoc = function(e) { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', onDoc)
+    return function() { document.removeEventListener('mousedown', onDoc) }
+  }, [])
+
+  function toggle(id) {
+    onChange(selected.includes(id) ? selected.filter(function(x) { return x !== id }) : selected.concat([id]))
+  }
+
+  var filtered = q ? options.filter(function(o) { return (o.name || '').toLowerCase().indexOf(q.toLowerCase()) >= 0 }) : options
+  var btnWidth = typeof width === 'number' ? width : undefined
+  var dropWidth = typeof width === 'number' ? Math.max(width, 230) : 230
+
+  return React.createElement('div', { ref: ref, className: className, style: { position: 'relative', display: 'inline-block' } },
+    React.createElement('button', {
+      type: 'button',
+      onClick: function() { setOpen(function(o) { return !o }) },
+      className: 'btn',
+      style: { fontSize: 12, padding: '4px 10px', width: btnWidth, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }
+    },
+      React.createElement('span', {
+        style: { color: selected.length ? 'var(--foreground)' : 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+      }, label + (selected.length ? ' (' + selected.length + ')' : '')),
+      React.createElement('span', {
+        style: { display: 'inline-block', width: 0, height: 0, marginLeft: 2, borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '5px solid var(--muted)' }
+      })
+    ),
+    open && React.createElement('div', {
+      style: { position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4, width: dropWidth, maxHeight: 300, overflowY: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.14)', padding: 6 }
+    },
+      React.createElement('input', {
+        autoFocus: true, value: q, onChange: function(e) { setQ(e.target.value) }, placeholder: placeholder,
+        style: { width: '100%', fontSize: 12, padding: '5px 8px', marginBottom: 6, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg-subtle)', color: 'var(--foreground)', boxSizing: 'border-box' }
+      }),
+      selected.length > 0 && React.createElement('div', {
+        onClick: function() { onChange([]) },
+        style: { fontSize: 11, color: 'var(--accent)', cursor: 'pointer', padding: '2px 6px 6px' }
+      }, 'Clear selection'),
+      filtered.map(function(o) {
+        return React.createElement('label', { key: o.id, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '4px 6px', fontSize: 12, color: 'var(--muted)', cursor: 'pointer', borderRadius: 4 } },
+          React.createElement('input', { type: 'checkbox', checked: selected.includes(o.id), onChange: function() { toggle(o.id) } }),
+          React.createElement('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, o.name)
+        )
+      }),
+      !filtered.length && React.createElement('div', {
+        style: { fontSize: 12, color: 'var(--muted)', padding: 6 }
+      }, 'No matches')
+    )
+  )
+}

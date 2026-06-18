@@ -18,6 +18,8 @@ export {
   Spinner,
   ScoreRing,
   Explainer,
+  DataTable,
+  MultiSelect,
 } from './components.jsx'
 
 // Layout shell with session context + view-as system + cmd+k + theme
