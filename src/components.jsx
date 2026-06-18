@@ -144,7 +144,7 @@ export function Table({ headers, rows, empty, onRowClick, sortable }) {
       <tbody>
         {sorted.map(function(row, ri) {
           return (
-            <tr key={row.key || ri} onClick={onRowClick ? function() { onRowClick(row, ri) } : undefined} style={onRowClick ? { cursor: 'pointer' } : undefined}>
+            <tr key={row.key != null ? row.key : ri} onClick={onRowClick ? function() { onRowClick(row, ri) } : undefined} style={onRowClick ? { cursor: 'pointer' } : undefined}>
               {row.cells.map(function(cell, ci) {
                 var align = enableSort && headers[ci] && headers[ci].align ? headers[ci].align : undefined
                 return <td key={ci} style={align ? { textAlign: align } : undefined}>{cell}</td>
@@ -366,12 +366,10 @@ export function DataTable(props) {
     return function(e) {
       e.preventDefault(); e.stopPropagation()
       resizing.current = true
-      // Disable draggable on parent th to prevent browser drag from stealing mouse events
-      var th = e.currentTarget.parentElement
-      if (th) th.setAttribute('draggable', 'false')
       var sx = e.clientX
       var sw = widthOf(key)
       var mv = function(ev) {
+        ev.preventDefault()
         setColWidths(function(p) {
           var next = Object.assign({}, p)
           next[key] = Math.max(60, sw + (ev.clientX - sx))
@@ -381,7 +379,6 @@ export function DataTable(props) {
       var up = function() {
         window.removeEventListener('mousemove', mv)
         window.removeEventListener('mouseup', up)
-        if (th) th.setAttribute('draggable', 'true')
         setTimeout(function() { resizing.current = false }, 0)
         if (storageKey) {
           setColWidths(function(p) { _dtWidthStore[storageKey] = p; return p })
@@ -422,6 +419,11 @@ export function DataTable(props) {
             return React.createElement('th', {
               key: h.key,
               draggable: true,
+              onMouseDown: function(e) {
+                // Prevent browser drag initiation when mousedown is on the resize handle (rightmost 7px)
+                var rect = e.currentTarget.getBoundingClientRect()
+                if (e.clientX >= rect.right - 7) e.preventDefault()
+              },
               onDragStart: function(e) { if (resizing.current) { e.preventDefault(); return } dragKey.current = h.key },
               onDragOver: function(e) { e.preventDefault() },
               onDrop: function() { onDrop(h.key) },
@@ -441,7 +443,7 @@ export function DataTable(props) {
         React.createElement('tbody', null,
           sorted.map(function(row, ri) {
             return React.createElement('tr', {
-              key: row.key || ri,
+              key: row.key != null ? row.key : ri,
               onClick: onRowClick ? function() { onRowClick(row, ri) } : undefined,
               style: Object.assign({}, onRowClick ? { cursor: 'pointer' } : {})
             }, visibleHeaders.map(function(h, ci) {
