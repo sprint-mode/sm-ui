@@ -422,7 +422,59 @@ export function BugPanel(props) {
   var _filterProduct = useState('all'); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
   var _sortBy = useState('newest'); var sortBy = _sortBy[0]; var setSortBy = _sortBy[1]
+  var _screenshot = useState(null); var screenshot = _screenshot[0]; var setScreenshot = _screenshot[1]
+  var _capturing = useState(false); var capturing = _capturing[0]; var setCapturing = _capturing[1]
   var fileInputRef = useRef(null)
+  var formFileRef = useRef(null) // file to upload after bug creation
+
+  // ── Screenshot paste handler (global when form is open) ─────────────────
+  useEffect(function() {
+    if (!showForm) return
+    var handler = function(e) {
+      var items = e.clipboardData && e.clipboardData.items
+      if (!items) return
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          var blob = items[i].getAsFile()
+          var reader = new FileReader()
+          reader.onload = function(ev) { setScreenshot(ev.target.result) }
+          reader.readAsDataURL(blob)
+          e.preventDefault()
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handler)
+    return function() { window.removeEventListener('paste', handler) }
+  }, [showForm])
+
+  // ── Capture screen via html2canvas ──────────────────────────────────────
+  function captureScreen() {
+    setCapturing(true)
+    // Dynamically load html2canvas from CDN
+    var script = document.createElement('script')
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+    script.onload = function() {
+      // Hide the bug panel overlay before capture
+      var overlay = document.querySelector('[data-bug-overlay]')
+      var panel = document.querySelector('[data-bug-panel]')
+      if (overlay) overlay.style.display = 'none'
+      if (panel) panel.style.display = 'none'
+
+      window.html2canvas(document.body, { useCORS: true, scale: 1, logging: false }).then(function(canvas) {
+        setScreenshot(canvas.toDataURL('image/png'))
+        if (overlay) overlay.style.display = ''
+        if (panel) panel.style.display = ''
+        setCapturing(false)
+      }).catch(function() {
+        if (overlay) overlay.style.display = ''
+        if (panel) overlay.style.display = ''
+        setCapturing(false)
+      })
+    }
+    script.onerror = function() { setCapturing(false) }
+    document.head.appendChild(script)
+  }
 
   // ── Data loading ──────────────────────────────────────────────────────────
   var loadBugs = useCallback(function() {
@@ -541,11 +593,45 @@ export function BugPanel(props) {
     })
       .then(function(r) { return r.json() })
       .then(function(d) {
-        if (d.ok) {
-          setFTitle(''); setFDesc(''); setShowForm(false)
-          loadBugs()
+        if (d.ok && d.data && d.data.id) {
+          var bugId = d.data.id
+          var uploads = []
+
+          // Upload screenshot if captured/pasted
+          if (screenshot) {
+            var byteString = atob(screenshot.split(',')[1])
+            var ab = new ArrayBuffer(byteString.length)
+            var ia = new Uint8Array(ab)
+            for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+            var blob = new Blob([ab], { type: 'image/png' })
+            var fd = new FormData()
+            fd.append('file', blob, 'screenshot.png')
+            uploads.push(fetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
+              method: 'POST', credentials: 'include', body: fd
+            }))
+          }
+
+          // Upload file if selected
+          if (formFileRef.current) {
+            var ffd = new FormData()
+            ffd.append('file', formFileRef.current)
+            uploads.push(fetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
+              method: 'POST', credentials: 'include', body: ffd
+            }))
+          }
+
+          Promise.all(uploads).then(function() {
+            setFTitle(''); setFDesc(''); setScreenshot(null); formFileRef.current = null
+            if (fileInputRef.current) fileInputRef.current.value = ''
+            setShowForm(false)
+            loadBugs()
+            setSubmitting(false)
+          }).catch(function() {
+            setShowForm(false); loadBugs(); setSubmitting(false)
+          })
+        } else {
+          setSubmitting(false)
         }
-        setSubmitting(false)
       })
       .catch(function() { setSubmitting(false) })
   }
@@ -594,8 +680,8 @@ export function BugPanel(props) {
 
   return (
     <>
-      <div style={S.overlay} onClick={closePanel} />
-      <div style={Object.assign({}, S.panel, isMobile ? S.panelMobile : {})}>
+      <div data-bug-overlay="" style={S.overlay} onClick={closePanel} />
+      <div data-bug-panel="" style={Object.assign({}, S.panel, isMobile ? S.panelMobile : {})}>
 
         {/* Header */}
         <div style={S.header}>
@@ -696,10 +782,21 @@ export function BugPanel(props) {
               onChange={function(e) { setFDesc(e.target.value) }} />
             <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
               <div style={S.screenshotZone}>Paste -- Cmd+V</div>
-              <button style={S.captureBtn}><CameraIcon /> Capture</button>
+              <button style={S.captureBtn} onClick={function(e) { e.stopPropagation(); captureScreen() }} disabled={capturing}>
+                <CameraIcon /> {capturing ? '...' : 'Capture'}
+              </button>
               <button style={S.fileBtn} onClick={function() { if (fileInputRef.current) fileInputRef.current.click() }}><UploadIcon /> File</button>
-              <input ref={fileInputRef} type="file" style={{ display: 'none' }} />
+              <input ref={fileInputRef} type="file" style={{ display: 'none' }}
+                onChange={function(e) { if (e.target.files && e.target.files[0]) formFileRef.current = e.target.files[0] }} />
             </div>
+            {/* Screenshot/file preview */}
+            {screenshot && (
+              <div style={{ marginBottom: 8, position: 'relative' }}>
+                <img src={screenshot} alt="screenshot" style={{ maxWidth: '100%', borderRadius: 6, border: '1px solid var(--border)', display: 'block' }} />
+                <button onClick={function() { setScreenshot(null) }}
+                  style={{ position: 'absolute', top: 4, right: 4, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>x</button>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 6 }}>
               <button style={S.submitBtn} onClick={handleSubmit} disabled={submitting || !fTitle.trim()}>
                 {submitting ? 'Submitting...' : 'Submit'}
