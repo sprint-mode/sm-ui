@@ -57,3 +57,5 @@ export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.jsx'
 
 export { UpdateAttachments } from './UpdateAttachments.jsx'
 export { PortalUpdates } from './PortalUpdates.jsx'
+
+export { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
