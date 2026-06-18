@@ -182,7 +182,7 @@ function blastColor(blast) {
 }
 
 // ─── BugCard ─────────────────────────────────────────────────────────────────
-function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, apiBase }) {
+function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire, apiBase }) {
   var _comment = useState(''); var comment = _comment[0]; var setComment = _comment[1]
   var _copied = useState(false); var copied = _copied[0]; var setCopied = _copied[1]
   var _posting = useState(false); var posting = _posting[0]; var setPosting = _posting[1]
@@ -210,6 +210,13 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, apiBas
   function copyFirePrompt(e) {
     e.stopPropagation()
     if (bug.fire_prompt) navigator.clipboard.writeText(bug.fire_prompt)
+  }
+
+  function fireBug(e) {
+    e.stopPropagation()
+    if (bug.fire_prompt) navigator.clipboard.writeText(bug.fire_prompt)
+    // Call fire endpoint to push brief to sm-jockey and update status
+    onFire && onFire(bug.id)
   }
 
   return (
@@ -288,7 +295,8 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, apiBas
               <div style={S.fireHeader}><PlayIcon /> Fire Prompt Ready</div>
               <div style={S.firePreview}>{bug.fire_prompt}</div>
               <div style={{ display: 'flex', gap: 6 }}>
-                <button style={S.btnSm('var(--green)', '#fff', 'none')} onClick={copyFirePrompt}>Copy Fire Prompt</button>
+                <button style={S.btnSm('var(--green)', '#fff', 'none')} onClick={fireBug}>Fire &amp; Push Brief</button>
+                <button style={S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)')} onClick={copyFirePrompt}>Copy Prompt</button>
               </div>
             </div>
           )}
@@ -562,6 +570,16 @@ export function BugPanel(props) {
     }).then(function() { loadBugs() })
   }
 
+  function handleFire(bugId) {
+    fetch(apiBase + '/api/bugs/' + bugId + '/fire', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' }
+    }).then(function(r) { return r.json() })
+      .then(function(d) {
+        if (d.ok) loadBugs()
+      })
+  }
+
   function handleComment(bugId, body) {
     return fetch(apiBase + '/api/bugs/' + bugId + '/comments', {
       method: 'POST', credentials: 'include',
@@ -752,7 +770,7 @@ export function BugPanel(props) {
           {!loading && source === 'reports' && bugs.map(function(bug) {
             return <BugCard key={bug.id} bug={bug} isAdmin={isAdmin} expanded={expanded === bug.id}
               onToggle={function() { setExpanded(expanded === bug.id ? null : bug.id) }}
-              onAction={handleAction} onComment={handleComment} apiBase={apiBase} />
+              onAction={handleAction} onComment={handleComment} onFire={handleFire} apiBase={apiBase} />
           })}
           {!loading && source === 'threads' && threads.map(function(item) {
             return <ThreadCard key={item.id} item={item} expanded={expanded === item.id}
