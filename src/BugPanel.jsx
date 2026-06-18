@@ -787,7 +787,14 @@ export function BugPanel(props) {
         <div style={S.list}>
           {loading && <div style={S.empty}>Loading...</div>}
           {!loading && items.length === 0 && <div style={S.empty}>No items.</div>}
-          {!loading && source === 'reports' && bugs.map(function(bug) {
+          {!loading && source === 'reports' && bugs.slice().sort(function(a, b) {
+            if (sortBy === 'priority') {
+              var po = { critical: 0, high: 1, normal: 2, low: 3 }
+              return (po[a.priority] || 2) - (po[b.priority] || 2)
+            }
+            if (sortBy === 'oldest') return (a.created_at || '').localeCompare(b.created_at || '')
+            return (b.created_at || '').localeCompare(a.created_at || '') // newest
+          }).map(function(bug) {
             return <BugCard key={bug.id} bug={bug} isAdmin={isAdmin} expanded={expanded === bug.id}
               onToggle={function() { setExpanded(expanded === bug.id ? null : bug.id) }}
               onAction={handleAction} onComment={handleComment} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} />
