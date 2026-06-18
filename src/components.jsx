@@ -366,12 +366,10 @@ export function DataTable(props) {
     return function(e) {
       e.preventDefault(); e.stopPropagation()
       resizing.current = true
-      // Disable draggable on parent th to prevent browser drag from stealing mouse events
-      var th = e.currentTarget.parentElement
-      if (th) th.setAttribute('draggable', 'false')
       var sx = e.clientX
       var sw = widthOf(key)
       var mv = function(ev) {
+        ev.preventDefault()
         setColWidths(function(p) {
           var next = Object.assign({}, p)
           next[key] = Math.max(60, sw + (ev.clientX - sx))
@@ -381,7 +379,6 @@ export function DataTable(props) {
       var up = function() {
         window.removeEventListener('mousemove', mv)
         window.removeEventListener('mouseup', up)
-        if (th) th.setAttribute('draggable', 'true')
         setTimeout(function() { resizing.current = false }, 0)
         if (storageKey) {
           setColWidths(function(p) { _dtWidthStore[storageKey] = p; return p })
@@ -422,6 +419,11 @@ export function DataTable(props) {
             return React.createElement('th', {
               key: h.key,
               draggable: true,
+              onMouseDown: function(e) {
+                // Prevent browser drag initiation when mousedown is on the resize handle (rightmost 7px)
+                var rect = e.currentTarget.getBoundingClientRect()
+                if (e.clientX >= rect.right - 7) e.preventDefault()
+              },
               onDragStart: function(e) { if (resizing.current) { e.preventDefault(); return } dragKey.current = h.key },
               onDragOver: function(e) { e.preventDefault() },
               onDrop: function() { onDrop(h.key) },
