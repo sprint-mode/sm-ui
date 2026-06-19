@@ -451,7 +451,7 @@ export function BugPanel(props) {
   var _fType = useState('bug'); var fType = _fType[0]; var setFType = _fType[1]
   var _fProduct = useState(product); var fProduct = _fProduct[0]; var setFProduct = _fProduct[1]
   var _submitting = useState(false); var submitting = _submitting[0]; var setSubmitting = _submitting[1]
-  var _filterProduct = useState('all'); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
+  var _filterProduct = useState(props.product || 'all'); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
   var _filterPriority = useState('all'); var filterPriority = _filterPriority[0]; var setFilterPriority = _filterPriority[1]
   var _sortBy = useState('newest'); var sortBy = _sortBy[0]; var setSortBy = _sortBy[1]
