@@ -26,6 +26,20 @@ var STATUS_META = {
 }
 
 var TYPES = ['bug', 'feature', 'ux', 'task']
+
+// ── P0-P3 priority taxonomy (matches Dev Portal Triage.jsx) ─────────────────
+var PRIORITY_META = {
+  critical: { label: 'P0', sublabel: 'Critical', color: 'var(--red)',   bg: 'var(--red-light)',   sort: 0 },
+  high:     { label: 'P1', sublabel: 'High',     color: '#e67700',      bg: '#fff3e0',            sort: 1 },
+  normal:   { label: 'P2', sublabel: 'Normal',   color: 'var(--amber)', bg: 'var(--amber-light)', sort: 2 },
+  medium:   { label: 'P2', sublabel: 'Normal',   color: 'var(--amber)', bg: 'var(--amber-light)', sort: 2 },
+  low:      { label: 'P3', sublabel: 'Low',      color: 'var(--green)', bg: 'var(--green-light)', sort: 3 },
+}
+function priorityBadge(priority) {
+  var m = PRIORITY_META[priority] || PRIORITY_META.normal
+  return { label: m.label, sublabel: m.sublabel, color: m.color, bg: m.bg }
+}
+
 var PRODUCTS = {
   'Products': ['studios', 'mode', 'signal', 'privacy'],
   'Apps': ['admin', 'platform', 'website', 'sm'],
@@ -292,7 +306,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
                 <span style={S.aiBadge('var(--blue-10)', 'var(--blue)')}>{ai.classification || bug.type}</span>
                 {ai.blast_radius && <span style={S.aiBadge(blastColor(ai.blast_radius).bg, blastColor(ai.blast_radius).color)}>blast: {ai.blast_radius}</span>}
                 {ai.auto_fixable !== undefined && <span style={S.aiBadge(ai.auto_fixable ? 'var(--green-light)' : 'var(--bg-subtle)', ai.auto_fixable ? 'var(--green)' : 'var(--muted)')}>{ai.auto_fixable ? 'auto-fixable' : 'manual fix'}</span>}
-                {ai.suggested_priority && <span style={S.aiBadge('var(--bg-subtle)', 'var(--muted)')}>priority: {ai.suggested_priority}</span>}
+                {ai.suggested_priority && (function() { var pb = priorityBadge(ai.suggested_priority); return <span style={S.aiBadge(pb.bg, pb.color)}>{pb.label} {pb.sublabel}</span> })()}
               </div>
               {ai.triage_notes && <div style={S.aiNotes}>{ai.triage_notes}</div>}
             </div>
@@ -376,7 +390,7 @@ function ThreadCard({ item, expanded, onToggle }) {
         <span style={S.dot('var(--red)')} />
         <span style={S.threadBadge}>{item.thread_id || 'unknown'}</span>
         <span style={S.productBadge}>{item.product}</span>
-        <span style={S.aiBadge(item.priority === 'high' ? 'var(--red-light)' : 'var(--bg-subtle)', item.priority === 'high' ? 'var(--red)' : 'var(--muted)')}>{item.priority}</span>
+        <span style={(function() { var pb = priorityBadge(item.priority); return S.aiBadge(pb.bg, pb.color) })()}>{(function() { var pb = priorityBadge(item.priority); return pb.label })()}</span>
         <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', marginLeft: 'auto', color: 'var(--red)' }}>{item.status}</span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -770,8 +784,7 @@ export function BugPanel(props) {
           {!loading && items.length === 0 && <div style={S.empty}>No items.</div>}
           {!loading && source === 'reports' && bugs.slice().sort(function(a, b) {
             if (sortBy === 'priority') {
-              var po = { critical: 0, high: 1, normal: 2, low: 3 }
-              return (po[a.priority] || 2) - (po[b.priority] || 2)
+              return ((PRIORITY_META[a.priority] || PRIORITY_META.normal).sort) - ((PRIORITY_META[b.priority] || PRIORITY_META.normal).sort)
             }
             if (sortBy === 'oldest') return (a.created_at || '').localeCompare(b.created_at || '')
             return (b.created_at || '').localeCompare(a.created_at || '') // newest
