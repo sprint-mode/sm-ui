@@ -780,13 +780,15 @@ export default function Layout(props) {
   var portalCfg = usePortalConfig()
   var bugPanelFlag = props.bugPanel !== undefined ? props.bugPanel : (portalCfg.config && portalCfg.config.bug_panel)
   var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0
-  var bugPanelAdmin = props.bugPanelAdmin || (session && (session.portal_role === 'super_admin' || session.portal_role === 'admin' || session.role === 'super_admin' || session.role === 'admin' || session.is_sm_team))
   var bugPanelProduct = props.portalSubdomain || 'sm' // product for bug reports
   var bugPanelLabel = props.bugPanelLabel // FAB label override
 
   // Session state — use prop or auto-fetch
   var _s = useState(sessionProp || null); var session = _s[0]; var setSession = _s[1]
   var _l = useState(!sessionProp); var loading = _l[0]; var setLoading = _l[1]
+
+  // bugPanelAdmin must be computed AFTER session is initialized (var hoisting makes it undefined above)
+  var bugPanelAdmin = props.bugPanelAdmin || (session && (session.portal_role === 'super_admin' || session.portal_role === 'admin' || session.role === 'super_admin' || session.role === 'admin' || session.is_sm_team))
   var _m = useState(false); var mobileOpen = _m[0]; var setMobileOpen = _m[1]
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
