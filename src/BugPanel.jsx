@@ -438,6 +438,7 @@ export function BugPanel(props) {
   var _submitting = useState(false); var submitting = _submitting[0]; var setSubmitting = _submitting[1]
   var _filterProduct = useState('all'); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
+  var _filterPriority = useState('all'); var filterPriority = _filterPriority[0]; var setFilterPriority = _filterPriority[1]
   var _sortBy = useState('newest'); var sortBy = _sortBy[0]; var setSortBy = _sortBy[1]
   var _screenshot = useState(null); var screenshot = _screenshot[0]; var setScreenshot = _screenshot[1]
   var _capturing = useState(false); var capturing = _capturing[0]; var setCapturing = _capturing[1]
@@ -507,6 +508,7 @@ export function BugPanel(props) {
     }
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
     if (filterType !== 'all') params.push('type=' + filterType)
+    if (filterPriority !== 'all') params.push('priority=' + filterPriority)
     params.push('limit=100')
 
     // For admin tabs with multiple statuses, fetch without status filter and filter client-side
@@ -534,24 +536,25 @@ export function BugPanel(props) {
         setLoading(false)
       })
       .catch(function() { setLoading(false) })
-  }, [apiBase, isAdmin, source, tab, rFilter, filterProduct, filterType])
+  }, [apiBase, isAdmin, source, tab, rFilter, filterProduct, filterType, filterPriority])
 
   var loadThreads = useCallback(function() {
     if (!isAdmin) return
     setLoading(true)
     var params = ['status=open']
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
+    if (filterPriority !== 'all') params.push('priority=' + filterPriority)
     fetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d) { setThreads(Array.isArray(d.data) ? d.data : []); setLoading(false) })
       .catch(function() { setLoading(false) })
-  }, [apiBase, isAdmin, filterProduct])
+  }, [apiBase, isAdmin, filterProduct, filterPriority])
 
   useEffect(function() {
     if (!open) return
     if (source === 'reports') loadBugs()
     else loadThreads()
-  }, [open, source, tab, rFilter, filterProduct, filterType, loadBugs, loadThreads])
+  }, [open, source, tab, rFilter, filterProduct, filterType, filterPriority, loadBugs, loadThreads])
 
   // ── Load detail with comments/attachments on expand ───────────────────────
   useEffect(function() {
@@ -746,6 +749,13 @@ export function BugPanel(props) {
                 {TYPES.map(function(t) { return <option key={t} value={t}>{t}</option> })}
               </select>
             )}
+            <select style={S.filterSelect} value={filterPriority} onChange={function(e) { setFilterPriority(e.target.value) }}>
+              <option value="all">All Priorities</option>
+              <option value="critical">P0 Critical</option>
+              <option value="high">P1 High</option>
+              <option value="normal">P2 Normal</option>
+              <option value="low">P3 Low</option>
+            </select>
             <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', marginLeft: 'auto' }}>Sort:</span>
             <select style={S.filterSelect} value={sortBy} onChange={function(e) { setSortBy(e.target.value) }}>
               <option value="newest">Newest</option>
