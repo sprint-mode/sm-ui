@@ -438,6 +438,7 @@ export function BugPanel(props) {
 
   var _bugs = useState([]); var bugs = _bugs[0]; var setBugs = _bugs[1]
   var _threads = useState([]); var threads = _threads[0]; var setThreads = _threads[1]
+  var _threadTotal = useState(0); var threadTotal = _threadTotal[0]; var setThreadTotal = _threadTotal[1]
   var _loading = useState(false); var loading = _loading[0]; var setLoading = _loading[1]
   var _source = useState('reports'); var source = _source[0]; var setSource = _source[1]
   var _tab = useState('queue'); var tab = _tab[0]; var setTab = _tab[1]
@@ -552,23 +553,35 @@ export function BugPanel(props) {
       .catch(function() { setLoading(false) })
   }, [apiBase, isAdmin, source, tab, rFilter, filterProduct, filterType, filterPriority])
 
+  var _threadLimit = useState(50); var threadLimit = _threadLimit[0]; var setThreadLimit = _threadLimit[1]
+
   var loadThreads = useCallback(function() {
     if (!isAdmin) return
     setLoading(true)
-    var params = ['status=open']
+    var params = ['status=open', 'limit=' + threadLimit]
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
     if (filterPriority !== 'all') params.push('priority=' + filterPriority)
     fetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
       .then(function(r) { return r.json() })
-      .then(function(d) { setThreads(Array.isArray(d.data) ? d.data : []); setLoading(false) })
+      .then(function(d) { setThreads(Array.isArray(d.data) ? d.data : []); setThreadTotal(d.total || (d.data ? d.data.length : 0)); setLoading(false) })
       .catch(function() { setLoading(false) })
-  }, [apiBase, isAdmin, filterProduct, filterPriority])
+  }, [apiBase, isAdmin, filterProduct, filterPriority, threadLimit])
 
   useEffect(function() {
     if (!open) return
     if (source === 'reports') loadBugs()
     else loadThreads()
-  }, [open, source, tab, rFilter, filterProduct, filterType, filterPriority, loadBugs, loadThreads])
+    // Preload thread count (lightweight — limit=1 just to get total)
+    if (isAdmin) {
+      var params = ['status=open', 'limit=1']
+      if (filterProduct !== 'all') params.push('product=' + filterProduct)
+      if (filterPriority !== 'all') params.push('priority=' + filterPriority)
+      fetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
+        .then(function(r) { return r.json() })
+        .then(function(d) { if (d.total !== undefined) setThreadTotal(d.total) })
+        .catch(function() {})
+    }
+  }, [open, source, tab, rFilter, filterProduct, filterType, filterPriority, loadBugs, loadThreads, isAdmin, apiBase])
 
   // ── Load detail with comments/attachments on expand ───────────────────────
   useEffect(function() {
@@ -732,7 +745,7 @@ export function BugPanel(props) {
               Reports <span style={{ fontSize: 10, fontWeight: 700, marginLeft: 4, opacity: 0.8 }}>{bugs.length}</span>
             </button>
             <button style={Object.assign({}, S.sourceBtn(source === 'threads'), S.sourceBtnLast)} onClick={function() { setSource('threads') }}>
-              Claude Threads <span style={{ fontSize: 10, fontWeight: 700, marginLeft: 4, opacity: 0.8 }}>{threads.length}</span>
+              Claude Threads <span style={{ fontSize: 10, fontWeight: 700, marginLeft: 4, opacity: 0.8 }}>{threadTotal}</span>
             </button>
           </div>
         )}
@@ -807,6 +820,12 @@ export function BugPanel(props) {
             return <ThreadCard key={item.id} item={item} expanded={expanded === item.id}
               onToggle={function() { setExpanded(expanded === item.id ? null : item.id) }} />
           })}
+          {!loading && source === 'threads' && threads.length < threadTotal && (
+            <button onClick={function() { setThreadLimit(threadLimit + 50) }}
+              style={{ width: '100%', padding: '10px', border: '1px solid var(--border)', borderRadius: 6, background: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginTop: 4 }}>
+              Load more ({threads.length} of {threadTotal})
+            </button>
+          )}
         </div>
 
         {/* Submit form */}
