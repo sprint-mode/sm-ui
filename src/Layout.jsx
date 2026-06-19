@@ -774,6 +774,7 @@ export default function Layout(props) {
   var byLine = props.byLine // e.g. "by Sprint Mode" -- shown after product name in muted secondary style
   var userMenuExtra = props.userMenuExtra // optional React element rendered in user menu between Profile and Sign out
   var notificationApiBase = props.notificationApiBase !== undefined ? props.notificationApiBase : '' // base URL for NotificationBell polls; defaults to '' (relative, proxy-routed)
+  var headerCta = props.headerCta // { label, onClick, variant? } — CTA button rendered in header before user menu
   var viewAsAnyRole = props.viewAsAnyRole // when true, any logged-in user gets View As (non-admin portals only)
   // Bug panel: read from prop (if explicitly passed) or portal config context (automatic for all portals)
   var portalCfg = usePortalConfig()
@@ -1094,9 +1095,22 @@ export default function Layout(props) {
                   <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
                 )}
               </a>
-              {(viewAsSelect || headerRight || standardHeaderRight) && (
+              {(viewAsSelect || headerCta || headerRight || standardHeaderRight) && (
                 <div className="shell-header-right">
                   {viewAsSelect}
+                  {headerCta && React.createElement('button', {
+                    onClick: headerCta.onClick,
+                    style: {
+                      padding: '6px 14px', borderRadius: 8,
+                      background: headerCta.variant === 'outline' ? 'transparent' : 'var(--accent)',
+                      color: headerCta.variant === 'outline' ? 'var(--accent)' : '#fff',
+                      border: headerCta.variant === 'outline' ? '1px solid var(--accent)' : 'none',
+                      fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
+                      transition: 'opacity .15s', flexShrink: 0,
+                    },
+                    onMouseOver: function(e) { e.currentTarget.style.opacity = '0.85' },
+                    onMouseOut: function(e) { e.currentTarget.style.opacity = '1' },
+                  }, headerCta.label)}
                   {headerRight}
                   {standardHeaderRight}
                 </div>

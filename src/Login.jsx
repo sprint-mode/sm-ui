@@ -34,7 +34,7 @@ var MailIcon = function() {
   )
 }
 
-export default function Login({ productName, _logoSrc, authBase, icon, title, byLine, iconBg, iconColor }) {
+export default function Login({ productName, _logoSrc, authBase, icon, title, byLine, iconBg, iconColor, signupUrl, signupLabel }) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')
@@ -118,7 +118,16 @@ export default function Login({ productName, _logoSrc, authBase, icon, title, by
 
         {/* Card */}
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '32px 28px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', margin: '0 0 24px', color: 'var(--foreground)' }}>Sign in</h2>
+          <h2 style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', margin: '0 0 8px', color: 'var(--foreground)' }}>Sign in</h2>
+          {signupUrl && (
+            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
+              or{' '}
+              <a href={signupUrl} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+                {signupLabel || 'create an account'}
+              </a>
+            </div>
+          )}
+          {!signupUrl && <div style={{ marginBottom: 24 }} />}
 
           {error && (
             <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', fontSize: 13, marginBottom: 16 }}>
