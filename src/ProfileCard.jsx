@@ -47,7 +47,7 @@ function RoleBadge({ role }) {
 
 // --- Avatar -------------------------------------------------------------------
 
-function Avatar({ photoUrl, initials, size, editable, onSave }) {
+function Avatar({ photoUrl, initials, size, editable, onSave, apiBase }) {
   var sz = size || 56
   var [mode, setMode] = useState(null) // null | 'picker' | 'saving'
   var [urlVal, setUrlVal] = useState('')
@@ -65,12 +65,22 @@ function Avatar({ photoUrl, initials, size, editable, onSave }) {
     var file = e.target.files && e.target.files[0]
     if (!file) return
     setMode('saving')
-    var reader = new FileReader()
-    reader.onload = async function(ev) {
-      await onSave(ev.target.result)
-      setMode(null)
+    try {
+      var form = new FormData()
+      form.append('photo', file)
+      var res = await fetch(apiBase + '/api/profile/photo', {
+        method: 'POST',
+        credentials: 'include',
+        body: form,
+      })
+      var data = await res.json()
+      if (data.ok && data.data && data.data.photo_url) {
+        await onSave(data.data.photo_url)
+      }
+    } catch (_e) {
+      // non-fatal — leave mode as-is so user can retry
     }
-    reader.readAsDataURL(file)
+    setMode(null)
   }
 
   var circle = (
@@ -323,6 +333,7 @@ function SelfProfileCard({ apiBase, backHref }) {
             initials={initials}
             size={56}
             editable
+            apiBase={base}
             onSave={function(v) { return patchProfile({ photo_url: v }) }}
           />
           <div style={{ flex: 1, minWidth: 0 }}>
