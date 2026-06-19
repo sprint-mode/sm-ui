@@ -780,7 +780,7 @@ export default function Layout(props) {
   var portalCfg = usePortalConfig()
   var bugPanelFlag = props.bugPanel !== undefined ? props.bugPanel : (portalCfg.config && portalCfg.config.bug_panel)
   var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0
-  var bugPanelAdmin = props.bugPanelAdmin || (session && (session.portal_role === 'super_admin' || session.portal_role === 'admin' || session.role === 'super_admin' || session.role === 'admin'))
+  var bugPanelAdmin = props.bugPanelAdmin || (session && (session.portal_role === 'super_admin' || session.portal_role === 'admin' || session.role === 'super_admin' || session.role === 'admin' || session.is_sm_team))
   var bugPanelProduct = props.portalSubdomain || 'sm' // product for bug reports
   var bugPanelLabel = props.bugPanelLabel // FAB label override
 
