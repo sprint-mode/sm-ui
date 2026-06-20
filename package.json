@@ -6,14 +6,11 @@
     "type": "git",
     "url": "https://github.com/nomadahq/sprint-mode-ui"
   },
-  "main": "src/index.js",
+  "main": "src/index.ts",
   "exports": {
-    ".": "./src/index.js",
-    "./auth": "./src/auth.js",
-    "./css": "./src/tokens.css",
-    "./css/shell": "./src/shell.css",
-    "./css/components": "./src/components.css",
-    "./brands": "./brands/"
+    ".": "./src/index.ts",
+    "./auth": "./src/auth.ts",
+    "./css": "./src/index.css"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -27,6 +24,9 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@types/react-router-dom": "^5.3.3",
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.0.0",
     "eslint-plugin-react-hooks": "^5.0.0",
@@ -34,11 +34,13 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.0",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   },
   "scripts": {
     "lint": "eslint src/",
-    "test": "vitest run"
+    "test": "vitest run",
+    "type-check": "tsc --noEmit"
   },
   "type": "module"
 }
