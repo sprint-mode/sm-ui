@@ -4,7 +4,7 @@ import { describe, it, expect, vi } from 'vitest'
 import {
   Card, CardBody, Pill, Badge, Button,
   StatCard, Stats, Progress, Empty, Spinner,
-} from '../components.jsx'
+} from '../components.tsx'
 
 // ── Card ─────────────────────────────────────────────────────────────────────
 
