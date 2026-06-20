@@ -23,6 +23,20 @@ jobs:
       - run: npm ci
       - run: npm run lint
 
+  type-check:
+    name: type-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Configure git for HTTPS (public deps)
+        run: git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
+      - run: npm ci
+      - run: npm run type-check
+
   test:
     name: test
     runs-on: ubuntu-latest

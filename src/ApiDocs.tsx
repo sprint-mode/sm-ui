@@ -81,8 +81,8 @@ function ParamTable({ params }: { params: ApiParam[] }) {
 }
 
 function CodeBlock({ code, title }: { code?: unknown; title?: string }) {
-  if (!code) return null
   var ref = useRef<HTMLPreElement>(null)
+  if (!code) return null
   return React.createElement('div', { style: { marginTop: '8px' } },
     title ? React.createElement('div', {
       style: { fontSize: '11px', fontWeight: 600, color: 'var(--fg-muted, #9ca3af)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px' }

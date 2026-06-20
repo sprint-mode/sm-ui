@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { usePortalConfig, PortalConfigProvider } from '../usePortalConfig.jsx'
+import { usePortalConfig, PortalConfigProvider } from '../usePortalConfig.tsx'
 
 function Consumer() {
   var ctx = usePortalConfig()

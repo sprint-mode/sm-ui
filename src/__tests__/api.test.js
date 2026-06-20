@@ -5,7 +5,7 @@ import {
   formatRelative,
   escapeHtml,
   clearSession,
-} from '../api.js'
+} from '../api.ts'
 
 // ── formatCurrency ────────────────────────────────────────────────────────────
 
