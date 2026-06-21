@@ -62,3 +62,5 @@ export { PortalUpdates } from './PortalUpdates.tsx'
 export { BugPanel, BugPanelHeaderButton } from './BugPanel.tsx'
 
 export { AvatarUpload } from './AvatarUpload.tsx'
+
+export { PortalSupportWidget } from './PortalSupportWidget.jsx'
