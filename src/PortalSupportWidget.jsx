@@ -12,7 +12,7 @@
 //
 // Debug trace: shown on AI responses for admin users or when ?debug=1 is in URL.
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 
@@ -86,7 +86,7 @@ export function PortalSupportWidget(props) {
   var _sending = useState(false); var sending = _sending[0]; var setSending = _sending[1]
   var _tickets = useState([]); var tickets = _tickets[0]; var setTickets = _tickets[1]
   var _ticketsLoading = useState(false); var ticketsLoading = _ticketsLoading[0]; var setTicketsLoading = _ticketsLoading[1]
-  var _showTicketForm = useState(false); var showTicketForm = _showTicketForm[0]; var setShowTicketForm = _showTicketForm[1]
+  var _showTicketForm = useState(false); var _showTicketFormVal = _showTicketForm[0]; var setShowTicketForm = _showTicketForm[1]
   var _ticketSubject = useState(''); var ticketSubject = _ticketSubject[0]; var setTicketSubject = _ticketSubject[1]
   var _ticketBody = useState(''); var ticketBody = _ticketBody[0]; var setTicketBody = _ticketBody[1]
   var _ticketSending = useState(false); var ticketSending = _ticketSending[0]; var setTicketSending = _ticketSending[1]
