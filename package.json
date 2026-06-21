@@ -10,7 +10,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./auth": "./src/auth.ts",
-    "./css": "./src/tokens.css",
+    "./css": "./src/index.css",
     "./css/shell": "./src/shell.css",
     "./css/components": "./src/components.css",
     "./brands": "./brands/"
