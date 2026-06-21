@@ -492,6 +492,9 @@ export function BugPanel(props: BugPanelProps) {
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
   var _filterPriority = useState('all'); var filterPriority = _filterPriority[0]; var setFilterPriority = _filterPriority[1]
   var _sortBy = useState('newest'); var sortBy = _sortBy[0]; var setSortBy = _sortBy[1]
+  var _searchQuery = useState(''); var searchQuery = _searchQuery[0]; var setSearchQuery = _searchQuery[1]
+  var _debouncedSearch = useState(''); var debouncedSearch = _debouncedSearch[0]; var setDebouncedSearch = _debouncedSearch[1]
+  var searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   var _screenshot = useState<string | null>(null); var screenshot = _screenshot[0]; var setScreenshot = _screenshot[1]
   var _capturing = useState(false); var capturing = _capturing[0]; var setCapturing = _capturing[1]
   var fileInputRef = useRef<HTMLInputElement>(null)
@@ -517,6 +520,15 @@ export function BugPanel(props: BugPanelProps) {
     window.addEventListener('paste', handler)
     return function() { window.removeEventListener('paste', handler) }
   }, [showForm])
+
+  // ── Debounced search ──────────────────────────────────────────────────────
+  useEffect(function() {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current)
+    searchTimerRef.current = setTimeout(function() {
+      setDebouncedSearch(searchQuery)
+    }, 300)
+    return function() { if (searchTimerRef.current) clearTimeout(searchTimerRef.current) }
+  }, [searchQuery])
 
   function captureScreen() {
     setCapturing(true)
@@ -557,6 +569,7 @@ export function BugPanel(props: BugPanelProps) {
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
     if (filterType !== 'all') params.push('type=' + filterType)
     if (filterPriority !== 'all') params.push('priority=' + filterPriority)
+    if (debouncedSearch.trim()) params.push('q=' + encodeURIComponent(debouncedSearch.trim()))
     params.push('limit=100')
 
     var url = apiBase + '/api/bugs'
@@ -581,7 +594,7 @@ export function BugPanel(props: BugPanelProps) {
         setLoading(false)
       })
       .catch(function() { setLoading(false) })
-  }, [apiBase, isAdmin, source, tab, rFilter, filterProduct, filterType, filterPriority])
+  }, [apiBase, isAdmin, source, tab, rFilter, filterProduct, filterType, filterPriority, debouncedSearch])
 
   var _threadLimit = useState(50); var threadLimit = _threadLimit[0]; var setThreadLimit = _threadLimit[1]
 
@@ -591,11 +604,12 @@ export function BugPanel(props: BugPanelProps) {
     var params = ['status=open', 'limit=' + threadLimit]
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
     if (filterPriority !== 'all') params.push('priority=' + filterPriority)
+    if (debouncedSearch.trim()) params.push('q=' + encodeURIComponent(debouncedSearch.trim()))
     fetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d: { data?: ThreadItem[]; total?: number }) { setThreads(Array.isArray(d.data) ? d.data : []); setThreadTotal(d.total || (d.data ? d.data.length : 0)); setLoading(false) })
       .catch(function() { setLoading(false) })
-  }, [apiBase, isAdmin, filterProduct, filterPriority, threadLimit])
+  }, [apiBase, isAdmin, filterProduct, filterPriority, threadLimit, debouncedSearch])
 
   useEffect(function() {
     if (!open) return
@@ -610,7 +624,7 @@ export function BugPanel(props: BugPanelProps) {
         .then(function(d: { total?: number }) { if (d.total !== undefined) setThreadTotal(d.total) })
         .catch(function() {})
     }
-  }, [open, source, tab, rFilter, filterProduct, filterType, filterPriority, loadBugs, loadThreads, isAdmin, apiBase])
+  }, [open, source, tab, rFilter, filterProduct, filterType, filterPriority, debouncedSearch, loadBugs, loadThreads, isAdmin, apiBase])
 
   useEffect(function() {
     if (!expanded || source !== 'reports') return
@@ -778,6 +792,27 @@ export function BugPanel(props: BugPanelProps) {
           </div>
         )}
 
+        {!isAdmin && (
+          <div style={{ padding: '4px 16px 8px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="text"
+                placeholder="Search bugs..."
+                value={searchQuery}
+                onChange={function(e) { setSearchQuery(e.target.value) }}
+                style={Object.assign({}, S.filterSelect, { width: '100%', padding: '6px 28px 6px 8px', boxSizing: 'border-box' as const })}
+              />
+              {searchQuery && (
+                <button
+                  onClick={function() { setSearchQuery('') }}
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--muted)', fontWeight: 700, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label="Clear search"
+                >×</button>
+              )}
+            </div>
+          </div>
+        )}
+
         {isAdmin && (
           <div style={S.filterBar}>
             <select style={S.filterSelect} value={filterProduct} onChange={function(e) { setFilterProduct(e.target.value) }}>
@@ -801,6 +836,22 @@ export function BugPanel(props: BugPanelProps) {
               <option value="normal">P2 Normal</option>
               <option value="low">P3 Low</option>
             </select>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 120px', minWidth: 100 }}>
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={function(e) { setSearchQuery(e.target.value) }}
+                style={Object.assign({}, S.filterSelect, { width: '100%', paddingRight: searchQuery ? 24 : 8, boxSizing: 'border-box' as const })}
+              />
+              {searchQuery && (
+                <button
+                  onClick={function() { setSearchQuery('') }}
+                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--muted)', fontWeight: 700, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  aria-label="Clear search"
+                >×</button>
+              )}
+            </div>
             <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', marginLeft: 'auto' }}>Sort:</span>
             <select style={S.filterSelect} value={sortBy} onChange={function(e) { setSortBy(e.target.value) }}>
               <option value="newest">Newest</option>
