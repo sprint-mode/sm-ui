@@ -513,6 +513,7 @@ export function BugPanel(props: BugPanelProps) {
   var _capturing = useState(false); var capturing = _capturing[0]; var setCapturing = _capturing[1]
   var fileInputRef = useRef<HTMLInputElement>(null)
   var formFileRef = useRef<File | null>(null)
+  var _formFileName = useState<string | null>(null); var formFileName = _formFileName[0]; var setFormFileName = _formFileName[1]
 
   useEffect(function() {
     if (!showForm) return
@@ -747,7 +748,7 @@ export function BugPanel(props: BugPanelProps) {
           }
 
           Promise.all(uploads).then(function() {
-            setFTitle(''); setFDesc(''); setScreenshot(null); formFileRef.current = null
+            setFTitle(''); setFDesc(''); setScreenshot(null); formFileRef.current = null; setFormFileName(null)
             if (fileInputRef.current) fileInputRef.current.value = ''
             setShowForm(false)
             loadBugs()
@@ -941,7 +942,7 @@ export function BugPanel(props: BugPanelProps) {
               </button>
               <button style={S.fileBtn} onClick={function() { if (fileInputRef.current) fileInputRef.current.click() }}><UploadIcon /> File</button>
               <input ref={fileInputRef} type="file" style={{ display: 'none' }}
-                onChange={function(e) { if (e.target.files && e.target.files[0]) formFileRef.current = e.target.files[0] }} />
+                onChange={function(e) { if (e.target.files && e.target.files[0]) { formFileRef.current = e.target.files[0]; setFormFileName(e.target.files[0].name) } }} />
             </div>
             {screenshot && (
               <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
@@ -955,6 +956,13 @@ export function BugPanel(props: BugPanelProps) {
               <div onClick={function() { setScreenshotModal(false) }}
                 style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 24 }}>
                 <img src={screenshot} alt="screenshot full" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} />
+              </div>
+            )}
+            {formFileName && (
+              <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px', background: 'var(--bg-subtle)', borderRadius: 4, border: '1px solid var(--border)', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--foreground)' }}>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{formFileName}</span>
+                <button onClick={function() { formFileRef.current = null; setFormFileName(null); if (fileInputRef.current) fileInputRef.current.value = '' }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted)', fontSize: 14, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
               </div>
             )}
             <div style={{ display: 'flex', gap: 6 }}>
