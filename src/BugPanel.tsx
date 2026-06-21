@@ -508,11 +508,18 @@ export function BugPanel(props: BugPanelProps) {
   var _searchQuery = useState(''); var searchQuery = _searchQuery[0]; var setSearchQuery = _searchQuery[1]
   var _debouncedSearch = useState(''); var debouncedSearch = _debouncedSearch[0]; var setDebouncedSearch = _debouncedSearch[1]
   var searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  var _screenshot = useState<string | null>(null); var screenshot = _screenshot[0]; var setScreenshot = _screenshot[1]
-  var _screenshotModal = useState(false); var screenshotModal = _screenshotModal[0]; var setScreenshotModal = _screenshotModal[1]
+  var _formAttachments = useState<Array<{ id: string; name: string; dataUrl: string; file?: File }>>([]); var formAttachments = _formAttachments[0]; var setFormAttachments = _formAttachments[1]
+  var _previewModal = useState<string | null>(null); var previewModal = _previewModal[0]; var setPreviewModal = _previewModal[1]
   var _capturing = useState(false); var capturing = _capturing[0]; var setCapturing = _capturing[1]
   var fileInputRef = useRef<HTMLInputElement>(null)
-  var formFileRef = useRef<File | null>(null)
+  var attIdCounter = useRef(0)
+  function addAttachment(name: string, dataUrl: string, file?: File) {
+    attIdCounter.current++
+    setFormAttachments(function(prev) { return prev.concat([{ id: 'att_' + attIdCounter.current + '_' + Date.now(), name: name, dataUrl: dataUrl, file: file }]) })
+  }
+  function removeAttachment(id: string) {
+    setFormAttachments(function(prev) { return prev.filter(function(a) { return a.id !== id }) })
+  }
 
   useEffect(function() {
     if (!showForm) return
@@ -524,7 +531,7 @@ export function BugPanel(props: BugPanelProps) {
           var blob = items[i].getAsFile()
           if (!blob) break
           var reader = new FileReader()
-          reader.onload = function(ev) { setScreenshot(ev.target?.result as string) }
+          reader.onload = function(ev) { addAttachment('pasted-image.png', ev.target?.result as string) }
           reader.readAsDataURL(blob)
           e.preventDefault()
           break
@@ -561,7 +568,7 @@ export function BugPanel(props: BugPanelProps) {
           return el.hasAttribute('data-bug-overlay') || el.hasAttribute('data-bug-panel') || el.id === 'sm-bug-root'
         }
       }).then(function(canvas: HTMLCanvasElement) {
-        setScreenshot(canvas.toDataURL('image/png'))
+        addAttachment("screenshot.png", canvas.toDataURL('image/png'))
         setCapturing(false)
       }).catch(function() {
         setCapturing(false)
@@ -725,29 +732,26 @@ export function BugPanel(props: BugPanelProps) {
           var bugId = d.data.id
           var uploads: Promise<Response>[] = []
 
-          if (screenshot) {
-            var byteString = atob(screenshot.split(',')[1])
-            var ab = new ArrayBuffer(byteString.length)
-            var ia = new Uint8Array(ab)
-            for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
-            var blob = new Blob([ab], { type: 'image/png' })
+          formAttachments.forEach(function(att) {
             var fd = new FormData()
-            fd.append('file', blob, 'screenshot.png')
+            if (att.file) {
+              fd.append('file', att.file)
+            } else if (att.dataUrl) {
+              var byteString = atob(att.dataUrl.split(',')[1])
+              var ab = new ArrayBuffer(byteString.length)
+              var ia = new Uint8Array(ab)
+              for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+              var mime = att.dataUrl.split(';')[0].split(':')[1] || 'image/png'
+              var blob = new Blob([ab], { type: mime })
+              fd.append('file', blob, att.name)
+            }
             uploads.push(fetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
               method: 'POST', credentials: 'include', body: fd
             }))
-          }
-
-          if (formFileRef.current) {
-            var ffd = new FormData()
-            ffd.append('file', formFileRef.current)
-            uploads.push(fetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
-              method: 'POST', credentials: 'include', body: ffd
-            }))
-          }
+          })
 
           Promise.all(uploads).then(function() {
-            setFTitle(''); setFDesc(''); setScreenshot(null); formFileRef.current = null
+            setFTitle(''); setFDesc(''); setFormAttachments([])
             if (fileInputRef.current) fileInputRef.current.value = ''
             setShowForm(false)
             loadBugs()
@@ -934,34 +938,74 @@ export function BugPanel(props: BugPanelProps) {
               onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey) handleSubmit() }} autoFocus />
             <textarea style={S.formTextarea} rows={2} placeholder="Description" value={fDesc}
               onChange={function(e) { setFDesc(e.target.value) }} />
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-              <div style={S.screenshotZone}>Paste -- Cmd+V</div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}
+              onDragOver={function(e) { e.preventDefault(); e.stopPropagation() }}
+              onDrop={function(e) {
+                e.preventDefault(); e.stopPropagation()
+                var files = e.dataTransfer.files
+                for (var i = 0; i < files.length; i++) {
+                  var f = files[i]
+                  if (f.type.startsWith('image/')) {
+                    var r = new FileReader()
+                    r.onload = function(ev) { addAttachment(f.name, ev.target?.result as string, f) }
+                    r.readAsDataURL(f)
+                  } else {
+                    addAttachment(f.name, '', f)
+                  }
+                }
+              }}>
+              <div style={S.screenshotZone}>Drop, Paste, or Cmd+V</div>
               <button style={S.captureBtn} onClick={function(e) { e.stopPropagation(); captureScreen() }} disabled={capturing}>
                 <CameraIcon /> {capturing ? '...' : 'Capture'}
               </button>
               <button style={S.fileBtn} onClick={function() { if (fileInputRef.current) fileInputRef.current.click() }}><UploadIcon /> File</button>
-              <input ref={fileInputRef} type="file" style={{ display: 'none' }}
-                onChange={function(e) { if (e.target.files && e.target.files[0]) formFileRef.current = e.target.files[0] }} />
+              <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }}
+                onChange={function(e) {
+                  if (!e.target.files) return
+                  for (var i = 0; i < e.target.files.length; i++) {
+                    var f = e.target.files[i]
+                    if (f.type.startsWith('image/')) {
+                      var r = new FileReader()
+                      r.onload = (function(file) { return function(ev) { addAttachment(file.name, ev.target?.result as string, file) } })(f)
+                      r.readAsDataURL(f)
+                    } else {
+                      addAttachment(f.name, '', f)
+                    }
+                  }
+                  e.target.value = ''
+                }} />
             </div>
-            {screenshot && (
-              <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
-                <img src={screenshot} alt="screenshot" onClick={function() { setScreenshotModal(true) }}
-                  style={{ maxWidth: '100%', maxHeight: 120, borderRadius: 4, border: '1px solid var(--border)', display: 'block', cursor: 'pointer', objectFit: 'contain' }} />
-                <button onClick={function() { setScreenshot(null) }}
-                  style={{ position: 'absolute', top: -6, right: -6, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
+            {formAttachments.length > 0 && (
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
+                {formAttachments.map(function(att) {
+                  return <div key={att.id} style={{ position: 'relative', display: 'inline-block' }}>
+                    {att.dataUrl ? (
+                      <img src={att.dataUrl} alt={att.name} onClick={function() { setPreviewModal(att.id) }}
+                        style={{ width: 64, height: 48, borderRadius: 4, border: '1px solid var(--border)', objectFit: 'cover', cursor: 'pointer', display: 'block' }} />
+                    ) : (
+                      <div style={{ width: 64, height: 48, borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontFamily: 'var(--font-mono)', color: 'var(--muted)', textAlign: 'center', padding: 2, overflow: 'hidden' }}>
+                        {att.name.length > 12 ? att.name.slice(0, 10) + '..' : att.name}
+                      </div>
+                    )}
+                    <button onClick={function() { removeAttachment(att.id) }}
+                      style={{ position: 'absolute', top: -5, right: -5, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: '50%', width: 16, height: 16, fontSize: 9, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
+                  </div>
+                })}
               </div>
             )}
-            {screenshotModal && screenshot && (
-              <div onClick={function() { setScreenshotModal(false) }}
+            {previewModal && (function() {
+              var att = formAttachments.find(function(a) { return a.id === previewModal })
+              if (!att || !att.dataUrl) { setPreviewModal(null); return null }
+              return <div onClick={function() { setPreviewModal(null) }}
                 style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 24 }}>
-                <img src={screenshot} alt="screenshot full" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} />
+                <img src={att.dataUrl} alt={att.name} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} />
               </div>
-            )}
+            })()}
             <div style={{ display: 'flex', gap: 6 }}>
               <button style={S.submitBtn} onClick={handleSubmit} disabled={submitting || !fTitle.trim()}>
                 {submitting ? 'Submitting...' : 'Submit'}
               </button>
-              <button style={S.cancelBtn} onClick={function() { setShowForm(false); setFTitle(''); setFDesc('') }}>Cancel</button>
+              <button style={S.cancelBtn} onClick={function() { setShowForm(false); setFTitle(''); setFDesc(''); setFormAttachments([]) }}>Cancel</button>
             </div>
           </div>
         ) : (
