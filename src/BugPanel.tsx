@@ -496,6 +496,7 @@ export function BugPanel(props: BugPanelProps) {
   var _debouncedSearch = useState(''); var debouncedSearch = _debouncedSearch[0]; var setDebouncedSearch = _debouncedSearch[1]
   var searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   var _screenshot = useState<string | null>(null); var screenshot = _screenshot[0]; var setScreenshot = _screenshot[1]
+  var _screenshotModal = useState(false); var screenshotModal = _screenshotModal[0]; var setScreenshotModal = _screenshotModal[1]
   var _capturing = useState(false); var capturing = _capturing[0]; var setCapturing = _capturing[1]
   var fileInputRef = useRef<HTMLInputElement>(null)
   var formFileRef = useRef<File | null>(null)
@@ -535,19 +536,17 @@ export function BugPanel(props: BugPanelProps) {
     var script = document.createElement('script')
     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
     script.onload = function() {
-      var overlay = document.querySelector('[data-bug-overlay]') as HTMLElement | null
-      var panel = document.querySelector('[data-bug-panel]') as HTMLElement | null
-      if (overlay) overlay.style.display = 'none'
-      if (panel) panel.style.display = 'none'
+      // Use ignoreElements to skip the bug panel — no hide/show flash
       // @ts-ignore — html2canvas loaded dynamically
-      window.html2canvas(document.body, { useCORS: true, scale: 1, logging: false }).then(function(canvas: HTMLCanvasElement) {
+      window.html2canvas(document.body, {
+        useCORS: true, scale: 1, logging: false,
+        ignoreElements: function(el: HTMLElement) {
+          return el.hasAttribute('data-bug-overlay') || el.hasAttribute('data-bug-panel') || el.id === 'sm-bug-root'
+        }
+      }).then(function(canvas: HTMLCanvasElement) {
         setScreenshot(canvas.toDataURL('image/png'))
-        if (overlay) overlay.style.display = ''
-        if (panel) panel.style.display = ''
         setCapturing(false)
       }).catch(function() {
-        if (overlay) overlay.style.display = ''
-        if (panel) panel.style.display = ''
         setCapturing(false)
       })
     }
@@ -924,10 +923,17 @@ export function BugPanel(props: BugPanelProps) {
                 onChange={function(e) { if (e.target.files && e.target.files[0]) formFileRef.current = e.target.files[0] }} />
             </div>
             {screenshot && (
-              <div style={{ marginBottom: 8, position: 'relative' }}>
-                <img src={screenshot} alt="screenshot" style={{ maxWidth: '100%', borderRadius: 6, border: '1px solid var(--border)', display: 'block' }} />
+              <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
+                <img src={screenshot} alt="screenshot" onClick={function() { setScreenshotModal(true) }}
+                  style={{ maxWidth: 120, maxHeight: 80, borderRadius: 4, border: '1px solid var(--border)', display: 'block', cursor: 'pointer', objectFit: 'cover' }} />
                 <button onClick={function() { setScreenshot(null) }}
-                  style={{ position: 'absolute', top: 4, right: 4, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: '50%', width: 20, height: 20, fontSize: 12, cursor: 'pointer', lineHeight: 1 }}>x</button>
+                  style={{ position: 'absolute', top: -6, right: -6, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
+              </div>
+            )}
+            {screenshotModal && screenshot && (
+              <div onClick={function() { setScreenshotModal(false) }}
+                style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 24 }}>
+                <img src={screenshot} alt="screenshot full" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} />
               </div>
             )}
             <div style={{ display: 'flex', gap: 6 }}>
