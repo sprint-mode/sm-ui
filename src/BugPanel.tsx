@@ -246,7 +246,19 @@ interface AiClassification {
   triage_notes?: string
 }
 
-function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire, onFireTerminal, apiBase }: {
+function highlightText(text: string, query: string): React.ReactNode {
+  if (!query || !query.trim() || !text) return text
+  var q = query.trim()
+  var idx = text.toLowerCase().indexOf(q.toLowerCase())
+  if (idx === -1) return text
+  return React.createElement(React.Fragment, null,
+    text.slice(0, idx),
+    React.createElement('mark', { style: { background: 'var(--amber-light)', color: 'var(--foreground)', padding: '0 1px', borderRadius: 2 } }, text.slice(idx, idx + q.length)),
+    text.slice(idx + q.length)
+  )
+}
+
+function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire, onFireTerminal, apiBase, searchQuery }: {
   bug: Bug
   isAdmin?: boolean
   expanded: boolean
@@ -256,6 +268,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   onFire?: (bugId: string) => void
   onFireTerminal?: (bugId: string) => void
   apiBase: string
+  searchQuery?: string
 }) {
   var _comment = useState(''); var comment = _comment[0]; var setComment = _comment[1]
   var _copied = useState(false); var copied = _copied[0]; var setCopied = _copied[1]
@@ -311,7 +324,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
         <span style={S.bugId} onClick={copyId} title="Click to copy ID">{shortId(bug.id)}</span>
         {copied && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--green)' }}>copied</span>}
       </div>
-      <div style={S.bugTitle}>{bug.title}</div>
+      <div style={S.bugTitle}>{highlightText(bug.title, searchQuery || '')}</div>
 
       {bug.description && <div style={S.bugDesc}>{bug.description.length > 120 ? bug.description.slice(0, 120) + '...' : bug.description}</div>}
       {bug.page_url && <div style={S.bugUrl}>{bug.page_url}</div>}
@@ -414,7 +427,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   )
 }
 
-function ThreadCard({ item, expanded, onToggle }: { item: ThreadItem; expanded: boolean; onToggle: () => void }) {
+function ThreadCard({ item, expanded, onToggle, searchQuery }: { item: ThreadItem; expanded: boolean; onToggle: () => void; searchQuery?: string }) {
   var _copied = useState(false); var copied = _copied[0]; var setCopied = _copied[1]
 
   function copyId(e: React.MouseEvent) {
@@ -437,7 +450,7 @@ function ThreadCard({ item, expanded, onToggle }: { item: ThreadItem; expanded: 
         <span style={S.bugId} onClick={copyId} title="Click to copy ID">PS-{(item.id || '').slice(0, 6)}</span>
         {copied && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--green)' }}>copied</span>}
       </div>
-      <div style={S.bugTitle}>{item.title}</div>
+      <div style={S.bugTitle}>{highlightText(item.title, searchQuery || '')}</div>
       {item.body && <div style={S.bugDesc}>{item.body.length > 100 ? item.body.slice(0, 100) + '...' : item.body}</div>}
       <div style={S.bugTime}>Logged {relTime(item.created_at)}</div>
       {expanded && (
@@ -540,6 +553,10 @@ export function BugPanel(props: BugPanelProps) {
       // @ts-ignore — html2canvas loaded dynamically
       window.html2canvas(document.body, {
         useCORS: true, scale: 1, logging: false,
+        x: window.scrollX,
+        y: window.scrollY,
+        width: window.innerWidth,
+        height: window.innerHeight,
         ignoreElements: function(el: HTMLElement) {
           return el.hasAttribute('data-bug-overlay') || el.hasAttribute('data-bug-panel') || el.id === 'sm-bug-root'
         }
@@ -822,10 +839,14 @@ export function BugPanel(props: BugPanelProps) {
                 </optgroup>
               })}
             </select>
-            {source === 'reports' && (
+            {source === 'reports' ? (
               <select style={S.filterSelect} value={filterType} onChange={function(e) { setFilterType(e.target.value) }}>
                 <option value="all">All Types</option>
                 {TYPES.map(function(t) { return <option key={t} value={t}>{t}</option> })}
+              </select>
+            ) : (
+              <select style={Object.assign({}, S.filterSelect, { opacity: 0.4, pointerEvents: 'none' as const })} disabled value="all">
+                <option value="all">All Types</option>
               </select>
             )}
             <select style={S.filterSelect} value={filterPriority} onChange={function(e) { setFilterPriority(e.target.value) }}>
@@ -880,11 +901,11 @@ export function BugPanel(props: BugPanelProps) {
           }).map(function(bug) {
             return <BugCard key={bug.id} bug={bug} isAdmin={isAdmin} expanded={expanded === bug.id}
               onToggle={function() { setExpanded(expanded === bug.id ? null : bug.id) }}
-              onAction={handleAction} onComment={handleComment} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} />
+              onAction={handleAction} onComment={handleComment} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} searchQuery={debouncedSearch} />
           })}
           {!loading && source === 'threads' && threads.map(function(item) {
             return <ThreadCard key={item.id} item={item} expanded={expanded === item.id}
-              onToggle={function() { setExpanded(expanded === item.id ? null : item.id) }} />
+              onToggle={function() { setExpanded(expanded === item.id ? null : item.id) }} searchQuery={debouncedSearch} />
           })}
           {!loading && source === 'threads' && threads.length < threadTotal && (
             <button onClick={function() { setThreadLimit(threadLimit + 50) }}
@@ -925,7 +946,7 @@ export function BugPanel(props: BugPanelProps) {
             {screenshot && (
               <div style={{ marginBottom: 8, position: 'relative', display: 'inline-block' }}>
                 <img src={screenshot} alt="screenshot" onClick={function() { setScreenshotModal(true) }}
-                  style={{ maxWidth: 120, maxHeight: 80, borderRadius: 4, border: '1px solid var(--border)', display: 'block', cursor: 'pointer', objectFit: 'cover' }} />
+                  style={{ maxWidth: '100%', maxHeight: 120, borderRadius: 4, border: '1px solid var(--border)', display: 'block', cursor: 'pointer', objectFit: 'contain' }} />
                 <button onClick={function() { setScreenshot(null) }}
                   style={{ position: 'absolute', top: -6, right: -6, background: 'var(--red)', color: '#fff', border: 'none', borderRadius: '50%', width: 18, height: 18, fontSize: 10, cursor: 'pointer', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>x</button>
               </div>
