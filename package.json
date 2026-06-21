@@ -30,6 +30,8 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/react-router-dom": "^5.3.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "esbuild": "^0.28.1",
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.0.0",
     "eslint-plugin-react-hooks": "^5.0.0",
@@ -39,12 +41,14 @@
     "react-router-dom": "^7.18.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.1",
+    "vite": "^8.0.16",
     "vitest": "^4.1.9"
   },
   "scripts": {
     "lint": "eslint src/",
     "test": "vitest run",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "build:standalone": "vite build --config vite.config.lib.ts"
   },
   "type": "module"
 }
