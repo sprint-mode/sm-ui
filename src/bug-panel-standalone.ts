@@ -55,24 +55,15 @@ function injectDeps() {
   if (injected) return
   injected = true
 
-  // Inject CSS tokens (skip if portal tokens.css already loaded)
-  var test = document.createElement('div')
-  test.style.color = 'var(--accent)'
-  document.body.appendChild(test)
-  var resolved = getComputedStyle(test).color
-  document.body.removeChild(test)
-  var needsTokens = !resolved || resolved === '' || resolved === 'rgb(0, 0, 0)'
-  if (needsTokens) {
-    var style = document.createElement('style')
-    style.setAttribute('data-sm-bug-tokens', '')
-    style.textContent = TOKEN_CSS
-    document.head.appendChild(style)
-  } else {
-    // Still inject the chat FAB rule even if tokens exist
-    var fabStyle = document.createElement('style')
-    fabStyle.textContent = 'body[data-bug-panel-open] .sm-chat-fab { right: 500px !important; transition: right 0.25s ease; }'
-    document.head.appendChild(fabStyle)
-  }
+  // Always inject tokens — values match tokens.css so no harm on portals
+  var style = document.createElement('style')
+  style.setAttribute('data-sm-bug-tokens', '')
+  style.textContent = TOKEN_CSS
+  document.head.appendChild(style)
+
+  // Always inject chat FAB shift rule
+  // (included in TOKEN_CSS above, but ensure it's present even if another
+  //  stylesheet later overrides the :root block)
 
   // Load Geist font if not already loaded
   if (!document.querySelector('link[href*="Geist"]')) {
