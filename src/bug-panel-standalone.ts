@@ -1,15 +1,12 @@
 // src/bug-panel-standalone.ts
 // Standalone entry point for the BugPanel widget.
-// Builds into a single IIFE bundle (React + ReactDOM + BugPanel included).
-// Injects required CSS tokens so the bundle works on any page without tokens.css.
+// Truly self-contained: bundles React, ReactDOM, BugPanel, CSS tokens, and font loading.
 //
 // Usage:
 //   <script src="bug-panel.js"></script>
 //   <script>SMBugPanel.mount(document.getElementById('bug-root'), { apiBase: '...' })</script>
 //
-// External toggle (for header buttons):
-//   window.dispatchEvent(new Event('sm-bug-toggle'))
-//
+// External toggle: window.dispatchEvent(new Event('sm-bug-toggle'))
 // Keyboard shortcut: Cmd+B / Ctrl+B (built in)
 
 import { createElement, useState, useEffect } from 'react'
@@ -22,12 +19,13 @@ export interface MountHandle {
   unmount: () => void
 }
 
-// Token CSS from tokens.css — injected once so the bundle works without portal CSS.
-// Uses :root so variables cascade to fixed-positioned panel children.
+// ── Token CSS from tokens.css ──────────────────────────────────────────────
+// Injected once so the bundle works on pages without portal CSS.
 const TOKEN_CSS = `
 :root {
   --bg: hsl(0, 0%, 100%);
   --bg-subtle: hsl(220, 14%, 97%);
+  --bg-card: hsl(0, 0%, 100%);
   --foreground: hsl(0, 0%, 9%);
   --muted: hsl(220, 9%, 40%);
   --border: hsl(214, 32%, 91%);
@@ -45,30 +43,49 @@ const TOKEN_CSS = `
   --font: 'Geist', system-ui, -apple-system, sans-serif;
   --font-mono: 'Geist Mono', ui-monospace, monospace;
 }
+/* Move chat FAB left when bug panel is open */
+body[data-bug-panel-open] .sm-chat-fab {
+  right: 500px !important;
+  transition: right 0.25s ease;
+}
 `
 
-var tokensInjected = false
-function injectTokens() {
-  if (tokensInjected) return
-  // Only inject if --accent is not already defined (portals have tokens.css)
+var injected = false
+function injectDeps() {
+  if (injected) return
+  injected = true
+
+  // Inject CSS tokens (skip if portal tokens.css already loaded)
   var test = document.createElement('div')
   test.style.color = 'var(--accent)'
   document.body.appendChild(test)
   var resolved = getComputedStyle(test).color
   document.body.removeChild(test)
-  // If --accent resolved to something other than empty/initial, tokens.css is loaded
-  if (resolved && resolved !== '' && resolved !== 'rgb(0, 0, 0)') {
-    tokensInjected = true
-    return
+  var needsTokens = !resolved || resolved === '' || resolved === 'rgb(0, 0, 0)'
+  if (needsTokens) {
+    var style = document.createElement('style')
+    style.setAttribute('data-sm-bug-tokens', '')
+    style.textContent = TOKEN_CSS
+    document.head.appendChild(style)
+  } else {
+    // Still inject the chat FAB rule even if tokens exist
+    var fabStyle = document.createElement('style')
+    fabStyle.textContent = 'body[data-bug-panel-open] .sm-chat-fab { right: 500px !important; transition: right 0.25s ease; }'
+    document.head.appendChild(fabStyle)
   }
-  var style = document.createElement('style')
-  style.setAttribute('data-sm-bug-tokens', '')
-  style.textContent = TOKEN_CSS
-  document.head.appendChild(style)
-  tokensInjected = true
+
+  // Load Geist font if not already loaded
+  if (!document.querySelector('link[href*="Geist"]')) {
+    var link = document.createElement('link')
+    link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap'
+    document.head.appendChild(link)
+  }
 }
 
-// Wrapper component: manages visibility via controlled mode, handles Cmd+B and custom events.
+// ── Wrapper component ──────────────────────────────────────────────────────
+// Manages visibility via controlled mode. Handles Cmd+B and sm-bug-toggle event.
+// Sets body[data-bug-panel-open] so external elements (chat FAB) can respond.
 function StandaloneWrapper(props: BugPanelProps) {
   var _visible = useState(false); var visible = _visible[0]; var setVisible = _visible[1]
 
@@ -90,6 +107,15 @@ function StandaloneWrapper(props: BugPanelProps) {
     }
   }, [])
 
+  // Sync body attribute for external CSS (chat FAB shift)
+  useEffect(function() {
+    if (visible) {
+      document.body.setAttribute('data-bug-panel-open', '')
+    } else {
+      document.body.removeAttribute('data-bug-panel-open')
+    }
+  }, [visible])
+
   return createElement(BugPanel, Object.assign({}, props, {
     visible: visible,
     onClose: function() { setVisible(false) }
@@ -97,16 +123,17 @@ function StandaloneWrapper(props: BugPanelProps) {
 }
 
 function mount(element: HTMLElement, props: BugPanelProps): MountHandle {
-  injectTokens()
-  const root: Root = createRoot(element)
-  let currentProps = props
+  injectDeps()
+  var root: Root = createRoot(element)
+  var currentProps = props
   root.render(createElement(StandaloneWrapper, currentProps))
   return {
-    update(newProps: BugPanelProps) {
+    update: function(newProps: BugPanelProps) {
       currentProps = newProps
       root.render(createElement(StandaloneWrapper, currentProps))
     },
-    unmount() {
+    unmount: function() {
+      document.body.removeAttribute('data-bug-panel-open')
       root.unmount()
     }
   }
