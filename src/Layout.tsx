@@ -111,6 +111,7 @@ export interface LayoutProps {
   byLine?: string
   userMenuExtra?: React.ReactNode
   notificationApiBase?: string
+  notificationHref?: string
   headerCta?: HeaderCta
   viewAsAnyRole?: boolean
   bugPanel?: boolean | number
@@ -837,6 +838,7 @@ export default function Layout(props: LayoutProps) {
   var byLine = props.byLine
   var userMenuExtra = props.userMenuExtra
   var notificationApiBase = props.notificationApiBase !== undefined ? props.notificationApiBase : ''
+  var notificationHref = props.notificationHref
   var headerCta = props.headerCta
   var viewAsAnyRole = props.viewAsAnyRole
   var portalCfg = usePortalConfig()
@@ -1098,7 +1100,7 @@ export default function Layout(props: LayoutProps) {
       onClick: theme.toggle, 'aria-label': 'Toggle theme',
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
-    React.createElement(NotificationBellNav, { apiBase: notificationApiBase }),
+    React.createElement(NotificationBellNav, { apiBase: notificationApiBase, href: notificationHref }),
     bugPanelEnabled ? React.createElement(BugPanelHeaderButton, { onClick: function() { setBugPanelOpen(function(v) { return !v }) } }) : null,
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
