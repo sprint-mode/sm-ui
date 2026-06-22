@@ -279,7 +279,7 @@ function SelfProfileCard({ apiBase, backHref }: { apiBase?: string; backHref?: s
         if (d && d.ok && d.data) {
           setEmailNotifs(d.data.email_enabled !== false)
           setAppNotifs(d.data.app_enabled !== false)
-          setSlackNotifs(d.data.slack_enabled === true)
+          setSlackNotifs(!!d.data.slack_enabled)
         }
       })
       .catch(function() {})
