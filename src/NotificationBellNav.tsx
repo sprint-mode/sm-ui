@@ -22,7 +22,7 @@ function BellIcon() {
 }
 
 export function NotificationBellNav(props: NotificationBellNavProps) {
-  var href = props.href || '/updates'
+  var href = props.href || '/user/updates'
   var apiBase = props.apiBase || ''
   var onNavigate = props.onNavigate
   var countEndpoint = props.countEndpoint || '/api/notifications?count_only=true'
