@@ -10,8 +10,9 @@ export interface LoginProps {
   byLine?: string
   iconBg?: string
   iconColor?: string
-  signupUrl?: string
-  signupLabel?: string
+  /** When set, enables the "Create an account" toggle with signup fields.
+   *  Value is appended to SSO URLs and magic link POST body (e.g. "signup=true&product=studios"). */
+  signupParams?: string
 }
 
 function GoogleIcon() {
@@ -45,7 +46,7 @@ function MailIcon() {
   )
 }
 
-export default function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupUrl, signupLabel }: LoginProps) {
+export default function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams }: LoginProps) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')
@@ -56,6 +57,14 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
   var error = _error[0]; var setError = _error[1]
   var _sent = useState(false)
   var sent = _sent[0]; var setSent = _sent[1]
+  var _mode = useState<'signin' | 'signup'>('signin')
+  var mode = _mode[0]; var setMode = _mode[1]
+  var _firstName = useState('')
+  var firstName = _firstName[0]; var setFirstName = _firstName[1]
+  var _lastName = useState('')
+  var lastName = _lastName[0]; var setLastName = _lastName[1]
+  var _companyName = useState('')
+  var companyName = _companyName[0]; var setCompanyName = _companyName[1]
 
   var base = authBase || ''
   var params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
@@ -64,13 +73,26 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
 
   var displayTitle = title || productName || 'Sprint Mode'
   var badgeBg = iconBg || 'var(--accent-10)'
+  var isSignup = signupParams && mode === 'signup'
+
+  function buildSignupQuery() {
+    if (!signupParams) return ''
+    var extra = '&first_name=' + encodeURIComponent(firstName) +
+      '&last_name=' + encodeURIComponent(lastName) +
+      '&company_name=' + encodeURIComponent(companyName)
+    return '&' + signupParams + extra
+  }
 
   function handleGoogle() {
-    window.location.href = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
+    var url = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
+    if (isSignup) url += buildSignupQuery()
+    window.location.href = url
   }
 
   function handleMicrosoft() {
-    window.location.href = base + '/auth/sso/microsoft?redirect=' + encodeURIComponent(redirect)
+    var url = base + '/auth/sso/microsoft?redirect=' + encodeURIComponent(redirect)
+    if (isSignup) url += buildSignupQuery()
+    window.location.href = url
   }
 
   function handleMagicLink(e: React.MouseEvent | React.KeyboardEvent) {
@@ -79,12 +101,24 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
       setError('Please enter a valid email address.')
       return
     }
+    if (isSignup && (!firstName.trim() || !lastName.trim())) {
+      setError('Please enter your first and last name.')
+      return
+    }
     setLoading(true)
     setError(null)
-    fetch(base + '/auth/magic-link', {
+    var bodyObj: Record<string, string> = { email: email, redirect: redirect }
+    if (isSignup && signupParams) {
+      var sp = new URLSearchParams(signupParams)
+      sp.forEach(function(val, key) { bodyObj[key] = val })
+      bodyObj.first_name = firstName
+      bodyObj.last_name = lastName
+      bodyObj.company_name = companyName
+    }
+    fetch(base + '/auth/magic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, redirect: redirect }),
+      body: JSON.stringify(bodyObj),
     })
       .then(function(res) { return res.json() })
       .then(function(data: { ok: boolean; error?: string }) {
@@ -99,6 +133,29 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
         setLoading(false)
         setError('Network error. Please try again.')
       })
+  }
+
+  function switchMode(newMode: 'signin' | 'signup') {
+    setMode(newMode)
+    setError(null)
+    setSent(false)
+    setShowEmail(false)
+  }
+
+  var inputStyle = {
+    width: '100%', padding: '9px 12px', border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)', fontSize: 14, fontFamily: 'var(--font)',
+    color: 'var(--foreground)', background: 'var(--bg)', lineHeight: '1.4',
+    marginBottom: 12, outline: 'none', boxSizing: 'border-box' as const,
+  }
+
+  function handleInputFocus(e: React.FocusEvent<HTMLInputElement>) {
+    e.target.style.borderColor = 'var(--blue)'
+    e.target.style.boxShadow = '0 0 0 3px var(--blue-10)'
+  }
+  function handleInputBlur(e: React.FocusEvent<HTMLInputElement>) {
+    e.target.style.borderColor = 'var(--border)'
+    e.target.style.boxShadow = 'none'
   }
 
   return (
@@ -117,20 +174,30 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
         </div>
 
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '32px 28px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', margin: '0 0 8px', color: 'var(--foreground)' }}>Sign in</h2>
-          {signupUrl && (
-            <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 20 }}>
-              or{' '}
-              <a href={signupUrl} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
-                {signupLabel || 'create an account'}
-              </a>
-            </div>
-          )}
-          {!signupUrl && <div style={{ marginBottom: 24 }} />}
+          <h2 style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', margin: '0 0 24px', color: 'var(--foreground)' }}>
+            {isSignup ? 'Create an account' : 'Sign in'}
+          </h2>
 
           {error && (
             <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', fontSize: 13, marginBottom: 16 }}>
               {error}
+            </div>
+          )}
+
+          {isSignup && (
+            <div>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 0 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>First name</label>
+                  <input type="text" value={firstName} onChange={function(e) { setFirstName(e.target.value) }} placeholder="Jane" style={inputStyle} onFocus={handleInputFocus} onBlur={handleInputBlur} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Last name</label>
+                  <input type="text" value={lastName} onChange={function(e) { setLastName(e.target.value) }} placeholder="Smith" style={inputStyle} onFocus={handleInputFocus} onBlur={handleInputBlur} />
+                </div>
+              </div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Company name</label>
+              <input type="text" value={companyName} onChange={function(e) { setCompanyName(e.target.value) }} placeholder="Acme Corp" style={inputStyle} onFocus={handleInputFocus} onBlur={handleInputBlur} />
             </div>
           )}
 
@@ -145,7 +212,7 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
             onMouseOver={function(e) { e.currentTarget.style.borderColor = 'var(--blue)' }}
             onMouseOut={function(e) { e.currentTarget.style.borderColor = 'var(--border)' }}
           >
-            <GoogleIcon /> Sign in with Google
+            <GoogleIcon /> Google
           </button>
 
           <button
@@ -159,7 +226,7 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
             onMouseOver={function(e) { e.currentTarget.style.borderColor = 'var(--blue)' }}
             onMouseOut={function(e) { e.currentTarget.style.borderColor = 'var(--border)' }}
           >
-            <MicrosoftIcon /> Sign in with Microsoft
+            <MicrosoftIcon /> Microsoft
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
@@ -180,7 +247,7 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
               onMouseOver={function(e) { e.currentTarget.style.color = 'var(--foreground)' }}
               onMouseOut={function(e) { e.currentTarget.style.color = 'var(--muted)' }}
             >
-              <MailIcon /> Sign in with email
+              <MailIcon /> Email via Magic Link
             </button>
           )}
 
@@ -195,14 +262,9 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
                 onChange={function(e) { setEmail(e.target.value) }}
                 placeholder="you@company.com"
                 autoFocus
-                style={{
-                  width: '100%', padding: '9px 12px', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)', fontSize: 14, fontFamily: 'var(--font)',
-                  color: 'var(--foreground)', background: 'var(--bg)', lineHeight: '1.4',
-                  marginBottom: 12, outline: 'none',
-                }}
-                onFocus={function(e) { e.target.style.borderColor = 'var(--blue)'; e.target.style.boxShadow = '0 0 0 3px var(--blue-10)' }}
-                onBlur={function(e) { e.target.style.borderColor = 'var(--border)'; e.target.style.boxShadow = 'none' }}
+                style={inputStyle}
+                onFocus={handleInputFocus}
+                onBlur={handleInputBlur}
                 onKeyDown={function(e) { if (e.key === 'Enter') handleMagicLink(e) }}
               />
               <button
@@ -228,6 +290,26 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
               <div style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 }}>
                 We sent a sign-in link to <strong>{email}</strong>. Click it to continue.
               </div>
+            </div>
+          )}
+
+          {signupParams && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 16, textAlign: 'center' }}>
+              {mode === 'signin' ? (
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  New here?{' '}
+                  <a href="#" onClick={function(e) { e.preventDefault(); switchMode('signup') }} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+                    Create an account
+                  </a>
+                </span>
+              ) : (
+                <span style={{ fontSize: 13, color: 'var(--muted)' }}>
+                  Already have an account?{' '}
+                  <a href="#" onClick={function(e) { e.preventDefault(); switchMode('signin') }} style={{ color: 'var(--accent)', fontWeight: 600, textDecoration: 'none' }}>
+                    Sign in
+                  </a>
+                </span>
+              )}
             </div>
           )}
         </div>
