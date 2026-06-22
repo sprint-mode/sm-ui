@@ -64,3 +64,5 @@ export { BugPanel, BugPanelHeaderButton } from './BugPanel.tsx'
 export { AvatarUpload } from './AvatarUpload.tsx'
 
 export { PortalSupportWidget } from './PortalSupportWidget.tsx'
+
+export { NotificationPrefs } from './NotificationPrefs.tsx'
