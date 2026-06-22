@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, createContext, useContext } from 'r
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { getSession, SessionData } from './api.js'
 import { IconSearch, IconMoon, IconSun } from './Icons.jsx'
-import { NotificationBell } from './NotificationBell.jsx'
+import { NotificationBellNav } from './NotificationBellNav.tsx'
 import { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
 import { usePortalConfig } from './usePortalConfig.jsx'
 
@@ -1098,7 +1098,7 @@ export default function Layout(props: LayoutProps) {
       onClick: theme.toggle, 'aria-label': 'Toggle theme',
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
-    React.createElement(NotificationBell, { apiBase: notificationApiBase }),
+    React.createElement(NotificationBellNav, { apiBase: notificationApiBase }),
     bugPanelEnabled ? React.createElement(BugPanelHeaderButton, { onClick: function() { setBugPanelOpen(function(v) { return !v }) } }) : null,
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
