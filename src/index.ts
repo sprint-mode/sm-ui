@@ -51,7 +51,7 @@ export {
 // NOTE: CSS imports are at '@sprintmode/ui/css'
 // import '@sprintmode/ui/css'
 
-export { NotificationBell } from './NotificationBell.tsx'
+// NotificationBell (dropdown) removed — replaced by NotificationBellNav (click-to-navigate)
 export { NotificationBellNav } from './NotificationBellNav.tsx'
 export { ProfileCard } from './ProfileCard.tsx'
 export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.tsx'
