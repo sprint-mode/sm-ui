@@ -46,7 +46,7 @@ function MailIcon() {
   )
 }
 
-export default function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams }: LoginProps) {
+const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams }: LoginProps) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')
@@ -317,3 +317,4 @@ export default function Login({ productName, _logoSrc: _ls, authBase, icon, titl
     </div>
   )
 }
+export default Login
