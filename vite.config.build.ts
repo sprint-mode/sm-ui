@@ -16,7 +16,7 @@ export default defineConfig({
       outDir: 'dist',
       tsconfigPath: './tsconfig.json',
       pathsToAliases: false,
-      rollupTypes: false,
+      rollupTypes: true,
       copyDtsFiles: false,
       // TS5097 is expected: sources use allowImportingTsExtensions which is
       // intentional for the dev tsconfig. Declaration emit still succeeds.

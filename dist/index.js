@@ -107363,7 +107363,7 @@ function iMe(e) {
 		}
 	}[e] || null;
 }
-function aMe(t) {
+var aMe = function(t) {
 	var n = t.navConfig, r = t.navSections, a = t.navBottom, o = t.session, h = t.children, g = t.logoSrc, _ = t.logoAlt, v = t.title, y = t.headerRight, b = t.sidebarBottom, x = t.viewAsEnabled, S = t.viewAsApi || "/api/db/admin-users", C = t.viewAsDetailApi, w = t.headerIcon, T = t.onLogout, E = t.profilePath, D = t.cmdK !== !1, O = t.cmdK && typeof t.cmdK == "object" && t.cmdK.placeholder || "Jump to...", k = t.cmdKItems, A = t.onSearch, j = t.recentKey, M = t.showCompanyName, N = t.byLine, F = t.userMenuExtra, I = t.notificationApiBase === void 0 ? "" : t.notificationApiBase, L = t.notificationHref, R = t.headerCta, z = t.viewAsAnyRole, B = C9(), V = t.bugPanel === void 0 ? B.config && B.config.bug_panel : t.bugPanel, H = !!V && V !== 0, ee = t.portalSubdomain || "sm", U = t.bugPanelLabel, te = s(o || null), W = te[0], ne = te[1], re = s(!o), ie = re[0], ae = re[1], oe = t.bugPanelAdmin || W && (W.portal_role === "super_admin" || W.portal_role === "admin" || W.role === "super_admin" || W.role === "admin" || W.is_sm_team), G = s(!1), se = G[0], ce = G[1], le = s(!1), ue = le[0], de = le[1], fe = s(!1), pe = fe[0], me = fe[1], he = s(!1), ge = he[0], K = he[1], _e = E9(), ve = m(), ye = p();
 	i(function() {
 		var e = function(e) {
@@ -107952,7 +107952,7 @@ function aMe(t) {
 			})
 		})
 	});
-}
+};
 //#endregion
 //#region src/Login.tsx
 function oMe() {
@@ -108030,7 +108030,7 @@ function cMe() {
 		children: [/* @__PURE__ */ l("path", { d: "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" }), /* @__PURE__ */ l("polyline", { points: "22 6 12 13 2 6" })]
 	});
 }
-function lMe({ productName: e, _logoSrc: t, authBase: n, icon: r, title: i, byLine: a, iconBg: o, iconColor: c, signupParams: d }) {
+var lMe = function({ productName: e, _logoSrc: t, authBase: n, icon: r, title: i, byLine: a, iconBg: o, iconColor: c, signupParams: d }) {
 	var f = s(!1), p = f[0], m = f[1], h = s(""), g = h[0], _ = h[1], v = s(!1), y = v[0], b = v[1], x = s(null), S = x[0], C = x[1], w = s(!1), T = w[0], E = w[1], D = s("signin"), O = D[0], k = D[1], A = s(""), j = A[0], M = A[1], N = s(""), P = N[0], F = N[1], I = s(""), L = I[0], R = I[1], z = n || "", B = (typeof window < "u" ? new URLSearchParams(window.location.search) : new URLSearchParams()).get("redirect") || "/", V = B.indexOf("http") === 0 ? B : (typeof window < "u" ? window.location.origin : "") + B, H = i || e || "Sprint Mode", ee = o || "var(--accent-10)", U = d && O === "signup";
 	function te() {
 		if (!d) return "";
@@ -108528,10 +108528,7 @@ function lMe({ productName: e, _logoSrc: t, authBase: n, icon: r, title: i, byLi
 			})]
 		})
 	});
-}
-//#endregion
-//#region src/ApiDocs.tsx
-var L9 = {
+}, L9 = {
 	GET: {
 		bg: "rgba(16,185,129,0.12)",
 		fg: "#10b981",
@@ -108822,10 +108819,20 @@ var hMe = {
 		fg: "#2362ea",
 		label: "Admin"
 	},
-	team: {
-		bg: "hsla(0,0%,0%,.07)",
-		fg: "#555",
-		label: "Team"
+	partner: {
+		bg: "hsla(262,52%,47%,.12)",
+		fg: "#7947d1",
+		label: "Partner"
+	},
+	leadership: {
+		bg: "hsla(262,52%,47%,.12)",
+		fg: "#7947d1",
+		label: "Leadership"
+	},
+	project_manager: {
+		bg: "hsla(215,80%,55%,.12)",
+		fg: "#2362ea",
+		label: "Project Manager"
 	},
 	engineer: {
 		bg: "hsla(215,80%,55%,.12)",
@@ -108837,10 +108844,35 @@ var hMe = {
 		fg: "#d97706",
 		label: "Support"
 	},
+	hr: {
+		bg: "hsla(38,92%,50%,.12)",
+		fg: "#d97706",
+		label: "HR"
+	},
+	it: {
+		bg: "hsla(200,80%,45%,.12)",
+		fg: "#0369a1",
+		label: "IT"
+	},
+	owner: {
+		bg: "hsla(142,71%,38%,.12)",
+		fg: "#16a34a",
+		label: "Owner"
+	},
+	finance: {
+		bg: "hsla(142,71%,38%,.12)",
+		fg: "#16a34a",
+		label: "Finance"
+	},
 	manager: {
 		bg: "hsla(262,52%,47%,.12)",
 		fg: "#7947d1",
 		label: "Manager"
+	},
+	team: {
+		bg: "hsla(0,0%,0%,.07)",
+		fg: "#555",
+		label: "Team"
 	},
 	member: {
 		bg: "hsla(0,0%,0%,.07)",
