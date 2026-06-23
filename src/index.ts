@@ -24,9 +24,11 @@ export {
 
 // Layout shell with session context + view-as system + cmd+k + theme
 export { default as Layout, useSession, ViewAsContext, useViewAs, CmdK, useTheme, PortalSwitcher } from './Layout.tsx'
+export type { LayoutProps } from './Layout.tsx'
 
 // Login page
 export { default as Login } from './Login.tsx'
+export type { LoginProps } from './Login.tsx'
 
 // API Documentation page
 export { default as ApiDocs } from './ApiDocs.tsx'
