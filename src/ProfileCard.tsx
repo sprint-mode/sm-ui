@@ -41,13 +41,20 @@ function fmtMoney(n: number | null | undefined): string {
 }
 
 var ROLE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
-  super_admin: { bg: 'hsla(0,72%,51%,.12)',   fg: '#dc2626',  label: 'Super Admin' },
-  admin:       { bg: 'hsla(215,80%,55%,.12)',  fg: '#2362ea',  label: 'Admin' },
-  team:        { bg: 'hsla(0,0%,0%,.07)',      fg: '#555',     label: 'Team' },
-  engineer:    { bg: 'hsla(215,80%,55%,.12)',  fg: '#2362ea',  label: 'Engineer' },
-  support:     { bg: 'hsla(38,92%,50%,.12)',   fg: '#d97706',  label: 'Support' },
-  manager:     { bg: 'hsla(262,52%,47%,.12)',  fg: '#7947d1',  label: 'Manager' },
-  member:      { bg: 'hsla(0,0%,0%,.07)',      fg: '#555',     label: 'Member' },
+  super_admin:     { bg: 'hsla(0,72%,51%,.12)',   fg: '#dc2626',  label: 'Super Admin' },
+  admin:           { bg: 'hsla(215,80%,55%,.12)',  fg: '#2362ea',  label: 'Admin' },
+  partner:         { bg: 'hsla(262,52%,47%,.12)',  fg: '#7947d1',  label: 'Partner' },
+  leadership:      { bg: 'hsla(262,52%,47%,.12)',  fg: '#7947d1',  label: 'Leadership' },
+  project_manager: { bg: 'hsla(215,80%,55%,.12)',  fg: '#2362ea',  label: 'Project Manager' },
+  engineer:        { bg: 'hsla(215,80%,55%,.12)',  fg: '#2362ea',  label: 'Engineer' },
+  support:         { bg: 'hsla(38,92%,50%,.12)',   fg: '#d97706',  label: 'Support' },
+  hr:              { bg: 'hsla(38,92%,50%,.12)',   fg: '#d97706',  label: 'HR' },
+  it:              { bg: 'hsla(200,80%,45%,.12)',  fg: '#0369a1',  label: 'IT' },
+  owner:           { bg: 'hsla(142,71%,38%,.12)',  fg: '#16a34a',  label: 'Owner' },
+  finance:         { bg: 'hsla(142,71%,38%,.12)',  fg: '#16a34a',  label: 'Finance' },
+  manager:         { bg: 'hsla(262,52%,47%,.12)',  fg: '#7947d1',  label: 'Manager' },
+  team:            { bg: 'hsla(0,0%,0%,.07)',      fg: '#555',     label: 'Team' },
+  member:          { bg: 'hsla(0,0%,0%,.07)',      fg: '#555',     label: 'Member' },
 }
 
 function RoleBadge({ role }: { role: string }) {
