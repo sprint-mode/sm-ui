@@ -37,6 +37,20 @@ jobs:
       - run: npm ci
       - run: npm run type-check
 
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - name: Configure git for HTTPS (public deps)
+        run: git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
+      - run: npm ci
+      - run: npm run build
+
   test:
     name: test
     runs-on: ubuntu-latest
@@ -50,10 +64,3 @@ jobs:
         run: git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
       - run: npm ci
       - run: npm test
-
-# NOTE: No build job.
-# sm-ui ships as source (main: src/index.js) and is consumed as a git
-# dependency pinned to a commit SHA. There is no dist target, no vite config,
-# and no bundling step — consumers import raw JSX/JS and handle their own
-# bundling. A build gate would have nothing to build. If a compiled dist is
-# ever needed, add a vite build config at that time.

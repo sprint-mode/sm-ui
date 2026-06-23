@@ -1,0 +1,64 @@
+import { default as React, CSSProperties } from 'react';
+export interface BugPanelSession {
+    contact_id?: string;
+    display_name?: string;
+    email?: string;
+}
+export interface BugPanelProps {
+    isAdmin?: boolean;
+    apiBase?: string;
+    product?: string;
+    label?: string;
+    session?: BugPanelSession | null;
+    offsetFab?: boolean;
+    onClose?: () => void;
+    visible?: boolean;
+}
+export interface BugPanelHeaderButtonProps {
+    onClick?: React.MouseEventHandler<HTMLButtonElement>;
+}
+export interface BugComment {
+    id: string;
+    author_name?: string;
+    body?: string;
+    created_at?: string;
+}
+export interface BugAttachment {
+    id: string;
+    type: 'image' | 'file';
+    filename: string;
+}
+export interface Bug {
+    id: string;
+    title: string;
+    description?: string;
+    type?: string;
+    product?: string;
+    status: string;
+    priority?: string;
+    page_url?: string;
+    created_at?: string;
+    submitted_by_name?: string;
+    ai_classification?: string | Record<string, unknown>;
+    fire_prompt?: string;
+    comments?: BugComment[];
+    attachments?: BugAttachment[];
+}
+export interface ThreadItem {
+    id: string;
+    title: string;
+    body?: string;
+    product?: string;
+    thread_id?: string;
+    priority?: string;
+    status?: string;
+    tags?: string;
+    created_at?: string;
+}
+export declare function BugPanel(props: BugPanelProps): React.JSX.Element | null;
+export declare function BugPanelHeaderButton({ onClick }: BugPanelHeaderButtonProps): React.DetailedReactHTMLElement<{
+    onClick: React.MouseEventHandler<HTMLButtonElement> | undefined;
+    'aria-label': string;
+    title: string;
+    style: CSSProperties;
+}, HTMLElement>;
