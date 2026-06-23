@@ -819,7 +819,7 @@ interface BuiltSection {
   flat?: boolean
 }
 
-export default function Layout(props: LayoutProps) {
+const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var navConfig = props.navConfig
   var navSections = props.navSections
   var navBottom = props.navBottom
@@ -1291,3 +1291,4 @@ export default function Layout(props: LayoutProps) {
     </SessionContext.Provider>
   )
 }
+export default Layout
