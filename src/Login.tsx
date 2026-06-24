@@ -13,6 +13,11 @@ export interface LoginProps {
   /** When set, enables the "Create an account" toggle with signup fields.
    *  Value is appended to SSO URLs and magic link POST body (e.g. "signup=true&product=studios"). */
   signupParams?: string
+  /** Controls company name field visibility in signup mode.
+   *  'required' (default) — shown and required (B2B portals).
+   *  'optional' — shown but can be left blank; user can add company later.
+   *  'hidden' — not rendered; no company record created on signup. */
+  companyField?: 'required' | 'optional' | 'hidden'
 }
 
 function GoogleIcon() {
@@ -46,7 +51,7 @@ function MailIcon() {
   )
 }
 
-const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams }: LoginProps) {
+const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams, companyField }: LoginProps) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')
@@ -66,6 +71,7 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
   var _companyName = useState('')
   var companyName = _companyName[0]; var setCompanyName = _companyName[1]
 
+  var cfMode = companyField || 'required'
   var base = authBase || ''
   var params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams()
   var rawRedirect = params.get('redirect') || '/'
@@ -74,22 +80,34 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
   var displayTitle = title || productName || 'Sprint Mode'
   var badgeBg = iconBg || 'var(--accent-10)'
   var isSignup = signupParams && mode === 'signup'
+  var showCompanyField = cfMode !== 'hidden'
 
   function buildSignupQuery() {
     if (!signupParams) return ''
     var extra = '&first_name=' + encodeURIComponent(firstName) +
       '&last_name=' + encodeURIComponent(lastName) +
-      '&company_name=' + encodeURIComponent(companyName)
+      '&company_field=' + encodeURIComponent(cfMode)
+    if (showCompanyField && companyName) {
+      extra += '&company_name=' + encodeURIComponent(companyName)
+    }
     return '&' + signupParams + extra
   }
 
   function handleGoogle() {
+    if (isSignup && cfMode === 'required' && !companyName.trim()) {
+      setError('Please enter your company name.')
+      return
+    }
     var url = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
     if (isSignup) url += buildSignupQuery()
     window.location.href = url
   }
 
   function handleMicrosoft() {
+    if (isSignup && cfMode === 'required' && !companyName.trim()) {
+      setError('Please enter your company name.')
+      return
+    }
     var url = base + '/auth/sso/microsoft?redirect=' + encodeURIComponent(redirect)
     if (isSignup) url += buildSignupQuery()
     window.location.href = url
@@ -105,6 +123,10 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
       setError('Please enter your first and last name.')
       return
     }
+    if (isSignup && cfMode === 'required' && !companyName.trim()) {
+      setError('Please enter your company name.')
+      return
+    }
     setLoading(true)
     setError(null)
     var bodyObj: Record<string, string> = { email: email, redirect: redirect }
@@ -113,7 +135,10 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
       sp.forEach(function(val, key) { bodyObj[key] = val })
       bodyObj.first_name = firstName
       bodyObj.last_name = lastName
-      bodyObj.company_name = companyName
+      bodyObj.company_field = cfMode
+      if (showCompanyField && companyName) {
+        bodyObj.company_name = companyName
+      }
     }
     fetch(base + '/auth/magic', {
       method: 'POST',
@@ -196,8 +221,14 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
                   <input type="text" value={lastName} onChange={function(e) { setLastName(e.target.value) }} placeholder="Smith" style={inputStyle} onFocus={handleInputFocus} onBlur={handleInputBlur} />
                 </div>
               </div>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>Company name</label>
-              <input type="text" value={companyName} onChange={function(e) { setCompanyName(e.target.value) }} placeholder="Acme Corp" style={inputStyle} onFocus={handleInputFocus} onBlur={handleInputBlur} />
+              {showCompanyField && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted)', display: 'block', marginBottom: 4 }}>
+                    {'Company name' + (cfMode === 'optional' ? ' (optional)' : '')}
+                  </label>
+                  <input type="text" value={companyName} onChange={function(e) { setCompanyName(e.target.value) }} placeholder="Acme Corp" style={inputStyle} onFocus={handleInputFocus} onBlur={handleInputBlur} />
+                </div>
+              )}
             </div>
           )}
 
