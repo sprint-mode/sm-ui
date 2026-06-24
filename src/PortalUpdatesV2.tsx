@@ -524,6 +524,9 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
   var [loadingMessages, setLoadingMessages] = useState(false)
   var [replyText, setReplyText] = useState('')
   var [sending, setSending] = useState(false)
+  var [queuedAttachments, setQueuedAttachments] = useState<Attachment[]>([])
+  var [uploading, setUploading] = useState(false)
+  var fileInputRef = useRef<HTMLInputElement>(null)
 
   var filtered = threads.filter(function(t) {
     if (statusFilter === 'active') return t.status === 'active' || t.status === 'escalated'
@@ -557,12 +560,45 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
     api('/api/portals/' + subdomain + '/support/threads/' + expandedId + '/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: replyText.trim() }),
+      body: JSON.stringify({ content: replyText.trim(), attachments: queuedAttachments.length > 0 ? JSON.stringify(queuedAttachments) : undefined }),
     }).then(function() {
       setReplyText('')
+      setQueuedAttachments([])
       setSending(false)
       loadThread(expandedId!)
     }).catch(function() { setSending(false) })
+  }
+
+  function uploadFile(file: File) {
+    if (!expandedId || uploading) return
+    setUploading(true)
+    var fd = new FormData()
+    fd.append('file', file)
+    fetch('/api/portals/' + subdomain + '/support/threads/' + expandedId + '/attachments', {
+      method: 'POST', credentials: 'include', body: fd,
+    }).then(function(r) { return r.json() }).then(function(res: Record<string, unknown>) {
+      if (res.ok && res.data) {
+        var att = (res.data as Record<string, unknown>).attachment as Attachment
+        setQueuedAttachments(function(prev) { return prev.concat(att) })
+      }
+      setUploading(false)
+    }).catch(function() { setUploading(false) })
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    var file = e.target.files && e.target.files[0]
+    if (file) uploadFile(file)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    var file = e.dataTransfer.files && e.dataTransfer.files[0]
+    if (file) uploadFile(file)
+  }
+
+  function removeAttachment(attId: string) {
+    setQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== attId }) })
   }
 
   function getSignedUrl(_updateId: string, attId: string) {
@@ -650,13 +686,42 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
                       </div>
                     )}
                     {(t.status === 'active' || t.status === 'escalated') && (
-                      <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 8 }}>
+                      <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 8 }}
+                        onDragOver={function(e) { e.preventDefault() }}
+                        onDrop={handleDrop}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <button onClick={function() { fileInputRef.current && fileInputRef.current.click() }} disabled={uploading} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: uploading ? 'default' : 'pointer',
+                            border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, #fff)',
+                            color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1,
+                          }}>{uploading ? 'Uploading...' : 'Attach file'}</button>
+                          <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
+                          <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChange}
+                            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
+                        </div>
+                        {queuedAttachments.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                            {queuedAttachments.map(function(att) {
+                              return <span key={att.id} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '3px 8px', borderRadius: 6, fontSize: 11,
+                                border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-2, #f9fafb)',
+                                color: 'var(--text-1, #374151)',
+                              }}>
+                                {att.filename || att.id}
+                                <span onClick={function() { removeAttachment(att.id) }} style={{ cursor: 'pointer', color: 'var(--text-3, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
+                              </span>
+                            })}
+                          </div>
+                        )}
                         <div style={{ display: 'flex', gap: 8 }}>
                           <input
                             type="text"
                             value={replyText}
                             onChange={function(e) { setReplyText(e.target.value) }}
-                            onKeyDown={function(e) { if (e.key === 'Enter') sendReply() }}
+                            onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey) sendReply() }}
                             placeholder="Reply to this thread..."
                             disabled={sending}
                             style={{
@@ -703,6 +768,9 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
   var [detailLoading, setDetailLoading] = useState(false)
   var [replyText, setReplyText] = useState('')
   var [sending, setSending] = useState(false)
+  var [adminQueuedAttachments, setAdminQueuedAttachments] = useState<Attachment[]>([])
+  var [adminUploading, setAdminUploading] = useState(false)
+  var adminFileInputRef = useRef<HTMLInputElement>(null)
   var messagesEndRef = useRef<HTMLDivElement>(null)
 
   var loadList = useCallback(function() {
@@ -741,15 +809,47 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
     api('/api/support/threads/' + selectedId + '/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content: replyText.trim() }),
+      body: JSON.stringify({ content: replyText.trim(), attachments: adminQueuedAttachments.length > 0 ? JSON.stringify(adminQueuedAttachments) : undefined }),
     }).then(function() {
       setReplyText('')
+      setAdminQueuedAttachments([])
       setSending(false)
-      // Reload thread detail
       api('/api/support/threads/' + selectedId).then(function(res) {
         if (res.ok) setDetail(res.data as AdminThreadDetail)
       })
     }).catch(function() { setSending(false) })
+  }
+
+  function adminUploadFile(file: File) {
+    if (!selectedId || adminUploading) return
+    setAdminUploading(true)
+    var fd = new FormData()
+    fd.append('file', file)
+    fetch('/api/support/threads/' + selectedId + '/attachments', {
+      method: 'POST', credentials: 'include', body: fd,
+    }).then(function(r) { return r.json() }).then(function(res: Record<string, unknown>) {
+      if (res.ok && res.data) {
+        var att = (res.data as Record<string, unknown>).attachment as Attachment
+        setAdminQueuedAttachments(function(prev) { return prev.concat(att) })
+      }
+      setAdminUploading(false)
+    }).catch(function() { setAdminUploading(false) })
+  }
+
+  function adminHandleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    var file = e.target.files && e.target.files[0]
+    if (file) adminUploadFile(file)
+    if (adminFileInputRef.current) adminFileInputRef.current.value = ''
+  }
+
+  function adminHandleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    var file = e.dataTransfer.files && e.dataTransfer.files[0]
+    if (file) adminUploadFile(file)
+  }
+
+  function adminRemoveAttachment(attId: string) {
+    setAdminQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== attId }) })
   }
 
   function closeThread() {
@@ -943,21 +1043,52 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
             </div>
             {/* Reply bar */}
             {thread?.status !== 'closed' && (
-              <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 8, background: 'var(--bg-2, #f9fafb)', flexShrink: 0 }}>
-                <textarea
-                  value={replyText}
-                  onChange={function(e) { setReplyText(e.target.value) }}
-                  onKeyDown={function(e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply() }}
-                  rows={2}
-                  placeholder="Reply... (Cmd+Enter to send)"
-                  style={{ flex: 1, resize: 'none', fontSize: 13, lineHeight: 1.5, border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, padding: '8px 10px', fontFamily: 'inherit', background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)' }}
-                />
-                <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
-                  alignSelf: 'flex-end', padding: '6px 14px', borderRadius: 6, border: 'none',
-                  background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                  opacity: !replyText.trim() || sending ? 0.5 : 1,
-                }}>Send</button>
+              <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-2, #f9fafb)', flexShrink: 0 }}
+                onDragOver={function(e) { e.preventDefault() }}
+                onDrop={adminHandleDrop}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <button onClick={function() { adminFileInputRef.current && adminFileInputRef.current.click() }} disabled={adminUploading} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: adminUploading ? 'default' : 'pointer',
+                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, #fff)',
+                    color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: adminUploading ? 0.5 : 1,
+                  }}>{adminUploading ? 'Uploading...' : 'Attach'}</button>
+                  <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
+                  <input ref={adminFileInputRef} type="file" style={{ display: 'none' }} onChange={adminHandleFileChange}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
+                </div>
+                {adminQueuedAttachments.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {adminQueuedAttachments.map(function(att) {
+                      return <span key={att.id} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '3px 8px', borderRadius: 6, fontSize: 11,
+                        border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, #fff)',
+                        color: 'var(--text-1, #374151)',
+                      }}>
+                        {att.filename || att.id}
+                        <span onClick={function() { adminRemoveAttachment(att.id) }} style={{ cursor: 'pointer', color: 'var(--text-3, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
+                      </span>
+                    })}
+                  </div>
+                )}
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <textarea
+                    value={replyText}
+                    onChange={function(e) { setReplyText(e.target.value) }}
+                    onKeyDown={function(e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply() }}
+                    rows={2}
+                    placeholder="Reply... (Cmd+Enter to send)"
+                    style={{ flex: 1, resize: 'none', fontSize: 13, lineHeight: 1.5, border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, padding: '8px 10px', fontFamily: 'inherit', background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)' }}
+                  />
+                  <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
+                    alignSelf: 'flex-end', padding: '6px 14px', borderRadius: 6, border: 'none',
+                    background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                    opacity: !replyText.trim() || sending ? 0.5 : 1,
+                  }}>Send</button>
+                </div>
               </div>
             )}
           </>
