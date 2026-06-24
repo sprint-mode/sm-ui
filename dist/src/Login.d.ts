@@ -13,4 +13,5 @@ export interface LoginProps {
      *  Value is appended to SSO URLs and magic link POST body (e.g. "signup=true&product=studios"). */
     signupParams?: string;
 }
-export default function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams }: LoginProps): React.JSX.Element;
+declare const Login: React.FC<LoginProps>;
+export default Login;

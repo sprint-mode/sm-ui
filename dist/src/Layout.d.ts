@@ -144,5 +144,5 @@ export declare function PortalSwitcher(): React.DetailedReactHTMLElement<{
         paddingTop: number;
     };
 }, HTMLElement> | null;
-export default function Layout(props: LayoutProps): React.JSX.Element;
-export {};
+declare const Layout: React.FC<LayoutProps>;
+export default Layout;
