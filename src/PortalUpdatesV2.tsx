@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { UpdateAttachments, Attachment } from './UpdateAttachments.tsx'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
@@ -27,7 +27,9 @@ interface TaskItem {
   status?: string
   priority?: string
   company_name?: string
+  company_id?: string
   contact_name?: string
+  contact_id?: string
   due_date?: string
   product?: string
 }
@@ -43,6 +45,7 @@ interface BugItem {
   created_at?: string
   body?: string
   tags?: string
+  assigned_to?: string
 }
 
 interface SupportThread {
@@ -55,6 +58,29 @@ interface SupportThread {
   created_at?: string
   updated_at?: string
   request_status?: string
+  product?: string
+  contact_name?: string
+  contact_email?: string
+  contact_id?: string
+  company_id?: string
+}
+
+interface SupportMessage {
+  id: string
+  role: string
+  content: string
+  created_at?: string
+  attachments?: string | Attachment[] | null
+}
+
+interface AdminThreadDetail {
+  thread: SupportThread & Record<string, unknown>
+  messages: SupportMessage[]
+  context?: {
+    contact?: Record<string, unknown>
+    company?: Record<string, unknown>
+    engagement?: Record<string, unknown>
+  }
 }
 
 type TabId = 'general' | 'tasks' | 'project' | 'bugs' | 'reports' | 'support'
@@ -68,9 +94,13 @@ interface TabDef {
 export interface PortalUpdatesV2Props {
   api: (path: string, opts?: Record<string, unknown>) => Promise<Record<string, unknown>>
   showBugs?: boolean
+  showSupport?: boolean
+  isAdmin?: boolean
+  userContactId?: string
   subdomain?: string
   title?: string
   subtitle?: string
+  onNavigate?: (path: string) => void
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -118,6 +148,15 @@ var STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   active: { bg: '#EAF3DE', color: '#27500A' },
   resolved: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
   closed: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
+  escalated: { bg: '#FCEBEB', color: '#791F1F' },
+}
+
+var PRODUCT_COLORS: Record<string, { bg: string; color: string }> = {
+  studios: { bg: 'var(--violet-soft, #EEEDFE)', color: 'var(--violet, #534AB7)' },
+  signal: { bg: 'hsla(340,55%,47%,.1)', color: 'hsl(340,55%,47%)' },
+  mode: { bg: 'hsla(160,84%,39%,.1)', color: 'hsl(160,84%,39%)' },
+  privacyai: { bg: 'hsla(190,84%,39%,.1)', color: 'hsl(190,84%,39%)' },
+  investor: { bg: 'var(--accent-soft, #E6F1FB)', color: 'var(--accent, #534AB7)' },
 }
 
 function relativeTime(iso: string | undefined): string {
@@ -136,6 +175,10 @@ function relativeTime(iso: string | undefined): string {
 function formatDate(iso: string | undefined): string {
   if (!iso) return ''
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+}
+
+function initials(name: string | undefined): string {
+  return (name || 'A').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase()
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
@@ -212,6 +255,7 @@ function SelectFilter({ value, onChange, options }: { value: string; onChange: (
 
 function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2Props['api'] }) {
   var [filter, setFilter] = useState('all')
+  var [expandedId, setExpandedId] = useState<string | null>(null)
   var filtered = items.filter(function(i) {
     if (filter === 'unread') return !i.read_at
     if (filter === 'read') return !!i.read_at
@@ -231,15 +275,17 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
           { value: 'read', label: 'Read' },
         ]} />
       </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No updates" /> : (
+      {filtered.length === 0 ? <EmptyState message="No updates yet" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(function(item) {
             var isRead = !!item.read_at
+            var isExpanded = expandedId === item.id
             return (
               <div key={item.id} style={{
                 background: 'var(--bg-card, #fff)', border: '1px solid var(--border, #e5e7eb)',
-                borderRadius: 'var(--radius, 8px)', overflow: 'hidden',
-              }}>
+                borderRadius: 'var(--radius, 8px)', overflow: 'hidden', cursor: 'pointer',
+                transition: 'border-color .12s',
+              }} onClick={function() { setExpandedId(isExpanded ? null : item.id) }}>
                 <div style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                     {!isRead && <span style={{
@@ -260,16 +306,31 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
                       </div>
                       {item.body && (
                         <div style={{
-                          fontSize: 13, lineHeight: 1.6, color: 'var(--text-1, #374151)',
-                          whiteSpace: 'pre-wrap', marginTop: 8,
-                          maxHeight: 120, overflow: 'hidden',
+                          fontSize: 13, lineHeight: 1.6,
+                          color: isExpanded ? 'var(--text-1, #374151)' : 'var(--text-3, #9ca3af)',
+                          whiteSpace: isExpanded ? 'pre-wrap' : undefined,
+                          marginTop: 8,
+                          maxHeight: isExpanded ? undefined : 52,
+                          overflow: isExpanded ? undefined : 'hidden',
                         }}>{item.body}</div>
                       )}
-                      <UpdateAttachments
-                        attachments={item.attachments}
-                        updateId={item.id}
-                        getSignedUrl={getSignedUrl}
-                      />
+                      {isExpanded && (
+                        <UpdateAttachments
+                          attachments={item.attachments}
+                          updateId={item.id}
+                          getSignedUrl={getSignedUrl}
+                        />
+                      )}
+                      {!isExpanded && item.body && (
+                        <div style={{ fontSize: 11, color: 'var(--accent, #7c5cbf)', marginTop: 6 }}>
+                          Show full update{item.attachments && JSON.parse(typeof item.attachments === 'string' ? item.attachments : '[]').length > 0 ? ' + attachments' : ''}
+                        </div>
+                      )}
+                      {isExpanded && (
+                        <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 6 }}>
+                          Collapse
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -282,12 +343,39 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
   )
 }
 
-function TasksTab({ items }: { items: TaskItem[] }) {
+function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
   var [statusFilter, setStatusFilter] = useState('all')
-  var filtered = items.filter(function(i) {
+  var [completing, setCompleting] = useState<string | null>(null)
+  var [localItems, setLocalItems] = useState(items)
+
+  useEffect(function() { setLocalItems(items) }, [items])
+
+  var filtered = localItems.filter(function(i) {
     if (statusFilter !== 'all') return i.status === statusFilter
     return true
   })
+
+  function markComplete(e: React.MouseEvent, taskId: string) {
+    e.stopPropagation()
+    setCompleting(taskId)
+    api('/api/tasks/' + taskId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'completed' }),
+    }).then(function() {
+      setLocalItems(function(prev) {
+        return prev.map(function(t) { return t.id === taskId ? Object.assign({}, t, { status: 'completed' }) : t })
+      })
+      setCompleting(null)
+    }).catch(function() { setCompleting(null) })
+  }
+
+  function handleRowClick(item: TaskItem) {
+    if (!onNavigate) return
+    if (item.company_id) onNavigate('/crm/' + item.company_id + '?tab=tasks')
+    else if (item.contact_id) onNavigate('/crm/contacts/' + item.contact_id + '?tab=tasks')
+  }
+
   return (
     <div>
       <FilterRow count={filtered.length} countLabel="task">
@@ -297,16 +385,35 @@ function TasksTab({ items }: { items: TaskItem[] }) {
           { value: 'completed', label: 'Completed' },
         ]} />
       </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No tasks" /> : (
+      {filtered.length === 0 ? <EmptyState message="No tasks assigned" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {filtered.map(function(item) {
+            var isDone = item.status === 'completed'
+            var isCompleting = completing === item.id
             return (
-              <div key={item.id} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12,
+              <div key={item.id} onClick={function() { handleRowClick(item) }} style={{
+                display: 'flex', alignItems: 'center', gap: 12,
                 padding: '12px 0', borderBottom: '1px solid var(--border, #e5e7eb)',
+                cursor: onNavigate ? 'pointer' : 'default',
+                transition: 'background .1s',
               }}>
+                <div onClick={function(e) { if (!isDone && !isCompleting) markComplete(e, item.id) }} style={{
+                  width: 18, height: 18, borderRadius: 4, flexShrink: 0,
+                  border: isDone ? '1.5px solid #639922' : '1.5px solid var(--border-2, #d1d5db)',
+                  background: isDone ? '#EAF3DE' : 'var(--bg-0, #fff)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: isDone ? 'default' : 'pointer',
+                  opacity: isCompleting ? 0.5 : 1,
+                }}>
+                  {isDone && <span style={{ fontSize: 12, color: '#639922' }}>&#10003;</span>}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>{item.title}</div>
+                  <div style={{
+                    fontSize: 13, fontWeight: 500,
+                    color: isDone ? 'var(--text-3, #9ca3af)' : 'var(--text-0, #111)',
+                    marginBottom: 2,
+                    textDecoration: isDone ? 'line-through' : 'none',
+                  }}>{item.title}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
                     {item.company_name ? item.company_name + ' · ' : ''}
                     {(item.task_type || '').replace(/_/g, ' ')}
@@ -327,8 +434,8 @@ function TasksTab({ items }: { items: TaskItem[] }) {
 function BugsTab({ items }: { items: BugItem[] }) {
   var [typeFilter, setTypeFilter] = useState('all')
   var [prioFilter, setPrioFilter] = useState('all')
+  var [expandedId, setExpandedId] = useState<string | null>(null)
 
-  // Build type options from actual data
   var typeSet = new Set<string>()
   items.forEach(function(i) { if (i.type) typeSet.add(i.type) })
   var typeOptions = [{ value: 'all', label: 'All types' }]
@@ -354,24 +461,51 @@ function BugsTab({ items }: { items: BugItem[] }) {
           { value: 'low', label: 'Low' },
         ]} />
       </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No items" /> : (
+      {filtered.length === 0 ? <EmptyState message="No open items" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {filtered.map(function(item) {
+            var isExpanded = expandedId === item.id
             return (
-              <div key={item.id} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12,
-                padding: '12px 0', borderBottom: '1px solid var(--border, #e5e7eb)',
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>{item.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
-                    {item.product ? item.product + ' · ' : ''}
-                    {item.thread_id || ''}
-                    {item.created_at ? ' · ' + relativeTime(item.created_at) : ''}
+              <div key={item.id}>
+                <div onClick={function() { setExpandedId(isExpanded ? null : item.id) }} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
+                  cursor: 'pointer', transition: 'background .1s',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>{item.title}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
+                      {item.product ? item.product + ' · ' : ''}
+                      {item.thread_id || ''}
+                      {item.created_at ? ' · ' + relativeTime(item.created_at) : ''}
+                    </div>
                   </div>
+                  <TypePill type={item.type} />
+                  <PriorityPill priority={item.priority} />
                 </div>
-                <TypePill type={item.type} />
-                <PriorityPill priority={item.priority} />
+                {isExpanded && (
+                  <div style={{
+                    padding: '12px 16px', background: 'var(--bg-2, #f9fafb)',
+                    borderBottom: '1px solid var(--border, #e5e7eb)',
+                    fontSize: 13, lineHeight: 1.6, color: 'var(--text-1, #374151)',
+                  }}>
+                    {item.body && <div style={{ marginBottom: 8, whiteSpace: 'pre-wrap' }}>{item.body}</div>}
+                    {item.tags && (
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {item.tags.split(',').map(function(tag) {
+                          var t = tag.trim()
+                          return t ? <span key={t} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '3px 8px', background: 'var(--bg-0, #fff)',
+                            border: '1px solid var(--border, #e5e7eb)', borderRadius: 99,
+                            fontSize: 11, color: 'var(--text-1, #374151)',
+                          }}>{t}</span> : null
+                        })}
+                      </div>
+                    )}
+                    {!item.body && !item.tags && <div style={{ color: 'var(--text-3, #9ca3af)' }}>No additional details</div>}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -381,13 +515,61 @@ function BugsTab({ items }: { items: BugItem[] }) {
   )
 }
 
-function SupportTab({ threads, api: _api, subdomain: _subdomain }: { threads: SupportThread[]; api: PortalUpdatesV2Props['api']; subdomain: string }) {
+// ─── Portal support tab (client/investor) ────────────────────────────────────
+
+function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[]; api: PortalUpdatesV2Props['api']; subdomain: string }) {
   var [statusFilter, setStatusFilter] = useState('all')
+  var [expandedId, setExpandedId] = useState<string | null>(null)
+  var [messages, setMessages] = useState<SupportMessage[]>([])
+  var [loadingMessages, setLoadingMessages] = useState(false)
+  var [replyText, setReplyText] = useState('')
+  var [sending, setSending] = useState(false)
+
   var filtered = threads.filter(function(t) {
-    if (statusFilter === 'active') return t.status === 'active'
-    if (statusFilter === 'resolved') return t.status !== 'active'
+    if (statusFilter === 'active') return t.status === 'active' || t.status === 'escalated'
+    if (statusFilter === 'resolved') return t.status !== 'active' && t.status !== 'escalated'
     return true
   })
+
+  function loadThread(threadId: string) {
+    setLoadingMessages(true)
+    api('/api/portals/' + subdomain + '/support/threads/' + threadId).then(function(res) {
+      var d = res.data as { messages?: SupportMessage[] } | undefined
+      setMessages(d?.messages || [])
+      setLoadingMessages(false)
+    }).catch(function() { setLoadingMessages(false) })
+  }
+
+  function toggleThread(threadId: string) {
+    if (expandedId === threadId) {
+      setExpandedId(null)
+      setMessages([])
+    } else {
+      setExpandedId(threadId)
+      loadThread(threadId)
+    }
+    setReplyText('')
+  }
+
+  function sendReply() {
+    if (!replyText.trim() || !expandedId || sending) return
+    setSending(true)
+    api('/api/portals/' + subdomain + '/support/threads/' + expandedId + '/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: replyText.trim() }),
+    }).then(function() {
+      setReplyText('')
+      setSending(false)
+      loadThread(expandedId!)
+    }).catch(function() { setSending(false) })
+  }
+
+  function getSignedUrl(_updateId: string, attId: string) {
+    if (!expandedId) return Promise.resolve({} as { url?: string; data?: { url?: string } })
+    return api('/api/portals/' + subdomain + '/support/threads/' + expandedId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
+  }
+
   return (
     <div>
       <FilterRow count={filtered.length} countLabel="thread">
@@ -397,25 +579,108 @@ function SupportTab({ threads, api: _api, subdomain: _subdomain }: { threads: Su
           { value: 'resolved', label: 'Resolved' },
         ]} />
       </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No support threads" /> : (
+      {filtered.length === 0 ? <EmptyState message="No support threads - everything's good" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {filtered.map(function(t) {
+            var isExpanded = expandedId === t.id
             return (
-              <div key={t.id} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 12,
-                padding: '12px 0', borderBottom: '1px solid var(--border, #e5e7eb)',
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>
-                    {t.subject || 'Support thread'}
+              <div key={t.id}>
+                <div onClick={function() { toggleThread(t.id) }} style={{
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
+                  cursor: 'pointer',
+                }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>
+                      {t.subject || 'Support thread'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
+                      {t.message_count ? t.message_count + ' messages · ' : ''}
+                      {t.updated_at ? relativeTime(t.updated_at) : ''}
+                      {t.last_role ? ' · ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : ''}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
-                    {t.message_count ? t.message_count + ' messages · ' : ''}
-                    {t.updated_at ? relativeTime(t.updated_at) : ''}
-                    {t.last_role ? ' · ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : ''}
-                  </div>
+                  <StatusPill status={t.status === 'active' || t.status === 'escalated' ? 'active' : 'resolved'} />
                 </div>
-                <StatusPill status={t.status === 'active' ? 'active' : 'resolved'} />
+                {isExpanded && (
+                  <div style={{
+                    background: 'var(--bg-2, #f9fafb)', border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: 'var(--radius, 8px)', margin: '4px 0 12px', padding: 14,
+                    display: 'flex', flexDirection: 'column', gap: 10,
+                  }}>
+                    {loadingMessages ? (
+                      <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--text-3, #9ca3af)' }}>Loading...</div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {messages.map(function(msg) {
+                          var isUser = msg.role === 'user'
+                          var isHuman = msg.role === 'human'
+                          return (
+                            <div key={msg.id}>
+                              {!isUser && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)' }}>
+                                  {msg.role === 'assistant' ? <span>AI · Support</span> : <span>Team</span>}
+                                </div>
+                              )}
+                              <div style={{
+                                alignSelf: isUser ? 'flex-end' : 'flex-start',
+                                maxWidth: '85%', padding: '8px 12px', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                                borderRadius: 10,
+                                borderBottomRightRadius: isUser ? 3 : 10,
+                                borderBottomLeftRadius: !isUser ? 3 : 10,
+                                background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, #fff)',
+                                color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, #111)',
+                                border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : isUser ? 'none' : '1px solid var(--border, #e5e7eb)',
+                                marginLeft: isUser ? 'auto' : 0,
+                                marginRight: isUser ? 0 : 'auto',
+                              }}>{msg.content}</div>
+                              {msg.attachments && (
+                                <div style={{ marginLeft: isUser ? 'auto' : 0, maxWidth: '85%' }}>
+                                  <UpdateAttachments
+                                    attachments={msg.attachments}
+                                    updateId={t.id}
+                                    getSignedUrl={getSignedUrl}
+                                    compact
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {(t.status === 'active' || t.status === 'escalated') && (
+                      <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 8 }}>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input
+                            type="text"
+                            value={replyText}
+                            onChange={function(e) { setReplyText(e.target.value) }}
+                            onKeyDown={function(e) { if (e.key === 'Enter') sendReply() }}
+                            placeholder="Reply to this thread..."
+                            disabled={sending}
+                            style={{
+                              flex: 1, fontSize: 13, padding: '8px 10px',
+                              border: '1px solid var(--border, #e5e7eb)', borderRadius: 6,
+                              background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)',
+                              fontFamily: 'inherit',
+                            }}
+                          />
+                          <button
+                            onClick={sendReply}
+                            disabled={sending || !replyText.trim()}
+                            style={{
+                              padding: '6px 14px', borderRadius: 6, border: 'none',
+                              background: 'var(--accent, #7c5cbf)', color: '#fff',
+                              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                              opacity: sending || !replyText.trim() ? 0.5 : 1,
+                            }}
+                          >Send</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -425,9 +690,287 @@ function SupportTab({ threads, api: _api, subdomain: _subdomain }: { threads: Su
   )
 }
 
+// ─── Admin support tab (split-pane inbox) ────────────────────────────────────
+
+function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
+  var [threads, setThreads] = useState<SupportThread[]>([])
+  var [counts, setCounts] = useState<Record<string, number>>({})
+  var [loading, setLoading] = useState(true)
+  var [filter, setFilter] = useState('open')
+  var [productFilter, setProductFilter] = useState('')
+  var [selectedId, setSelectedId] = useState<string | null>(null)
+  var [detail, setDetail] = useState<AdminThreadDetail | null>(null)
+  var [detailLoading, setDetailLoading] = useState(false)
+  var [replyText, setReplyText] = useState('')
+  var [sending, setSending] = useState(false)
+  var messagesEndRef = useRef<HTMLDivElement>(null)
+
+  var loadList = useCallback(function() {
+    setLoading(true)
+    var qs = productFilter ? '&product=' + productFilter : ''
+    Promise.all([
+      api('/api/support/threads?status=open' + qs),
+      api('/api/support/threads?status=escalated' + qs),
+      api('/api/support/threads?status=' + filter + qs),
+    ]).then(function(results) {
+      var openCnt = results[0].ok ? ((results[0].data as { threads?: unknown[] })?.threads || []).length : 0
+      var escCnt = results[1].ok ? ((results[1].data as { threads?: unknown[] })?.threads || []).length : 0
+      setCounts({ open: openCnt, escalated: escCnt })
+      if (results[2].ok) setThreads((results[2].data as { threads?: SupportThread[] })?.threads || [])
+    }).catch(function() {}).finally(function() { setLoading(false) })
+  }, [api, filter, productFilter])
+
+  useEffect(function() { loadList() }, [loadList])
+
+  useEffect(function() {
+    if (!selectedId) { setDetail(null); return }
+    setDetailLoading(true)
+    api('/api/support/threads/' + selectedId).then(function(res) {
+      if (res.ok) setDetail(res.data as AdminThreadDetail)
+      setDetailLoading(false)
+    }).catch(function() { setDetailLoading(false) })
+  }, [selectedId, api])
+
+  useEffect(function() {
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
+  }, [detail?.messages])
+
+  function sendReply() {
+    if (!replyText.trim() || !selectedId || sending) return
+    setSending(true)
+    api('/api/support/threads/' + selectedId + '/reply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: replyText.trim() }),
+    }).then(function() {
+      setReplyText('')
+      setSending(false)
+      // Reload thread detail
+      api('/api/support/threads/' + selectedId).then(function(res) {
+        if (res.ok) setDetail(res.data as AdminThreadDetail)
+      })
+    }).catch(function() { setSending(false) })
+  }
+
+  function closeThread() {
+    if (!selectedId) return
+    api('/api/support/threads/' + selectedId + '/close', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason: 'resolved' }),
+    }).then(function() { loadList(); setSelectedId(null) }).catch(function() {})
+  }
+
+  function getSignedUrl(_updateId: string, attId: string) {
+    if (!selectedId) return Promise.resolve({} as { url?: string; data?: { url?: string } })
+    return api('/api/support/threads/' + selectedId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
+  }
+
+  var thread = detail?.thread
+  var contact = detail?.context?.contact as Record<string, unknown> | undefined
+  var company = detail?.context?.company as Record<string, unknown> | undefined
+  var engagement = detail?.context?.engagement as Record<string, unknown> | undefined
+
+  return (
+    <div style={{
+      display: 'flex', border: '1px solid var(--border, #e5e7eb)',
+      borderRadius: 'var(--radius-lg, 8px)', overflow: 'hidden',
+      height: 460, background: 'var(--bg-card, #fff)',
+    }}>
+      {/* Thread list */}
+      <div style={{ width: 240, borderRight: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
+        <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 4 }}>
+          {(['open', 'escalated', 'closed'] as const).map(function(tab) {
+            var active = filter === tab
+            var count = counts[tab] || 0
+            return (
+              <button key={tab} onClick={function() { setFilter(tab); setSelectedId(null) }} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                padding: '4px 8px', borderRadius: 5, fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+                background: active ? 'var(--accent-soft, #EEEDFE)' : 'transparent',
+                color: active ? 'var(--accent, #7c5cbf)' : 'var(--text-2, #6b7280)',
+              }}>
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {count > 0 && <span style={{
+                  padding: '1px 5px', borderRadius: 99, fontSize: 9, fontWeight: 700,
+                  background: active ? 'var(--accent, #7c5cbf)' : tab === 'escalated' ? '#FCEBEB' : 'var(--bg-3, #e5e7eb)',
+                  color: active ? '#fff' : tab === 'escalated' ? '#791F1F' : 'var(--text-1, #111)',
+                }}>{count}</span>}
+              </button>
+            )
+          })}
+        </div>
+        <div style={{ padding: '6px 10px', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
+          <select value={productFilter} onChange={function(e) { setProductFilter(e.target.value); setSelectedId(null) }} style={{
+            width: '100%', fontSize: 11, padding: '3px 6px',
+            border: '1px solid var(--border, #e5e7eb)', borderRadius: 4,
+            background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)', fontFamily: 'inherit',
+          }}>
+            <option value="">All products</option>
+            <option value="studios">Studios</option>
+            <option value="signal">Signal</option>
+            <option value="mode">Mode</option>
+            <option value="privacyai">PrivacyAI</option>
+          </select>
+        </div>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+              <div style={{ width: 20, height: 20, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
+            </div>
+          ) : threads.length === 0 ? (
+            <div style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-3, #9ca3af)' }}>
+              No {filter} threads
+            </div>
+          ) : threads.map(function(t) {
+            var active = t.id === selectedId
+            var name = t.contact_name || t.contact_email || 'Anonymous'
+            var ps = PRODUCT_COLORS[t.product || ''] || { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' }
+            return (
+              <div key={t.id} onClick={function() { setSelectedId(t.id) }} style={{
+                padding: '10px 12px', borderBottom: '1px solid var(--border-subtle, #f3f4f6)', cursor: 'pointer',
+                background: active ? 'var(--accent-soft, #EEEDFE)' : 'transparent',
+                borderLeft: active ? '2px solid var(--accent, #7c5cbf)' : '2px solid transparent',
+              }}>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <div style={{
+                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    background: t.status === 'escalated' ? '#FCEBEB' : 'var(--accent-soft, #EEEDFE)',
+                    color: t.status === 'escalated' ? '#791F1F' : 'var(--accent, #7c5cbf)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 10, fontWeight: 700,
+                  }}>{initials(name)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
+                      <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-0, #111)' }}>{name.split(' ')[0]}</span>
+                      <span style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)' }}>{relativeTime(t.updated_at)}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
+                      {t.last_message || ''}
+                    </div>
+                    {t.product && <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 99, fontSize: 9, fontWeight: 600, background: ps.bg, color: ps.color }}>
+                      {t.product.charAt(0).toUpperCase() + t.product.slice(1)}
+                    </span>}
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Thread detail */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        {!selectedId ? (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--text-3, #9ca3af)' }}>
+            <span style={{ fontSize: 13 }}>Select a thread</span>
+          </div>
+        ) : detailLoading ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 20, height: 20, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
+          </div>
+        ) : detail ? (
+          <>
+            {/* Header */}
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft, #EEEDFE)', color: 'var(--accent, #7c5cbf)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                  {initials(contact?.name as string || contact?.email as string || 'A')}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-0, #111)' }}>{contact?.name as string || contact?.email as string || 'Anonymous'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)' }}>
+                    {[company?.name as string, thread?.product ? (thread.product as string).charAt(0).toUpperCase() + (thread.product as string).slice(1) : ''].filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {onNavigate && <button onClick={function() { onNavigate('/crm') }} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>CRM</button>}
+                {thread?.status !== 'closed' && <button onClick={closeThread} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>Close</button>}
+              </div>
+            </div>
+            {/* Context chips */}
+            {(engagement || (contact && (contact as Record<string, unknown>).last_login_at)) && (
+              <div style={{ padding: '6px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {engagement && (function() {
+                  var engTitle = String(engagement.title || '')
+                  var sprintStr = engagement.current_sprint ? ' · Sprint ' + String(engagement.current_sprint) + '/' + String(engagement.total_sprints) : ''
+                  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
+                    {engTitle}{sprintStr}
+                  </span>
+                })()}
+                {contact && Boolean((contact as Record<string, unknown>).last_login_at) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
+                  Last login {relativeTime((contact as Record<string, unknown>).last_login_at as string)}
+                </span>}
+              </div>
+            )}
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {(detail.messages || []).map(function(msg) {
+                var isUser = msg.role === 'user'
+                var isBot = msg.role === 'assistant'
+                var isHuman = msg.role === 'human'
+                if (!isUser && !isBot && !isHuman) {
+                  return <div key={msg.id} style={{ display: 'flex', justifyContent: 'center' }}>
+                    <span style={{ padding: '3px 12px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-2, #6b7280)' }}>{msg.content}</span>
+                  </div>
+                }
+                return (
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                    {!isUser && <div style={{ fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)', marginBottom: 4 }}>
+                      {isBot ? 'AI · Support' : 'Team'}
+                    </div>}
+                    <div style={{
+                      maxWidth: '82%', padding: '8px 12px', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                      borderRadius: 10,
+                      borderBottomRightRadius: isUser ? 3 : 10,
+                      borderBottomLeftRadius: !isUser ? 3 : 10,
+                      background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-2, #f3f4f6)',
+                      color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, #111)',
+                      border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : 'none',
+                    }}>{msg.content}</div>
+                    {msg.attachments && (
+                      <div style={{ maxWidth: '82%' }}>
+                        <UpdateAttachments attachments={msg.attachments} updateId={selectedId || ''} getSignedUrl={getSignedUrl} compact />
+                      </div>
+                    )}
+                    <div style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)', marginTop: 3, padding: '0 2px' }}>{relativeTime(msg.created_at)}</div>
+                  </div>
+                )
+              })}
+              <div ref={messagesEndRef} />
+            </div>
+            {/* Reply bar */}
+            {thread?.status !== 'closed' && (
+              <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 8, background: 'var(--bg-2, #f9fafb)', flexShrink: 0 }}>
+                <textarea
+                  value={replyText}
+                  onChange={function(e) { setReplyText(e.target.value) }}
+                  onKeyDown={function(e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply() }}
+                  rows={2}
+                  placeholder="Reply... (Cmd+Enter to send)"
+                  style={{ flex: 1, resize: 'none', fontSize: 13, lineHeight: 1.5, border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, padding: '8px 10px', fontFamily: 'inherit', background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)' }}
+                />
+                <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
+                  alignSelf: 'flex-end', padding: '6px 14px', borderRadius: 6, border: 'none',
+                  background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                  opacity: !replyText.trim() || sending ? 0.5 : 1,
+                }}>Send</button>
+              </div>
+            )}
+          </>
+        ) : null}
+      </div>
+      <style>{`@keyframes pu2-spin { to { transform: rotate(360deg) } }`}</style>
+    </div>
+  )
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function PortalUpdatesV2({ api, showBugs, subdomain, title, subtitle }: PortalUpdatesV2Props) {
+export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userContactId, subdomain, title, subtitle, onNavigate }: PortalUpdatesV2Props) {
   var [loading, setLoading] = useState(true)
   var [error, setError] = useState<string | null>(null)
   var [audience, setAudience] = useState<string | null>(null)
@@ -444,20 +987,15 @@ export function PortalUpdatesV2({ api, showBugs, subdomain, title, subtitle }: P
     setLoading(true)
     setError(null)
 
-    // Fetch general updates — response includes audience for tab detection
     var generalPromise = api('/api/portal/updates').then(function(res: Record<string, unknown>) {
       var d = res.data as { items?: UpdateItem[]; audience?: string } | undefined
       var items = d?.items || []
       var aud = d?.audience || 'clients'
       setAudience(aud)
-
-      // For team: all items are "general" (no project/reports split)
       if (aud === 'team') {
         setGeneralItems(items)
         return aud
       }
-
-      // For clients: split by update_type
       var general: UpdateItem[] = []
       var project: UpdateItem[] = []
       items.forEach(function(item) {
@@ -472,22 +1010,20 @@ export function PortalUpdatesV2({ api, showBugs, subdomain, title, subtitle }: P
       return aud
     })
 
-    // Fetch tasks
     var tasksPromise = api('/api/portal/tasks').then(function(res: Record<string, unknown>) {
       var d = res.data as { items?: TaskItem[] } | undefined
       setTaskItems(d?.items || [])
     }).catch(function() { setTaskItems([]) })
 
-    // Fetch bugs (only if showBugs)
     var bugsPromise = showBugs
-      ? api('/api/bugs/threads').then(function(res: Record<string, unknown>) {
+      ? api('/api/bugs/threads' + (userContactId ? '?assigned_to=' + userContactId : '')).then(function(res: Record<string, unknown>) {
           var d = res.data as BugItem[] | undefined
           setBugItems(d || [])
         }).catch(function() { setBugItems([]) })
       : Promise.resolve()
 
-    // Fetch support threads (only if subdomain provided — not for team)
-    var supportPromise = subdomain
+    // Portal support: fetch threads for the portal's subdomain
+    var supportPromise = subdomain && !isAdmin
       ? api('/api/portals/' + subdomain + '/support/threads').then(function(res: Record<string, unknown>) {
           var d = res.data as SupportThread[] | undefined
           setSupportThreads(d || [])
@@ -500,36 +1036,35 @@ export function PortalUpdatesV2({ api, showBugs, subdomain, title, subtitle }: P
         setError(e.message || 'Failed to load')
         setLoading(false)
       })
-  }, [api, showBugs, subdomain])
+  }, [api, showBugs, subdomain, isAdmin, userContactId])
 
   useEffect(function() { load() }, [load])
 
-  // Build visible tabs based on audience + data
+  // Build tabs — always show all role-appropriate tabs
   var tabs: TabDef[] = []
   if (audience === 'team') {
-    if (generalItems.length > 0) tabs.push({ id: 'general', label: 'General', count: generalItems.length })
-    if (taskItems.length > 0) tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    if (showBugs && bugItems.length > 0) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length })
+    tabs.push({ id: 'general', label: 'General', count: generalItems.length })
+    tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
+    if (showBugs) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length })
+    if (showSupport || isAdmin) tabs.push({ id: 'support', label: 'Support', count: 0 })
   } else if (audience === 'investors') {
-    if (generalItems.length > 0) tabs.push({ id: 'general', label: 'General', count: generalItems.length })
-    if (taskItems.length > 0) tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    if (projectItems.length > 0) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
-    if (supportThreads.length > 0) tabs.push({ id: 'support', label: 'Support', count: supportThreads.length })
-  } else {
+    tabs.push({ id: 'general', label: 'General', count: generalItems.length })
+    tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
+    tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
+    tabs.push({ id: 'support', label: 'Support', count: supportThreads.length })
+  } else if (audience) {
     // clients (default)
-    if (generalItems.length > 0) tabs.push({ id: 'general', label: 'General', count: generalItems.length })
-    if (taskItems.length > 0) tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    if (projectItems.length > 0) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
-    if (supportThreads.length > 0) tabs.push({ id: 'support', label: 'Support', count: supportThreads.length })
+    tabs.push({ id: 'general', label: 'General', count: generalItems.length })
+    tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
+    tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
+    tabs.push({ id: 'support', label: 'Support', count: supportThreads.length })
   }
 
-  // Auto-select first tab if current selection is invalid
   var effectiveTab = activeTab
   if (!effectiveTab || !tabs.find(function(t) { return t.id === effectiveTab })) {
     effectiveTab = tabs.length > 0 ? tabs[0].id : null
   }
 
-  // Render
   if (loading) {
     return (
       <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
@@ -551,18 +1086,6 @@ export function PortalUpdatesV2({ api, showBugs, subdomain, title, subtitle }: P
     return (
       <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px' }}>
         <div style={{ padding: 24, color: 'var(--red, #ef4444)', fontSize: 14 }}>{error}</div>
-      </div>
-    )
-  }
-
-  if (tabs.length === 0) {
-    return (
-      <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
-        <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, #111)', marginBottom: 4 }}>{title || 'Updates'}</h1>
-          {subtitle && <p style={{ fontSize: 13, color: 'var(--text-3, #9ca3af)', margin: 0 }}>{subtitle}</p>}
-        </div>
-        <EmptyState message="No updates or activity yet" />
       </div>
     )
   }
@@ -606,11 +1129,12 @@ export function PortalUpdatesV2({ api, showBugs, subdomain, title, subtitle }: P
       )}
 
       {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} />}
-      {effectiveTab === 'tasks' && <TasksTab items={taskItems} />}
+      {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={onNavigate} />}
       {effectiveTab === 'bugs' && <BugsTab items={bugItems} />}
       {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} />}
       {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} />}
-      {effectiveTab === 'support' && subdomain && <SupportTab threads={supportThreads} api={api} subdomain={subdomain} />}
+      {effectiveTab === 'support' && isAdmin && <SupportTabAdmin api={api} onNavigate={onNavigate} />}
+      {effectiveTab === 'support' && !isAdmin && subdomain && <SupportTabPortal threads={supportThreads} api={api} subdomain={subdomain} />}
     </div>
   )
 }
