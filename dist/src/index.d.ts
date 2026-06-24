@@ -11,6 +11,7 @@ export { ProfileCard } from './ProfileCard.js';
 export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.js';
 export { UpdateAttachments } from './UpdateAttachments.js';
 export { PortalUpdates } from './PortalUpdates.js';
+export { PortalUpdatesV2 } from './PortalUpdatesV2.js';
 export { BugPanel, BugPanelHeaderButton } from './BugPanel.js';
 export { AvatarUpload } from './AvatarUpload.js';
 export { PortalSupportWidget } from './PortalSupportWidget.js';
