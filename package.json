@@ -65,6 +65,7 @@
     "src/index.css",
     "src/shell.css",
     "src/components.css",
+    "src/tokens.css",
     "src/Icons.d.ts",
     "brands"
   ]
