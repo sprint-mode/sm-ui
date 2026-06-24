@@ -60,6 +60,7 @@ export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.tsx'
 
 export { UpdateAttachments } from './UpdateAttachments.tsx'
 export { PortalUpdates } from './PortalUpdates.tsx'
+export { PortalUpdatesV2 } from './PortalUpdatesV2.tsx'
 
 export { BugPanel, BugPanelHeaderButton } from './BugPanel.tsx'
 
