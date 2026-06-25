@@ -111316,156 +111316,233 @@ function XMe({ items: e, api: t, onNavigate: n }) {
 		})
 	})] });
 }
-function ZMe({ items: e }) {
-	var [t, n] = s("all"), [r, i] = s("all"), [a, o] = s(null), c = /* @__PURE__ */ new Set();
+function ZMe({ items: e, commentNotifications: t, onNavigate: n }) {
+	var [r, i] = s("all"), [a, o] = s("all"), [c, d] = s(null), f = /* @__PURE__ */ new Set();
 	e.forEach(function(e) {
-		e.type && c.add(e.type);
+		e.type && f.add(e.type);
 	});
-	var d = [{
+	var p = [{
 		value: "all",
 		label: "All types"
 	}];
-	Array.from(c).sort().forEach(function(e) {
-		d.push({
+	Array.from(f).sort().forEach(function(e) {
+		p.push({
 			value: e,
 			label: e.replace(/_/g, " ")
 		});
 	});
-	var f = e.filter(function(e) {
-		return !(t !== "all" && e.type !== t || r !== "all" && e.priority !== r);
+	var m = e.filter(function(e) {
+		return !(r !== "all" && e.type !== r || a !== "all" && e.priority !== a);
 	});
-	return /* @__PURE__ */ u("div", { children: [/* @__PURE__ */ u(J9, {
-		count: f.length,
-		countLabel: "item",
-		children: [/* @__PURE__ */ l(Y9, {
-			value: t,
-			onChange: n,
-			options: d
-		}), /* @__PURE__ */ l(Y9, {
-			value: r,
-			onChange: i,
-			options: [
-				{
-					value: "all",
-					label: "All priorities"
-				},
-				{
-					value: "critical",
-					label: "Critical"
-				},
-				{
-					value: "high",
-					label: "High"
-				},
-				{
-					value: "normal",
-					label: "Normal"
-				},
-				{
-					value: "low",
-					label: "Low"
-				}
-			]
-		})]
-	}), f.length === 0 ? /* @__PURE__ */ l(q9, { message: "No open items" }) : /* @__PURE__ */ l("div", {
-		style: {
-			display: "flex",
-			flexDirection: "column",
-			gap: 0
-		},
-		children: f.map(function(e) {
-			var t = a === e.id;
-			return /* @__PURE__ */ u("div", { children: [/* @__PURE__ */ u("div", {
-				onClick: function() {
-					o(t ? null : e.id);
-				},
+	return /* @__PURE__ */ u("div", { children: [
+		t && t.length > 0 && /* @__PURE__ */ u("div", {
+			style: { marginBottom: 16 },
+			children: [/* @__PURE__ */ l("div", {
 				style: {
-					display: "flex",
-					alignItems: "flex-start",
-					gap: 12,
-					padding: "12px 0",
-					borderBottom: t ? "none" : "1px solid var(--border, #e5e7eb)",
-					cursor: "pointer",
-					transition: "background .1s"
+					fontSize: 11,
+					fontWeight: 600,
+					textTransform: "uppercase",
+					letterSpacing: ".05em",
+					color: "var(--text-3, #9ca3af)",
+					marginBottom: 8
 				},
-				children: [
-					/* @__PURE__ */ u("div", {
+				children: "New comments"
+			}), t.map(function(e) {
+				return /* @__PURE__ */ u("div", {
+					onClick: function() {
+						e.action_url && n && n(e.action_url);
+					},
+					style: {
+						display: "flex",
+						alignItems: "flex-start",
+						gap: 10,
+						padding: "10px 12px",
+						background: "var(--accent-bg, hsla(262,60%,55%,.06))",
+						border: "1px solid var(--accent-border, hsla(262,60%,55%,.15))",
+						borderRadius: "var(--radius, 8px)",
+						marginBottom: 6,
+						cursor: e.action_url ? "pointer" : "default"
+					},
+					children: [/* @__PURE__ */ u("div", {
 						style: {
 							flex: 1,
 							minWidth: 0
 						},
-						children: [/* @__PURE__ */ l("div", {
-							style: {
-								fontSize: 13,
-								fontWeight: 500,
-								color: "var(--text-0, inherit)",
-								marginBottom: 2
-							},
-							children: e.title
-						}), /* @__PURE__ */ u("div", {
-							style: {
-								fontSize: 11,
-								color: "var(--text-3, #9ca3af)"
-							},
-							children: [
-								e.product ? e.product + " · " : "",
-								e.thread_id || "",
-								e.created_at ? " · " + V9(e.created_at) : ""
-							]
-						})]
-					}),
-					/* @__PURE__ */ l(W9, { type: e.type }),
-					/* @__PURE__ */ l(G9, { priority: e.priority })
-				]
-			}), t && /* @__PURE__ */ u("div", {
-				style: {
-					padding: "12px 16px",
-					background: "var(--bg-2, #f9fafb)",
-					borderBottom: "1px solid var(--border, #e5e7eb)",
-					fontSize: 13,
-					lineHeight: 1.6,
-					color: "var(--text-1, #374151)"
-				},
-				children: [
-					e.body && /* @__PURE__ */ l("div", {
-						style: {
-							marginBottom: 8,
-							whiteSpace: "pre-wrap"
-						},
-						children: e.body
-					}),
-					e.tags && /* @__PURE__ */ l("div", {
-						style: {
-							display: "flex",
-							gap: 6,
-							flexWrap: "wrap"
-						},
-						children: e.tags.split(",").map(function(e) {
-							var t = e.trim();
-							return t ? /* @__PURE__ */ l("span", {
+						children: [
+							/* @__PURE__ */ l("div", {
 								style: {
-									display: "inline-flex",
-									alignItems: "center",
-									gap: 4,
-									padding: "3px 8px",
-									background: "var(--bg-0, transparent)",
-									border: "1px solid var(--border, #e5e7eb)",
-									borderRadius: 99,
-									fontSize: 11,
-									color: "var(--text-1, #374151)"
+									fontSize: 13,
+									fontWeight: 500,
+									color: "var(--text-0, inherit)",
+									marginBottom: 2
 								},
-								children: t
-							}, t) : null;
-						})
-					}),
-					!e.body && !e.tags && /* @__PURE__ */ l("div", {
-						style: { color: "var(--text-3, #9ca3af)" },
-						children: "No additional details"
-					})
+								children: e.title
+							}),
+							e.body && /* @__PURE__ */ l("div", {
+								style: {
+									fontSize: 12,
+									color: "var(--text-2, #6b7280)",
+									overflow: "hidden",
+									textOverflow: "ellipsis",
+									whiteSpace: "nowrap"
+								},
+								children: e.body
+							}),
+							/* @__PURE__ */ u("div", {
+								style: {
+									fontSize: 11,
+									color: "var(--text-3, #9ca3af)",
+									marginTop: 4
+								},
+								children: [e.author_name ? e.author_name + " · " : "", V9(e.published_at)]
+							})
+						]
+					}), e.action_url && /* @__PURE__ */ l("span", {
+						style: {
+							fontSize: 11,
+							color: "var(--accent, #7c5cbf)",
+							flexShrink: 0,
+							marginTop: 2
+						},
+						children: "View"
+					})]
+				}, e.id);
+			})]
+		}),
+		/* @__PURE__ */ u(J9, {
+			count: m.length,
+			countLabel: "item",
+			children: [/* @__PURE__ */ l(Y9, {
+				value: r,
+				onChange: i,
+				options: p
+			}), /* @__PURE__ */ l(Y9, {
+				value: a,
+				onChange: o,
+				options: [
+					{
+						value: "all",
+						label: "All priorities"
+					},
+					{
+						value: "critical",
+						label: "Critical"
+					},
+					{
+						value: "high",
+						label: "High"
+					},
+					{
+						value: "normal",
+						label: "Normal"
+					},
+					{
+						value: "low",
+						label: "Low"
+					}
 				]
-			})] }, e.id);
+			})]
+		}),
+		m.length === 0 ? /* @__PURE__ */ l(q9, { message: "No open items" }) : /* @__PURE__ */ l("div", {
+			style: {
+				display: "flex",
+				flexDirection: "column",
+				gap: 0
+			},
+			children: m.map(function(e) {
+				var t = c === e.id;
+				return /* @__PURE__ */ u("div", { children: [/* @__PURE__ */ u("div", {
+					onClick: function() {
+						d(t ? null : e.id);
+					},
+					style: {
+						display: "flex",
+						alignItems: "flex-start",
+						gap: 12,
+						padding: "12px 0",
+						borderBottom: t ? "none" : "1px solid var(--border, #e5e7eb)",
+						cursor: "pointer",
+						transition: "background .1s"
+					},
+					children: [
+						/* @__PURE__ */ u("div", {
+							style: {
+								flex: 1,
+								minWidth: 0
+							},
+							children: [/* @__PURE__ */ l("div", {
+								style: {
+									fontSize: 13,
+									fontWeight: 500,
+									color: "var(--text-0, inherit)",
+									marginBottom: 2
+								},
+								children: e.title
+							}), /* @__PURE__ */ u("div", {
+								style: {
+									fontSize: 11,
+									color: "var(--text-3, #9ca3af)"
+								},
+								children: [
+									e.product ? e.product + " · " : "",
+									e.thread_id || "",
+									e.created_at ? " · " + V9(e.created_at) : ""
+								]
+							})]
+						}),
+						/* @__PURE__ */ l(W9, { type: e.type }),
+						/* @__PURE__ */ l(G9, { priority: e.priority })
+					]
+				}), t && /* @__PURE__ */ u("div", {
+					style: {
+						padding: "12px 16px",
+						background: "var(--bg-2, #f9fafb)",
+						borderBottom: "1px solid var(--border, #e5e7eb)",
+						fontSize: 13,
+						lineHeight: 1.6,
+						color: "var(--text-1, #374151)"
+					},
+					children: [
+						e.body && /* @__PURE__ */ l("div", {
+							style: {
+								marginBottom: 8,
+								whiteSpace: "pre-wrap"
+							},
+							children: e.body
+						}),
+						e.tags && /* @__PURE__ */ l("div", {
+							style: {
+								display: "flex",
+								gap: 6,
+								flexWrap: "wrap"
+							},
+							children: e.tags.split(",").map(function(e) {
+								var t = e.trim();
+								return t ? /* @__PURE__ */ l("span", {
+									style: {
+										display: "inline-flex",
+										alignItems: "center",
+										gap: 4,
+										padding: "3px 8px",
+										background: "var(--bg-0, transparent)",
+										border: "1px solid var(--border, #e5e7eb)",
+										borderRadius: 99,
+										fontSize: 11,
+										color: "var(--text-1, #374151)"
+									},
+									children: t
+								}, t) : null;
+							})
+						}),
+						!e.body && !e.tags && /* @__PURE__ */ l("div", {
+							style: { color: "var(--text-3, #9ca3af)" },
+							children: "No additional details"
+						})
+					]
+				})] }, e.id);
+			})
 		})
-	})] });
+	] });
 }
 function QMe({ threads: e, api: t, subdomain: n }) {
 	var [r, i] = s("all"), [a, c] = s(null), [d, f] = s([]), [p, m] = s(!1), [h, g] = s(""), [_, v] = s(!1), [y, b] = s([]), [x, S] = s(!1), C = o(null), w = e.filter(function(e) {
@@ -112536,33 +112613,37 @@ function $Me({ api: e, onNavigate: t }) {
 	});
 }
 function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, onNavigate: c }) {
-	var [d, f] = s(!0), [p, m] = s(null), [h, g] = s([]), [_, v] = s(null), [y, b] = s([]), [x, S] = s([]), [C, w] = s([]), [T, E] = s([]), [D, O] = s([]), k = n(function() {
+	var [d, f] = s(!0), [p, m] = s(null), [h, g] = s([]), [_, v] = s(null), [y, b] = s([]), [x, S] = s([]), [C, w] = s([]), [T, E] = s([]), [D, O] = s([]), [k, A] = s([]), j = n(function() {
 		f(!0), m(null);
 		var n = e("/api/portal/updates").then(function(e) {
 			var t = e.data, n = t?.items || [], r = t?.audiences || ["clients"];
-			if (g(r), r.includes("team")) {
-				b(n);
+			g(r);
+			var i = [], a = [];
+			if (n.forEach(function(e) {
+				e.comm_type === "bug_comment" || e.update_type === "bug_comment" ? i.push(e) : a.push(e);
+			}), w(i), r.includes("team")) {
+				b(a);
 				return;
 			}
-			var i = [], a = [];
-			n.forEach(function(e) {
-				e.update_type === "ai_weekly" || e.update_type === "sprint_report" ? a.push(e) : i.push(e);
-			}), b(i), S(a);
+			var o = [], s = [];
+			a.forEach(function(e) {
+				e.update_type === "ai_weekly" || e.update_type === "sprint_report" ? s.push(e) : o.push(e);
+			}), b(o), S(s);
 		}), r = e("/api/portal/tasks").then(function(e) {
 			var t = e.data;
-			w(t?.items || []);
-		}).catch(function() {
-			w([]);
-		}), i = e("/api/bugs/threads" + (o ? "?assigned_to=" + o : "")).then(function(e) {
-			var t = e.data;
-			E(t || []);
+			E(t?.items || []);
 		}).catch(function() {
 			E([]);
-		}), a = t ? e("/api/portals/" + t + "/support/threads").then(function(e) {
+		}), i = e("/api/bugs/threads" + (o ? "?assigned_to=" + o : "")).then(function(e) {
 			var t = e.data;
 			O(t || []);
 		}).catch(function() {
 			O([]);
+		}), a = t ? e("/api/portals/" + t + "/support/threads").then(function(e) {
+			var t = e.data;
+			A(t || []);
+		}).catch(function() {
+			A([]);
 		}) : Promise.resolve();
 		Promise.all([
 			n,
@@ -112580,40 +112661,40 @@ function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 		o
 	]);
 	i(function() {
-		k();
-	}, [k]);
-	var A = [];
-	h.length > 0 && (A.push({
+		j();
+	}, [j]);
+	var M = [];
+	h.length > 0 && (M.push({
 		id: "general",
 		label: "General",
 		count: y.length
-	}), A.push({
+	}), M.push({
 		id: "tasks",
 		label: "Tasks",
-		count: C.length
-	}), h.includes("clients") && A.push({
+		count: T.length
+	}), h.includes("clients") && M.push({
 		id: "project",
 		label: "Project",
 		count: x.length
-	}), h.includes("investors") && A.push({
+	}), h.includes("investors") && M.push({
 		id: "reports",
 		label: "Reports",
 		count: x.length
-	}), h.includes("team") && A.push({
+	}), h.includes("team") && M.push({
 		id: "bugs",
 		label: "Bugs",
-		count: T.length
-	}), A.push({
+		count: D.length + C.length
+	}), M.push({
 		id: "support",
 		label: "Support",
-		count: h.includes("team") ? 0 : D.length
+		count: h.includes("team") ? 0 : k.length
 	}));
-	var j = h.includes("team"), M = c || (j ? function(e) {
+	var N = h.includes("team"), P = c || (N ? function(e) {
 		window.open("https://admin.sprintmode.ai" + e, "_blank");
-	} : void 0), N = _;
-	return (!N || !A.find(function(e) {
-		return e.id === N;
-	})) && (N = A.length > 0 ? A[0].id : null), d ? /* @__PURE__ */ l("div", {
+	} : void 0), F = _;
+	return (!F || !M.find(function(e) {
+		return e.id === F;
+	})) && (F = M.length > 0 ? M[0].id : null), d ? /* @__PURE__ */ l("div", {
 		style: {
 			maxWidth: "var(--max-w-app, 760px)",
 			margin: "0 auto",
@@ -112674,15 +112755,15 @@ function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 					children: a
 				})]
 			}),
-			A.length > 1 && /* @__PURE__ */ l("div", {
+			M.length > 1 && /* @__PURE__ */ l("div", {
 				style: {
 					display: "flex",
 					gap: 0,
 					borderBottom: "1px solid var(--border, #e5e7eb)",
 					marginBottom: 16
 				},
-				children: A.map(function(e) {
-					var t = e.id === N;
+				children: M.map(function(e) {
+					var t = e.id === F;
 					return /* @__PURE__ */ u("button", {
 						onClick: function() {
 							v(e.id);
@@ -112718,30 +112799,34 @@ function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 					}, e.id);
 				})
 			}),
-			N === "general" && /* @__PURE__ */ l(X9, {
+			F === "general" && /* @__PURE__ */ l(X9, {
 				items: y,
 				api: e
 			}),
-			N === "tasks" && /* @__PURE__ */ l(XMe, {
-				items: C,
+			F === "tasks" && /* @__PURE__ */ l(XMe, {
+				items: T,
 				api: e,
-				onNavigate: M
+				onNavigate: P
 			}),
-			N === "bugs" && /* @__PURE__ */ l(ZMe, { items: T }),
-			N === "project" && /* @__PURE__ */ l(X9, {
+			F === "bugs" && /* @__PURE__ */ l(ZMe, {
+				items: D,
+				commentNotifications: C,
+				onNavigate: P
+			}),
+			F === "project" && /* @__PURE__ */ l(X9, {
 				items: x,
 				api: e
 			}),
-			N === "reports" && /* @__PURE__ */ l(X9, {
+			F === "reports" && /* @__PURE__ */ l(X9, {
 				items: x,
 				api: e
 			}),
-			N === "support" && j && /* @__PURE__ */ l($Me, {
+			F === "support" && N && /* @__PURE__ */ l($Me, {
 				api: e,
-				onNavigate: M
+				onNavigate: P
 			}),
-			N === "support" && !j && t && /* @__PURE__ */ l(QMe, {
-				threads: D,
+			F === "support" && !N && t && /* @__PURE__ */ l(QMe, {
+				threads: k,
 				api: e,
 				subdomain: t
 			})
