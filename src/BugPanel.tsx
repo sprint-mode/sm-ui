@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, CSSProperties } from 'react'
+import { UpdateAttachments } from './UpdateAttachments'
 
 export interface BugPanelSession {
   contact_id?: string
@@ -32,6 +33,9 @@ export interface BugAttachment {
   id: string
   type: 'image' | 'file'
   filename: string
+  r2_key?: string
+  size?: number
+  mime?: string
 }
 
 export interface Bug {
@@ -347,30 +351,14 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
           {bug.attachments && bug.attachments.length > 0 && (
             <>
               <div style={S.sectionLabel}>Attachments</div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {bug.attachments.map(function(att) {
-                  var fileUrl = apiBase + '/api/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename
-                  if (att.type === 'image') {
-                    return <div key={att.id} style={{ cursor: 'pointer' }} onClick={function(e) { e.stopPropagation(); setViewingAtt(att.id) }}>
-                      <img src={fileUrl} alt={att.filename} style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)', display: 'block' }} />
-                      <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--muted)', marginTop: 2, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.filename}</div>
-                    </div>
-                  }
-                  return <a key={att.id} href={fileUrl} target="_blank" rel="noreferrer" download
-                    style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', textDecoration: 'none' }}
-                    onClick={function(e) { e.stopPropagation() }}>
-                    {'\uD83D\uDCC4'} {att.filename}
-                  </a>
-                })}
-              </div>
-              {viewingAtt && (function() {
-                var att = (bug.attachments || []).find(function(a) { return a.id === viewingAtt })
-                if (!att) return null
-                var fileUrl = apiBase + '/api/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename
-                return <div onClick={function(e) { e.stopPropagation(); setViewingAtt(null) }} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 24 }}>
-                  <img src={fileUrl} alt={att.filename} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={function(e) { e.stopPropagation() }} />
-                </div>
-              })()}
+              <UpdateAttachments
+                attachments={bug.attachments.map(function(att) { return { id: att.id, type: att.type || 'file', filename: att.filename, r2Key: att.r2_key || att.id, size: att.size, mime: att.mime } })}
+                updateId={bug.id}
+                getSignedUrl={function(_uid: string, attId: string) {
+                  return fetch(apiBase + '/api/bugs/' + bug.id + '/attachments/' + attId + '/url', { credentials: 'include' })
+                    .then(function(r) { return r.json() })
+                }}
+              />
             </>
           )}
 

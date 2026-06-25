@@ -27,6 +27,9 @@ export interface BugAttachment {
     id: string;
     type: 'image' | 'file';
     filename: string;
+    r2_key?: string;
+    size?: number;
+    mime?: string;
 }
 export interface Bug {
     id: string;
