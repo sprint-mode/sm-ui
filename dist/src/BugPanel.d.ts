@@ -41,6 +41,7 @@ export interface Bug {
     submitted_by_name?: string;
     ai_classification?: string | Record<string, unknown>;
     fire_prompt?: string;
+    close_reason?: string;
     comments?: BugComment[];
     attachments?: BugAttachment[];
 }
