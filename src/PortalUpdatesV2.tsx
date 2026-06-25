@@ -428,7 +428,7 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
   )
 }
 
-function BugsTab({ items }: { items: BugItem[] }) {
+function BugsTab({ items, commentNotifications, onNavigate }: { items: BugItem[]; commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void }) {
   var [typeFilter, setTypeFilter] = useState('all')
   var [prioFilter, setPrioFilter] = useState('all')
   var [expandedId, setExpandedId] = useState<string | null>(null)
@@ -448,6 +448,35 @@ function BugsTab({ items }: { items: BugItem[] }) {
 
   return (
     <div>
+      {/* Bug comment notifications */}
+      {commentNotifications && commentNotifications.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-3, #9ca3af)', marginBottom: 8 }}>
+            New comments
+          </div>
+          {commentNotifications.map(function(notif) {
+            return (
+              <div key={notif.id} onClick={function() {
+                if (notif.action_url && onNavigate) onNavigate(notif.action_url)
+              }} style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
+                background: 'var(--accent-bg, hsla(262,60%,55%,.06))', border: '1px solid var(--accent-border, hsla(262,60%,55%,.15))',
+                borderRadius: 'var(--radius, 8px)', marginBottom: 6,
+                cursor: notif.action_url ? 'pointer' : 'default',
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>{notif.title}</div>
+                  {notif.body && <div style={{ fontSize: 12, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notif.body}</div>}
+                  <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 4 }}>
+                    {notif.author_name ? notif.author_name + ' · ' : ''}{relativeTime(notif.published_at)}
+                  </div>
+                </div>
+                {notif.action_url && <span style={{ fontSize: 11, color: 'var(--accent, #7c5cbf)', flexShrink: 0, marginTop: 2 }}>View</span>}
+              </div>
+            )
+          })}
+        </div>
+      )}
       <FilterRow count={filtered.length} countLabel="item">
         <SelectFilter value={typeFilter} onChange={setTypeFilter} options={typeOptions} />
         <SelectFilter value={prioFilter} onChange={setPrioFilter} options={[
@@ -1107,6 +1136,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
   // Data stores
   var [generalItems, setGeneralItems] = useState<UpdateItem[]>([])
   var [projectItems, setProjectItems] = useState<UpdateItem[]>([])
+  var [bugCommentItems, setBugCommentItems] = useState<UpdateItem[]>([])
   var [taskItems, setTaskItems] = useState<TaskItem[]>([])
   var [bugItems, setBugItems] = useState<BugItem[]>([])
   var [supportThreads, setSupportThreads] = useState<SupportThread[]>([])
@@ -1120,15 +1150,26 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
       var items = d?.items || []
       var auds = d?.audiences || ['clients']
       setAudiences(auds)
-      // Team: all items go to General (no Project/Reports split)
+      // Separate bug comment notifications from other updates
+      var bugComments: UpdateItem[] = []
+      var nonBugItems: UpdateItem[] = []
+      items.forEach(function(item) {
+        if (item.comm_type === 'bug_comment' || item.update_type === 'bug_comment') {
+          bugComments.push(item)
+        } else {
+          nonBugItems.push(item)
+        }
+      })
+      setBugCommentItems(bugComments)
+      // Team: all non-bug items go to General
       if (auds.includes('team')) {
-        setGeneralItems(items)
+        setGeneralItems(nonBugItems)
         return
       }
       // Non-team: split project-type updates into their own tabs
       var general: UpdateItem[] = []
       var project: UpdateItem[] = []
-      items.forEach(function(item) {
+      nonBugItems.forEach(function(item) {
         if (item.update_type === 'ai_weekly' || item.update_type === 'sprint_report') {
           project.push(item)
         } else {
@@ -1174,7 +1215,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
     tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
     if (audiences.includes('clients')) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
     if (audiences.includes('investors')) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
-    if (audiences.includes('team')) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length })
+    if (audiences.includes('team')) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length + bugCommentItems.length })
     tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
   }
   var isTeam = audiences.includes('team')
@@ -1251,7 +1292,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
 
       {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} />}
       {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} />}
-      {effectiveTab === 'bugs' && <BugsTab items={bugItems} />}
+      {effectiveTab === 'bugs' && <BugsTab items={bugItems} commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} />}
       {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} />}
       {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} />}
       {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} />}
