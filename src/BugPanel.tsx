@@ -47,6 +47,7 @@ export interface Bug {
   submitted_by_name?: string
   ai_classification?: string | Record<string, unknown>
   fire_prompt?: string
+  close_reason?: string
   comments?: BugComment[]
   attachments?: BugAttachment[]
 }
@@ -64,12 +65,14 @@ export interface ThreadItem {
 }
 
 var STATUS_META: Record<string, { color: string; bg: string; label: string }> = {
-  open:     { color: 'var(--red)',    bg: 'var(--red-light)',   label: 'open' },
-  triaged:  { color: 'var(--amber)',  bg: 'var(--amber-light)', label: 'triaged' },
-  fixing:   { color: 'var(--blue)',   bg: 'var(--blue-10)',     label: 'fixing' },
-  qa:       { color: 'var(--green)',  bg: 'var(--green-light)', label: 'qa' },
-  verified: { color: 'var(--green)',  bg: 'var(--green-light)', label: 'verified' },
-  closed:   { color: 'var(--muted)',  bg: 'var(--bg-subtle)',   label: 'closed' },
+  open:        { color: 'var(--red)',    bg: 'var(--red-light)',    label: 'open' },
+  in_progress: { color: 'var(--blue)',   bg: 'var(--blue-10)',      label: 'in progress' },
+  closed:      { color: 'var(--muted)',  bg: 'var(--bg-subtle)',    label: 'closed' },
+  // Legacy statuses (pre-migration fallback)
+  triaged:     { color: 'var(--blue)',   bg: 'var(--blue-10)',      label: 'in progress' },
+  fixing:      { color: 'var(--blue)',   bg: 'var(--blue-10)',      label: 'in progress' },
+  qa:          { color: 'var(--green)',  bg: 'var(--green-light)',  label: 'in progress' },
+  verified:    { color: 'var(--muted)',  bg: 'var(--bg-subtle)',    label: 'closed' },
 }
 
 var TYPES = ['bug', 'feature', 'ux', 'task']
@@ -94,16 +97,15 @@ var PRODUCTS: Record<string, string[]> = {
 
 var ADMIN_TABS = [
   { id: 'queue',    label: 'Queue',       statuses: ['open'] },
-  { id: 'progress', label: 'In Progress', statuses: ['triaged', 'fixing'] },
-  { id: 'verify',   label: 'Verify',      statuses: ['qa'] },
-  { id: 'closed',   label: 'Closed',      statuses: ['verified', 'closed'] },
+  { id: 'progress', label: 'In Progress', statuses: ['in_progress'] },
+  { id: 'closed',   label: 'Closed',      statuses: ['closed'] },
 ]
 
 var REPORTER_FILTERS = [
   { id: 'all',      label: 'All' },
   { id: 'open',     label: 'Open',        statuses: ['open'] },
-  { id: 'progress', label: 'In Progress', statuses: ['triaged', 'fixing', 'qa'] },
-  { id: 'done',     label: 'Closed',      statuses: ['verified', 'closed'] },
+  { id: 'progress', label: 'In Progress', statuses: ['in_progress'] },
+  { id: 'done',     label: 'Closed',      statuses: ['closed'] },
 ]
 
 function BugIcon({ size }: { size?: number }) {
@@ -273,6 +275,8 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   var _comment = useState(''); var comment = _comment[0]; var setComment = _comment[1]
   var _copied = useState(false); var copied = _copied[0]; var setCopied = _copied[1]
   var _posting = useState(false); var posting = _posting[0]; var setPosting = _posting[1]
+  var _closing = useState(false); var closing = _closing[0]; var setClosure = _closing[1]
+  var _closeReason = useState(''); var closeReason = _closeReason[0]; var setCloseReason = _closeReason[1]
 
   var sm = STATUS_META[bug.status] || STATUS_META['open']
   var ai: AiClassification | null = null
@@ -403,20 +407,54 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
           </div>
 
           {isAdmin && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
               {bug.status === 'open' && (
                 <>
-                  <button style={S.btnSm('transparent', 'var(--accent)', '1px solid var(--accent)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'triaged' }) }}>Confirm Triage</button>
-                  <button style={S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'closed' }) }}>Close</button>
+                  <button style={S.btnSm('var(--accent)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'in_progress' }) }}>Start</button>
+                  {!closing ? (
+                    <button style={S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)')} onClick={function(e) { e.stopPropagation(); setClosure(true) }}>Close</button>
+                  ) : (
+                    <>
+                      <select style={Object.assign({}, S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)'), { cursor: 'pointer', fontSize: 11 })} value={closeReason} onChange={function(e) { e.stopPropagation(); setCloseReason(e.target.value) }} onClick={function(e) { e.stopPropagation() }}>
+                        <option value="">Select reason...</option>
+                        <option value="invalid">Invalid</option>
+                        <option value="duplicate">Duplicate</option>
+                        <option value="already_fixed">Already Fixed</option>
+                        <option value="wont_fix">Won't Fix</option>
+                        <option value="moved_to_feature">Moved to Feature</option>
+                      </select>
+                      {closeReason && <button style={S.btnSm('var(--red)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'closed', close_reason: closeReason }); setClosure(false); setCloseReason('') }}>Confirm</button>}
+                      <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11, padding: '2px 4px' }} onClick={function(e) { e.stopPropagation(); setClosure(false); setCloseReason('') }}>Cancel</button>
+                    </>
+                  )}
                 </>
               )}
-              {(bug.status === 'triaged' || bug.status === 'fixing') && (
-                <button style={S.btnSm('var(--accent)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'qa' }) }}>Mark for QA</button>
-              )}
-              {bug.status === 'qa' && (
+              {bug.status === 'in_progress' && (
                 <>
-                  <button style={S.btnSm('var(--green)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'verified' }) }}>Fixed</button>
-                  <button style={S.btnSm('var(--red)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'open' }) }}>Not Fixed</button>
+                  {!closing ? (
+                    <button style={S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)')} onClick={function(e) { e.stopPropagation(); setClosure(true) }}>Close</button>
+                  ) : (
+                    <>
+                      <select style={Object.assign({}, S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)'), { cursor: 'pointer', fontSize: 11 })} value={closeReason} onChange={function(e) { e.stopPropagation(); setCloseReason(e.target.value) }} onClick={function(e) { e.stopPropagation() }}>
+                        <option value="">Select reason...</option>
+                        <option value="fixed">Fixed</option>
+                        <option value="invalid">Invalid</option>
+                        <option value="duplicate">Duplicate</option>
+                        <option value="already_fixed">Already Fixed</option>
+                        <option value="wont_fix">Won't Fix</option>
+                        <option value="moved_to_feature">Moved to Feature</option>
+                      </select>
+                      {closeReason && <button style={S.btnSm('var(--red)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'closed', close_reason: closeReason }); setClosure(false); setCloseReason('') }}>Confirm</button>}
+                      <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11, padding: '2px 4px' }} onClick={function(e) { e.stopPropagation(); setClosure(false); setCloseReason('') }}>Cancel</button>
+                    </>
+                  )}
+                  <button style={S.btnSm('transparent', 'var(--accent)', '1px solid var(--accent)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'open' }) }}>Re-open</button>
+                </>
+              )}
+              {bug.status === 'closed' && (
+                <>
+                  <button style={S.btnSm('transparent', 'var(--accent)', '1px solid var(--accent)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'open' }) }}>Re-open</button>
+                  {bug.close_reason && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{bug.close_reason.replace(/_/g, ' ')}</span>}
                 </>
               )}
             </div>
@@ -504,6 +542,7 @@ export function BugPanel(props: BugPanelProps) {
   var _filterProduct = useState(isAdmin ? 'all' : (props.product || 'all')); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
   var _filterPriority = useState('all'); var filterPriority = _filterPriority[0]; var setFilterPriority = _filterPriority[1]
+  var _filterPerson = useState('all'); var filterPerson = _filterPerson[0]; var setFilterPerson = _filterPerson[1]
   var _sortBy = useState('newest'); var sortBy = _sortBy[0]; var setSortBy = _sortBy[1]
   var _searchQuery = useState(''); var searchQuery = _searchQuery[0]; var setSearchQuery = _searchQuery[1]
   var _debouncedSearch = useState(''); var debouncedSearch = _debouncedSearch[0]; var setDebouncedSearch = _debouncedSearch[1]
@@ -520,6 +559,16 @@ export function BugPanel(props: BugPanelProps) {
   function removeAttachment(id: string) {
     setFormAttachments(function(prev) { return prev.filter(function(a) { return a.id !== id }) })
   }
+
+  // Deep link: ?bug=bug_xxx opens panel and expands that bug
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search)
+    var bugId = params.get('bug')
+    if (bugId) {
+      setSelfOpen(true)
+      setExpanded(bugId)
+    }
+  }, [])
 
   useEffect(function() {
     if (!showForm) return
@@ -836,7 +885,7 @@ export function BugPanel(props: BugPanelProps) {
         {isAdmin && (
           <div style={S.filterBar}>
             <select style={S.filterSelect} value={filterProduct} onChange={function(e) { setFilterProduct(e.target.value) }}>
-              <option value="all">All Products + Apps</option>
+              <option value="all">Products</option>
               {Object.keys(PRODUCTS).map(function(group) {
                 return <optgroup key={group} label={group}>
                   {PRODUCTS[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
@@ -845,20 +894,26 @@ export function BugPanel(props: BugPanelProps) {
             </select>
             {source === 'reports' ? (
               <select style={S.filterSelect} value={filterType} onChange={function(e) { setFilterType(e.target.value) }}>
-                <option value="all">All Types</option>
+                <option value="all">Types</option>
                 {TYPES.map(function(t) { return <option key={t} value={t}>{t}</option> })}
               </select>
             ) : (
               <select style={Object.assign({}, S.filterSelect, { opacity: 0.4, pointerEvents: 'none' as const })} disabled value="all">
-                <option value="all">All Types</option>
+                <option value="all">Types</option>
               </select>
             )}
             <select style={S.filterSelect} value={filterPriority} onChange={function(e) { setFilterPriority(e.target.value) }}>
-              <option value="all">All Priorities</option>
+              <option value="all">Priorities</option>
               <option value="critical">P0 Critical</option>
               <option value="high">P1 High</option>
               <option value="normal">P2 Normal</option>
               <option value="low">P3 Low</option>
+            </select>
+            <select style={S.filterSelect} value={filterPerson} onChange={function(e) { setFilterPerson(e.target.value) }}>
+              <option value="all">People</option>
+              {Array.from(new Set(bugs.map(function(b) { return b.submitted_by_name }).filter(Boolean))).sort().map(function(name) {
+                return <option key={name} value={name}>{name}</option>
+              })}
             </select>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 120px', minWidth: 100 }}>
               <input
@@ -896,7 +951,9 @@ export function BugPanel(props: BugPanelProps) {
         <div style={S.list}>
           {loading && <div style={S.empty}>Loading...</div>}
           {!loading && items.length === 0 && <div style={S.empty}>No items.</div>}
-          {!loading && source === 'reports' && bugs.slice().sort(function(a, b) {
+          {!loading && source === 'reports' && bugs.filter(function(b) {
+            return filterPerson === 'all' || b.submitted_by_name === filterPerson
+          }).slice().sort(function(a, b) {
             if (sortBy === 'priority') {
               return ((PRIORITY_META[a.priority || ''] || PRIORITY_META['normal']).sort) - ((PRIORITY_META[b.priority || ''] || PRIORITY_META['normal']).sort)
             }
