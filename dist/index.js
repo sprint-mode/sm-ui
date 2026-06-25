@@ -112308,106 +112308,85 @@ function $Me({ api: e, onNavigate: t }) {
 		]
 	});
 }
-function eNe({ api: e, showBugs: t, showSupport: r, isAdmin: a, userContactId: o, subdomain: c, title: d, subtitle: f, onNavigate: p }) {
-	var [m, h] = s(!0), [g, _] = s(null), [v, y] = s(null), [b, x] = s(null), [S, C] = s([]), [w, T] = s([]), [E, D] = s([]), [O, k] = s([]), [A, j] = s([]), M = n(function() {
-		h(!0), _(null);
+function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, onNavigate: c }) {
+	var [d, f] = s(!0), [p, m] = s(null), [h, g] = s([]), [_, v] = s(null), [y, b] = s([]), [x, S] = s([]), [C, w] = s([]), [T, E] = s([]), [D, O] = s([]), k = n(function() {
+		f(!0), m(null);
 		var n = e("/api/portal/updates").then(function(e) {
-			var t = e.data, n = t?.items || [], r = t?.audience || "clients";
-			if (y(r), r === "team") return C(n), r;
+			var t = e.data, n = t?.items || [], r = t?.audiences || ["clients"];
+			if (g(r), r.includes("team")) {
+				b(n);
+				return;
+			}
 			var i = [], a = [];
-			return n.forEach(function(e) {
+			n.forEach(function(e) {
 				e.update_type === "ai_weekly" || e.update_type === "sprint_report" ? a.push(e) : i.push(e);
-			}), C(i), T(a), r;
+			}), b(i), S(a);
 		}), r = e("/api/portal/tasks").then(function(e) {
 			var t = e.data;
-			D(t?.items || []);
+			w(t?.items || []);
 		}).catch(function() {
-			D([]);
-		}), i = t ? e("/api/bugs/threads" + (o ? "?assigned_to=" + o : "")).then(function(e) {
+			w([]);
+		}), i = e("/api/bugs/threads" + (o ? "?assigned_to=" + o : "")).then(function(e) {
 			var t = e.data;
-			k(t || []);
+			E(t || []);
 		}).catch(function() {
-			k([]);
-		}) : Promise.resolve(), s = c && !a ? e("/api/portals/" + c + "/support/threads").then(function(e) {
+			E([]);
+		}), a = t ? e("/api/portals/" + t + "/support/threads").then(function(e) {
 			var t = e.data;
-			j(t || []);
+			O(t || []);
 		}).catch(function() {
-			j([]);
+			O([]);
 		}) : Promise.resolve();
 		Promise.all([
 			n,
 			r,
 			i,
-			s
+			a
 		]).then(function() {
-			h(!1);
+			f(!1);
 		}).catch(function(e) {
-			_(e.message || "Failed to load"), h(!1);
+			m(e.message || "Failed to load"), f(!1);
 		});
 	}, [
 		e,
 		t,
-		c,
-		a,
 		o
 	]);
 	i(function() {
-		M();
-	}, [M]);
-	var N = [];
-	v === "team" ? (N.push({
+		k();
+	}, [k]);
+	var A = [];
+	h.length > 0 && (A.push({
 		id: "general",
 		label: "General",
-		count: S.length
-	}), N.push({
+		count: y.length
+	}), A.push({
 		id: "tasks",
 		label: "Tasks",
-		count: E.length
-	}), t && N.push({
-		id: "bugs",
-		label: "Bugs",
-		count: O.length
-	}), (r || a) && N.push({
-		id: "support",
-		label: "Support",
-		count: 0
-	})) : v === "investors" ? (N.push({
-		id: "general",
-		label: "General",
-		count: S.length
-	}), N.push({
-		id: "tasks",
-		label: "Tasks",
-		count: E.length
-	}), N.push({
-		id: "reports",
-		label: "Reports",
-		count: w.length
-	}), N.push({
-		id: "support",
-		label: "Support",
-		count: A.length
-	})) : v && (N.push({
-		id: "general",
-		label: "General",
-		count: S.length
-	}), N.push({
-		id: "tasks",
-		label: "Tasks",
-		count: E.length
-	}), N.push({
+		count: C.length
+	}), h.includes("clients") && A.push({
 		id: "project",
 		label: "Project",
-		count: w.length
-	}), N.push({
+		count: x.length
+	}), h.includes("investors") && A.push({
+		id: "reports",
+		label: "Reports",
+		count: x.length
+	}), h.includes("team") && A.push({
+		id: "bugs",
+		label: "Bugs",
+		count: T.length
+	}), A.push({
 		id: "support",
 		label: "Support",
-		count: A.length
+		count: h.includes("team") ? 0 : D.length
 	}));
-	var P = b;
-	return (!P || !N.find(function(e) {
-		return e.id === P;
-	})) && (P = N.length > 0 ? N[0].id : null), m ? /* @__PURE__ */ l("div", {
+	var j = h.includes("team"), M = c || (j ? function(e) {
+		window.open("https://admin.sprintmode.ai" + e, "_blank");
+	} : void 0), N = _;
+	return (!N || !A.find(function(e) {
+		return e.id === N;
+	})) && (N = A.length > 0 ? A[0].id : null), d ? /* @__PURE__ */ l("div", {
 		style: {
 			maxWidth: "var(--max-w-app, 760px)",
 			margin: "0 auto",
@@ -112428,7 +112407,7 @@ function eNe({ api: e, showBugs: t, showSupport: r, isAdmin: a, userContactId: o
 				animation: "pu2-spin 0.7s linear infinite"
 			} }), /* @__PURE__ */ l("style", { children: "@keyframes pu2-spin { to { transform: rotate(360deg) } }" })]
 		})
-	}) : g ? /* @__PURE__ */ l("div", {
+	}) : p ? /* @__PURE__ */ l("div", {
 		style: {
 			maxWidth: "var(--max-w-app, 760px)",
 			margin: "0 auto",
@@ -112440,7 +112419,7 @@ function eNe({ api: e, showBugs: t, showSupport: r, isAdmin: a, userContactId: o
 				color: "var(--red, #ef4444)",
 				fontSize: 14
 			},
-			children: g
+			children: p
 		})
 	}) : /* @__PURE__ */ u("div", {
 		style: {
@@ -112458,28 +112437,28 @@ function eNe({ api: e, showBugs: t, showSupport: r, isAdmin: a, userContactId: o
 						color: "var(--text-0, #111)",
 						marginBottom: 4
 					},
-					children: d || "Updates"
-				}), f && /* @__PURE__ */ l("p", {
+					children: r || "Updates"
+				}), a && /* @__PURE__ */ l("p", {
 					style: {
 						fontSize: 13,
 						color: "var(--text-3, #9ca3af)",
 						margin: 0
 					},
-					children: f
+					children: a
 				})]
 			}),
-			N.length > 1 && /* @__PURE__ */ l("div", {
+			A.length > 1 && /* @__PURE__ */ l("div", {
 				style: {
 					display: "flex",
 					gap: 0,
 					borderBottom: "1px solid var(--border, #e5e7eb)",
 					marginBottom: 16
 				},
-				children: N.map(function(e) {
-					var t = e.id === P;
+				children: A.map(function(e) {
+					var t = e.id === N;
 					return /* @__PURE__ */ u("button", {
 						onClick: function() {
-							x(e.id);
+							v(e.id);
 						},
 						style: {
 							fontSize: 13,
@@ -112512,32 +112491,32 @@ function eNe({ api: e, showBugs: t, showSupport: r, isAdmin: a, userContactId: o
 					}, e.id);
 				})
 			}),
-			P === "general" && /* @__PURE__ */ l(X9, {
-				items: S,
+			N === "general" && /* @__PURE__ */ l(X9, {
+				items: y,
 				api: e
 			}),
-			P === "tasks" && /* @__PURE__ */ l(XMe, {
-				items: E,
+			N === "tasks" && /* @__PURE__ */ l(XMe, {
+				items: C,
 				api: e,
-				onNavigate: p
+				onNavigate: M
 			}),
-			P === "bugs" && /* @__PURE__ */ l(ZMe, { items: O }),
-			P === "project" && /* @__PURE__ */ l(X9, {
-				items: w,
+			N === "bugs" && /* @__PURE__ */ l(ZMe, { items: T }),
+			N === "project" && /* @__PURE__ */ l(X9, {
+				items: x,
 				api: e
 			}),
-			P === "reports" && /* @__PURE__ */ l(X9, {
-				items: w,
+			N === "reports" && /* @__PURE__ */ l(X9, {
+				items: x,
 				api: e
 			}),
-			P === "support" && a && /* @__PURE__ */ l($Me, {
+			N === "support" && j && /* @__PURE__ */ l($Me, {
 				api: e,
-				onNavigate: p
+				onNavigate: M
 			}),
-			P === "support" && !a && c && /* @__PURE__ */ l(QMe, {
-				threads: A,
+			N === "support" && !j && t && /* @__PURE__ */ l(QMe, {
+				threads: D,
 				api: e,
-				subdomain: c
+				subdomain: t
 			})
 		]
 	});
