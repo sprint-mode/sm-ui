@@ -239,7 +239,7 @@ function SelectFilter({ value, onChange, options }: { value: string; onChange: (
       style={{
         fontSize: 12, padding: '4px 8px',
         border: '1px solid var(--border, #e5e7eb)', borderRadius: 6,
-        background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)',
+        background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)',
         cursor: 'pointer',
       }}
     >
@@ -279,7 +279,7 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
             var isExpanded = expandedId === item.id
             return (
               <div key={item.id} style={{
-                background: 'var(--bg-card, #fff)', border: '1px solid var(--border, #e5e7eb)',
+                background: 'var(--bg-card, inherit)', border: '1px solid var(--border, #e5e7eb)',
                 borderRadius: 'var(--radius, 8px)', overflow: 'hidden', cursor: 'pointer',
                 transition: 'border-color .12s',
               }} onClick={function() { setExpandedId(isExpanded ? null : item.id) }}>
@@ -293,7 +293,7 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                         <span style={{
                           fontSize: 14, fontWeight: isRead ? 400 : 600,
-                          color: 'var(--text-0, #111)',
+                          color: 'var(--text-0, inherit)',
                         }}>{item.title}</span>
                         <TypePill type={item.update_type || item.comm_type} />
                       </div>
@@ -397,7 +397,7 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
                 <div onClick={function(e) { if (!isDone && !isCompleting) markComplete(e, item.id) }} style={{
                   width: 18, height: 18, borderRadius: 4, flexShrink: 0,
                   border: isDone ? '1.5px solid #639922' : '1.5px solid var(--border-2, #d1d5db)',
-                  background: isDone ? '#EAF3DE' : 'var(--bg-0, #fff)',
+                  background: isDone ? '#EAF3DE' : 'var(--bg-0, transparent)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: isDone ? 'default' : 'pointer',
                   opacity: isCompleting ? 0.5 : 1,
@@ -407,7 +407,7 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{
                     fontSize: 13, fontWeight: 500,
-                    color: isDone ? 'var(--text-3, #9ca3af)' : 'var(--text-0, #111)',
+                    color: isDone ? 'var(--text-3, #9ca3af)' : 'var(--text-0, inherit)',
                     marginBottom: 2,
                     textDecoration: isDone ? 'line-through' : 'none',
                   }}>{item.title}</div>
@@ -470,7 +470,7 @@ function BugsTab({ items }: { items: BugItem[] }) {
                   cursor: 'pointer', transition: 'background .1s',
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>{item.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>{item.title}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
                       {item.product ? item.product + ' · ' : ''}
                       {item.thread_id || ''}
@@ -493,7 +493,7 @@ function BugsTab({ items }: { items: BugItem[] }) {
                           var t = tag.trim()
                           return t ? <span key={t} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
-                            padding: '3px 8px', background: 'var(--bg-0, #fff)',
+                            padding: '3px 8px', background: 'var(--bg-0, transparent)',
                             border: '1px solid var(--border, #e5e7eb)', borderRadius: 99,
                             fontSize: 11, color: 'var(--text-1, #374151)',
                           }}>{t}</span> : null
@@ -624,7 +624,7 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
                   cursor: 'pointer',
                 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, #111)', marginBottom: 2 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>
                       {t.subject || 'Support thread'}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
@@ -661,8 +661,8 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
                                 borderRadius: 10,
                                 borderBottomRightRadius: isUser ? 3 : 10,
                                 borderBottomLeftRadius: !isUser ? 3 : 10,
-                                background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, #fff)',
-                                color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, #111)',
+                                background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, transparent)',
+                                color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, inherit)',
                                 border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : isUser ? 'none' : '1px solid var(--border, #e5e7eb)',
                                 marginLeft: isUser ? 'auto' : 0,
                                 marginRight: isUser ? 0 : 'auto',
@@ -691,7 +691,7 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
                           <button onClick={function() { fileInputRef.current && fileInputRef.current.click() }} disabled={uploading} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: uploading ? 'default' : 'pointer',
-                            border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, #fff)',
+                            border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
                             color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1,
                           }}>{uploading ? 'Uploading...' : 'Attach file'}</button>
                           <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
@@ -724,7 +724,7 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
                             style={{
                               flex: 1, fontSize: 13, padding: '8px 10px',
                               border: '1px solid var(--border, #e5e7eb)', borderRadius: 6,
-                              background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)',
+                              background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)',
                               fontFamily: 'inherit',
                             }}
                           />
@@ -872,7 +872,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
     <div style={{
       display: 'flex', border: '1px solid var(--border, #e5e7eb)',
       borderRadius: 'var(--radius-lg, 8px)', overflow: 'hidden',
-      height: 460, background: 'var(--bg-card, #fff)',
+      height: 460, background: 'var(--bg-card, inherit)',
     }}>
       {/* Thread list */}
       <div style={{ width: 240, borderRight: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
@@ -902,7 +902,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
           <select value={productFilter} onChange={function(e) { setProductFilter(e.target.value); setSelectedId(null) }} style={{
             width: '100%', fontSize: 11, padding: '3px 6px',
             border: '1px solid var(--border, #e5e7eb)', borderRadius: 4,
-            background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)', fontFamily: 'inherit',
+            background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)', fontFamily: 'inherit',
           }}>
             <option value="">All products</option>
             <option value="studios">Studios</option>
@@ -940,7 +940,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                   }}>{initials(name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-0, #111)' }}>{name.split(' ')[0]}</span>
+                      <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-0, inherit)' }}>{name.split(' ')[0]}</span>
                       <span style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)' }}>{relativeTime(t.updated_at)}</span>
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
@@ -976,7 +976,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                   {initials(contact?.name as string || contact?.email as string || 'A')}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-0, #111)' }}>{contact?.name as string || contact?.email as string || 'Anonymous'}</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-0, inherit)' }}>{contact?.name as string || contact?.email as string || 'Anonymous'}</div>
                   <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)' }}>
                     {[company?.name as string, thread?.product ? (thread.product as string).charAt(0).toUpperCase() + (thread.product as string).slice(1) : ''].filter(Boolean).join(' · ')}
                   </div>
@@ -1024,7 +1024,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                       borderBottomRightRadius: isUser ? 3 : 10,
                       borderBottomLeftRadius: !isUser ? 3 : 10,
                       background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-2, #f3f4f6)',
-                      color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, #111)',
+                      color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, inherit)',
                       border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : 'none',
                     }}>{msg.content}</div>
                     {msg.attachments && (
@@ -1048,7 +1048,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                   <button onClick={function() { adminFileInputRef.current && adminFileInputRef.current.click() }} disabled={adminUploading} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
                     padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: adminUploading ? 'default' : 'pointer',
-                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, #fff)',
+                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
                     color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: adminUploading ? 0.5 : 1,
                   }}>{adminUploading ? 'Uploading...' : 'Attach'}</button>
                   <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
@@ -1061,7 +1061,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                       return <span key={att.id} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 4,
                         padding: '3px 8px', borderRadius: 6, fontSize: 11,
-                        border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, #fff)',
+                        border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
                         color: 'var(--text-1, #374151)',
                       }}>
                         {att.filename || att.id}
@@ -1077,7 +1077,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                     onKeyDown={function(e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply() }}
                     rows={2}
                     placeholder="Reply... (Cmd+Enter to send)"
-                    style={{ flex: 1, resize: 'none', fontSize: 13, lineHeight: 1.5, border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, padding: '8px 10px', fontFamily: 'inherit', background: 'var(--bg-0, #fff)', color: 'var(--text-1, #111)' }}
+                    style={{ flex: 1, resize: 'none', fontSize: 13, lineHeight: 1.5, border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, padding: '8px 10px', fontFamily: 'inherit', background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)' }}
                   />
                   <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
                     alignSelf: 'flex-end', padding: '6px 14px', borderRadius: 6, border: 'none',
@@ -1214,7 +1214,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
   return (
     <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, #111)', marginBottom: 4 }}>{title || 'Updates'}</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4 }}>{title || 'Updates'}</h1>
         {subtitle && <p style={{ fontSize: 13, color: 'var(--text-3, #9ca3af)', margin: 0 }}>{subtitle}</p>}
       </div>
 
@@ -1230,7 +1230,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
                   fontSize: 13, padding: '8px 16px', cursor: 'pointer',
                   border: 'none', background: 'none',
                   borderBottom: isActive ? '2px solid var(--accent, #7c5cbf)' : '2px solid transparent',
-                  color: isActive ? 'var(--text-0, #111)' : 'var(--text-3, #9ca3af)',
+                  color: isActive ? 'var(--text-0, inherit)' : 'var(--text-3, #9ca3af)',
                   fontWeight: isActive ? 600 : 400,
                   transition: 'color .15s, border-color .15s',
                 }}
