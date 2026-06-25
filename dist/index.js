@@ -104906,7 +104906,7 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 						},
 						children: e.attachments.map(function(t) {
 							return /* @__PURE__ */ u("a", {
-								href: f + "/bugs/" + e.id + "/files/" + t.id + "/" + t.filename,
+								href: f + "/api/bugs/" + e.id + "/files/" + t.id + "/" + t.filename,
 								target: "_blank",
 								rel: "noreferrer",
 								style: {

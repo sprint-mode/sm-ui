@@ -348,7 +348,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
               <div style={S.sectionLabel}>Attachments</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {bug.attachments.map(function(att) {
-                  return <a key={att.id} href={apiBase + '/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename} target="_blank" rel="noreferrer"
+                  return <a key={att.id} href={apiBase + '/api/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename} target="_blank" rel="noreferrer"
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', textDecoration: 'none' }}
                     onClick={function(e) { e.stopPropagation() }}>
                     {att.type === 'image' ? '\uD83D\uDDBC' : '\uD83D\uDCC4'} {att.filename}
