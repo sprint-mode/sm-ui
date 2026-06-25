@@ -277,6 +277,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   var _posting = useState(false); var posting = _posting[0]; var setPosting = _posting[1]
   var _closing = useState(false); var closing = _closing[0]; var setClosure = _closing[1]
   var _closeReason = useState(''); var closeReason = _closeReason[0]; var setCloseReason = _closeReason[1]
+  var _viewingAtt = useState<string | null>(null); var viewingAtt = _viewingAtt[0]; var setViewingAtt = _viewingAtt[1]
 
   var sm = STATUS_META[bug.status] || STATUS_META['open']
   var ai: AiClassification | null = null
@@ -348,13 +349,28 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
               <div style={S.sectionLabel}>Attachments</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {bug.attachments.map(function(att) {
-                  return <a key={att.id} href={apiBase + '/api/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename} target="_blank" rel="noreferrer"
+                  var fileUrl = apiBase + '/api/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename
+                  if (att.type === 'image') {
+                    return <div key={att.id} style={{ cursor: 'pointer' }} onClick={function(e) { e.stopPropagation(); setViewingAtt(att.id) }}>
+                      <img src={fileUrl} alt={att.filename} style={{ width: 80, height: 56, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)', display: 'block' }} />
+                      <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--muted)', marginTop: 2, maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.filename}</div>
+                    </div>
+                  }
+                  return <a key={att.id} href={fileUrl} target="_blank" rel="noreferrer" download
                     style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', textDecoration: 'none' }}
                     onClick={function(e) { e.stopPropagation() }}>
-                    {att.type === 'image' ? '\uD83D\uDDBC' : '\uD83D\uDCC4'} {att.filename}
+                    {'\uD83D\uDCC4'} {att.filename}
                   </a>
                 })}
               </div>
+              {viewingAtt && (function() {
+                var att = (bug.attachments || []).find(function(a) { return a.id === viewingAtt })
+                if (!att) return null
+                var fileUrl = apiBase + '/api/bugs/' + bug.id + '/files/' + att.id + '/' + att.filename
+                return <div onClick={function(e) { e.stopPropagation(); setViewingAtt(null) }} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 24 }}>
+                  <img src={fileUrl} alt={att.filename} style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }} onClick={function(e) { e.stopPropagation() }} />
+                </div>
+              })()}
             </>
           )}
 

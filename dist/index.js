@@ -104787,31 +104787,31 @@ function o9(t, n) {
 	} }, t.slice(i, i + r.length)), t.slice(i + r.length));
 }
 function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComment: a, onFire: o, onFireTerminal: d, apiBase: f, searchQuery: p }) {
-	var m = s(""), h = m[0], g = m[1], _ = s(!1), v = _[0], y = _[1], b = s(!1), x = b[0], S = b[1], C = s(!1), w = C[0], T = C[1], E = s(""), D = E[0], O = E[1], k = X7[e.status] || X7.open, A = null;
+	var m = s(""), h = m[0], g = m[1], _ = s(!1), v = _[0], y = _[1], b = s(!1), x = b[0], S = b[1], C = s(!1), w = C[0], T = C[1], E = s(""), D = E[0], O = E[1], k = s(null), A = k[0], j = k[1], M = X7[e.status] || X7.open, N = null;
 	try {
-		A = typeof e.ai_classification == "string" ? JSON.parse(e.ai_classification) : e.ai_classification || null;
+		N = typeof e.ai_classification == "string" ? JSON.parse(e.ai_classification) : e.ai_classification || null;
 	} catch {}
-	function j(t) {
+	function P(t) {
 		t.stopPropagation(), navigator.clipboard.writeText(e.id).then(function() {
 			y(!0), setTimeout(function() {
 				y(!1);
 			}, 1200);
 		});
 	}
-	function M(t) {
+	function F(t) {
 		t.stopPropagation(), !(!h.trim() || x) && (S(!0), a(e.id, h.trim()).then(function() {
 			g(""), S(!1);
 		}).catch(function() {
 			S(!1);
 		}));
 	}
-	function N(t) {
+	function I(t) {
 		t.stopPropagation(), e.fire_prompt && navigator.clipboard.writeText(e.fire_prompt);
 	}
-	function P(t) {
+	function L(t) {
 		t.stopPropagation(), e.fire_prompt && navigator.clipboard.writeText(e.fire_prompt), o && o(e.id);
 	}
-	function F(t) {
+	function R(t) {
 		t.stopPropagation(), d && d(e.id);
 	}
 	return /* @__PURE__ */ u("div", {
@@ -104821,7 +104821,7 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 			/* @__PURE__ */ u("div", {
 				style: Q.meta,
 				children: [
-					/* @__PURE__ */ l("span", { style: Q.dot(k.color) }),
+					/* @__PURE__ */ l("span", { style: Q.dot(M.color) }),
 					/* @__PURE__ */ l("span", {
 						style: Q.typeBadge,
 						children: e.type || "bug"
@@ -104839,12 +104839,12 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 							fontSize: 10,
 							fontFamily: "var(--font-mono)",
 							marginLeft: "auto",
-							color: k.color
+							color: M.color
 						},
 						children: e.status
 					}) : /* @__PURE__ */ l("span", {
 						style: Q.statusPill(e.status),
-						children: k.label
+						children: M.label
 					})
 				]
 			}),
@@ -104857,7 +104857,7 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 				},
 				children: [/* @__PURE__ */ l("span", {
 					style: Q.bugId,
-					onClick: j,
+					onClick: P,
 					title: "Click to copy ID",
 					children: rMe(e.id)
 				}), v && /* @__PURE__ */ l("span", {
@@ -104895,50 +104895,118 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 						style: Q.bugDesc,
 						children: e.description
 					})] }),
-					e.attachments && e.attachments.length > 0 && /* @__PURE__ */ u(c, { children: [/* @__PURE__ */ l("div", {
-						style: Q.sectionLabel,
-						children: "Attachments"
-					}), /* @__PURE__ */ l("div", {
-						style: {
-							display: "flex",
-							gap: 6,
-							flexWrap: "wrap"
-						},
-						children: e.attachments.map(function(t) {
-							return /* @__PURE__ */ u("a", {
-								href: f + "/api/bugs/" + e.id + "/files/" + t.id + "/" + t.filename,
-								target: "_blank",
-								rel: "noreferrer",
+					e.attachments && e.attachments.length > 0 && /* @__PURE__ */ u(c, { children: [
+						/* @__PURE__ */ l("div", {
+							style: Q.sectionLabel,
+							children: "Attachments"
+						}),
+						/* @__PURE__ */ l("div", {
+							style: {
+								display: "flex",
+								gap: 6,
+								flexWrap: "wrap"
+							},
+							children: e.attachments.map(function(t) {
+								var n = f + "/api/bugs/" + e.id + "/files/" + t.id + "/" + t.filename;
+								return t.type === "image" ? /* @__PURE__ */ u("div", {
+									style: { cursor: "pointer" },
+									onClick: function(e) {
+										e.stopPropagation(), j(t.id);
+									},
+									children: [/* @__PURE__ */ l("img", {
+										src: n,
+										alt: t.filename,
+										style: {
+											width: 80,
+											height: 56,
+											objectFit: "cover",
+											borderRadius: 4,
+											border: "1px solid var(--border)",
+											display: "block"
+										}
+									}), /* @__PURE__ */ l("div", {
+										style: {
+											fontSize: 9,
+											fontFamily: "var(--font-mono)",
+											color: "var(--muted)",
+											marginTop: 2,
+											maxWidth: 80,
+											overflow: "hidden",
+											textOverflow: "ellipsis",
+											whiteSpace: "nowrap"
+										},
+										children: t.filename
+									})]
+								}, t.id) : /* @__PURE__ */ u("a", {
+									href: n,
+									target: "_blank",
+									rel: "noreferrer",
+									download: !0,
+									style: {
+										display: "flex",
+										alignItems: "center",
+										gap: 4,
+										padding: "4px 8px",
+										borderRadius: 4,
+										border: "1px solid var(--border)",
+										background: "var(--bg)",
+										fontSize: 10,
+										fontFamily: "var(--font-mono)",
+										color: "var(--muted)",
+										textDecoration: "none"
+									},
+									onClick: function(e) {
+										e.stopPropagation();
+									},
+									children: [
+										"📄",
+										" ",
+										t.filename
+									]
+								}, t.id);
+							})
+						}),
+						A && (function() {
+							var t = (e.attachments || []).find(function(e) {
+								return e.id === A;
+							});
+							return t ? /* @__PURE__ */ l("div", {
+								onClick: function(e) {
+									e.stopPropagation(), j(null);
+								},
 								style: {
+									position: "fixed",
+									inset: 0,
+									zIndex: 1e4,
+									background: "rgba(0,0,0,0.7)",
 									display: "flex",
 									alignItems: "center",
-									gap: 4,
-									padding: "4px 8px",
-									borderRadius: 4,
-									border: "1px solid var(--border)",
-									background: "var(--bg)",
-									fontSize: 10,
-									fontFamily: "var(--font-mono)",
-									color: "var(--muted)",
-									textDecoration: "none"
+									justifyContent: "center",
+									cursor: "pointer",
+									padding: 24
 								},
-								onClick: function(e) {
-									e.stopPropagation();
-								},
-								children: [
-									t.type === "image" ? "🖼" : "📄",
-									" ",
-									t.filename
-								]
-							}, t.id);
-						})
-					})] }),
-					A && /* @__PURE__ */ u("div", {
+								children: /* @__PURE__ */ l("img", {
+									src: f + "/api/bugs/" + e.id + "/files/" + t.id + "/" + t.filename,
+									alt: t.filename,
+									style: {
+										maxWidth: "90vw",
+										maxHeight: "90vh",
+										borderRadius: 8,
+										boxShadow: "0 8px 32px rgba(0,0,0,0.3)"
+									},
+									onClick: function(e) {
+										e.stopPropagation();
+									}
+								})
+							}) : null;
+						})()
+					] }),
+					N && /* @__PURE__ */ u("div", {
 						style: Q.aiTriage,
 						children: [
 							/* @__PURE__ */ u("div", {
 								style: Q.aiHeader,
-								children: ["AI Triage", A.auto_fixable ? " (auto)" : ""]
+								children: ["AI Triage", N.auto_fixable ? " (auto)" : ""]
 							}),
 							/* @__PURE__ */ u("div", {
 								style: {
@@ -104950,18 +105018,18 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 								children: [
 									/* @__PURE__ */ l("span", {
 										style: Q.aiBadge("var(--blue-10)", "var(--blue)"),
-										children: A.classification || e.type
+										children: N.classification || e.type
 									}),
-									A.blast_radius && /* @__PURE__ */ u("span", {
-										style: Q.aiBadge(a9(A.blast_radius).bg, a9(A.blast_radius).color),
-										children: ["blast: ", A.blast_radius]
+									N.blast_radius && /* @__PURE__ */ u("span", {
+										style: Q.aiBadge(a9(N.blast_radius).bg, a9(N.blast_radius).color),
+										children: ["blast: ", N.blast_radius]
 									}),
-									A.auto_fixable !== void 0 && /* @__PURE__ */ l("span", {
-										style: Q.aiBadge(A.auto_fixable ? "var(--green-light)" : "var(--bg-subtle)", A.auto_fixable ? "var(--green)" : "var(--muted)"),
-										children: A.auto_fixable ? "auto-fixable" : "manual fix"
+									N.auto_fixable !== void 0 && /* @__PURE__ */ l("span", {
+										style: Q.aiBadge(N.auto_fixable ? "var(--green-light)" : "var(--bg-subtle)", N.auto_fixable ? "var(--green)" : "var(--muted)"),
+										children: N.auto_fixable ? "auto-fixable" : "manual fix"
 									}),
-									A.suggested_priority && (function() {
-										var e = $7(A.suggested_priority);
+									N.suggested_priority && (function() {
+										var e = $7(N.suggested_priority);
 										return /* @__PURE__ */ u("span", {
 											style: Q.aiBadge(e.bg, e.color),
 											children: [
@@ -104973,9 +105041,9 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 									})()
 								]
 							}),
-							A.triage_notes && /* @__PURE__ */ l("div", {
+							N.triage_notes && /* @__PURE__ */ l("div", {
 								style: Q.aiNotes,
-								children: A.triage_notes
+								children: N.triage_notes
 							})
 						]
 					}),
@@ -104998,17 +105066,17 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 								children: [
 									/* @__PURE__ */ l("button", {
 										style: Q.btnSm("var(--green)", "#fff", "none"),
-										onClick: P,
+										onClick: L,
 										children: "Fire & Push Brief"
 									}),
 									/* @__PURE__ */ l("button", {
 										style: Q.btnSm("var(--bg-subtle)", "var(--green)", "1px solid var(--green)"),
-										onClick: F,
+										onClick: R,
 										children: "Push to Terminal"
 									}),
 									/* @__PURE__ */ l("button", {
 										style: Q.btnSm("transparent", "var(--muted)", "1px solid var(--border)"),
-										onClick: N,
+										onClick: I,
 										children: "Copy Prompt"
 									})
 								]
@@ -105078,14 +105146,14 @@ function iMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 								g(e.target.value);
 							},
 							onKeyDown: function(e) {
-								e.key === "Enter" && M(e);
+								e.key === "Enter" && F(e);
 							},
 							onClick: function(e) {
 								e.stopPropagation();
 							}
 						}), /* @__PURE__ */ l("button", {
 							style: Q.commentSubmit,
-							onClick: M,
+							onClick: F,
 							disabled: x,
 							children: x ? "..." : "Post"
 						})]
