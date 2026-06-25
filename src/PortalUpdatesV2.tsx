@@ -93,13 +93,10 @@ interface TabDef {
 
 export interface PortalUpdatesV2Props {
   api: (path: string, opts?: Record<string, unknown>) => Promise<Record<string, unknown>>
-  showBugs?: boolean
-  showSupport?: boolean
-  isAdmin?: boolean
-  userContactId?: string
   subdomain?: string
   title?: string
   subtitle?: string
+  userContactId?: string
   onNavigate?: (path: string) => void
 }
 
@@ -1101,10 +1098,10 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userContactId, subdomain, title, subtitle, onNavigate }: PortalUpdatesV2Props) {
+export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId, onNavigate }: PortalUpdatesV2Props) {
   var [loading, setLoading] = useState(true)
   var [error, setError] = useState<string | null>(null)
-  var [audience, setAudience] = useState<string | null>(null)
+  var [audiences, setAudiences] = useState<string[]>([])
   var [activeTab, setActiveTab] = useState<TabId | null>(null)
 
   // Data stores
@@ -1119,14 +1116,16 @@ export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userConta
     setError(null)
 
     var generalPromise = api('/api/portal/updates').then(function(res: Record<string, unknown>) {
-      var d = res.data as { items?: UpdateItem[]; audience?: string } | undefined
+      var d = res.data as { items?: UpdateItem[]; audiences?: string[] } | undefined
       var items = d?.items || []
-      var aud = d?.audience || 'clients'
-      setAudience(aud)
-      if (aud === 'team') {
+      var auds = d?.audiences || ['clients']
+      setAudiences(auds)
+      // Team: all items go to General (no Project/Reports split)
+      if (auds.includes('team')) {
         setGeneralItems(items)
-        return aud
+        return
       }
+      // Non-team: split project-type updates into their own tabs
       var general: UpdateItem[] = []
       var project: UpdateItem[] = []
       items.forEach(function(item) {
@@ -1138,7 +1137,6 @@ export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userConta
       })
       setGeneralItems(general)
       setProjectItems(project)
-      return aud
     })
 
     var tasksPromise = api('/api/portal/tasks').then(function(res: Record<string, unknown>) {
@@ -1146,15 +1144,13 @@ export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userConta
       setTaskItems(d?.items || [])
     }).catch(function() { setTaskItems([]) })
 
-    var bugsPromise = showBugs
-      ? api('/api/bugs/threads' + (userContactId ? '?assigned_to=' + userContactId : '')).then(function(res: Record<string, unknown>) {
-          var d = res.data as BugItem[] | undefined
-          setBugItems(d || [])
-        }).catch(function() { setBugItems([]) })
-      : Promise.resolve()
+    var bugsPromise = api('/api/bugs/threads' + (userContactId ? '?assigned_to=' + userContactId : '')).then(function(res: Record<string, unknown>) {
+      var d = res.data as BugItem[] | undefined
+      setBugItems(d || [])
+    }).catch(function() { setBugItems([]) })
 
     // Portal support: fetch threads for the portal's subdomain
-    var supportPromise = subdomain && !isAdmin
+    var supportPromise = subdomain
       ? api('/api/portals/' + subdomain + '/support/threads').then(function(res: Record<string, unknown>) {
           var d = res.data as SupportThread[] | undefined
           setSupportThreads(d || [])
@@ -1167,29 +1163,23 @@ export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userConta
         setError(e.message || 'Failed to load')
         setLoading(false)
       })
-  }, [api, showBugs, subdomain, isAdmin, userContactId])
+  }, [api, subdomain, userContactId])
 
   useEffect(function() { load() }, [load])
 
-  // Build tabs — always show all role-appropriate tabs
+  // Build tabs — driven by the person's audiences from the API
   var tabs: TabDef[] = []
-  if (audience === 'team') {
+  if (audiences.length > 0) {
     tabs.push({ id: 'general', label: 'General', count: generalItems.length })
     tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    if (showBugs) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length })
-    if (showSupport || isAdmin) tabs.push({ id: 'support', label: 'Support', count: 0 })
-  } else if (audience === 'investors') {
-    tabs.push({ id: 'general', label: 'General', count: generalItems.length })
-    tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
-    tabs.push({ id: 'support', label: 'Support', count: supportThreads.length })
-  } else if (audience) {
-    // clients (default)
-    tabs.push({ id: 'general', label: 'General', count: generalItems.length })
-    tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
-    tabs.push({ id: 'support', label: 'Support', count: supportThreads.length })
+    if (audiences.includes('clients')) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
+    if (audiences.includes('investors')) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
+    if (audiences.includes('team')) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length })
+    tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
   }
+  var isTeam = audiences.includes('team')
+  // Team users on non-admin portals: CRM links open admin in new tab
+  var effectiveOnNavigate = onNavigate || (isTeam ? function(path: string) { window.open('https://admin.sprintmode.ai' + path, '_blank') } : undefined)
 
   var effectiveTab = activeTab
   if (!effectiveTab || !tabs.find(function(t) { return t.id === effectiveTab })) {
@@ -1260,12 +1250,12 @@ export function PortalUpdatesV2({ api, showBugs, showSupport, isAdmin, userConta
       )}
 
       {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} />}
-      {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={onNavigate} />}
+      {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} />}
       {effectiveTab === 'bugs' && <BugsTab items={bugItems} />}
       {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} />}
       {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} />}
-      {effectiveTab === 'support' && isAdmin && <SupportTabAdmin api={api} onNavigate={onNavigate} />}
-      {effectiveTab === 'support' && !isAdmin && subdomain && <SupportTabPortal threads={supportThreads} api={api} subdomain={subdomain} />}
+      {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} />}
+      {effectiveTab === 'support' && !isTeam && subdomain && <SupportTabPortal threads={supportThreads} api={api} subdomain={subdomain} />}
     </div>
   )
 }
