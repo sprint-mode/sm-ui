@@ -110816,7 +110816,7 @@ function Y9({ value: e, onChange: t, options: n }) {
 			padding: "4px 8px",
 			border: "1px solid var(--border, #e5e7eb)",
 			borderRadius: 6,
-			background: "var(--bg-0, #fff)",
+			background: "var(--bg-0, transparent)",
 			color: "var(--text-1, #111)",
 			cursor: "pointer"
 		},
@@ -110866,7 +110866,7 @@ function X9({ items: e, api: t }) {
 			var t = !!e.read_at, n = i === e.id;
 			return /* @__PURE__ */ l("div", {
 				style: {
-					background: "var(--bg-card, #fff)",
+					background: "var(--bg-card, inherit)",
 					border: "1px solid var(--border, #e5e7eb)",
 					borderRadius: "var(--radius, 8px)",
 					overflow: "hidden",
@@ -110909,7 +110909,7 @@ function X9({ items: e, api: t }) {
 										style: {
 											fontSize: 14,
 											fontWeight: t ? 400 : 600,
-											color: "var(--text-0, #111)"
+											color: "var(--text-0, inherit)"
 										},
 										children: e.title
 									}), /* @__PURE__ */ l(W9, { type: e.update_type || e.comm_type })]
@@ -111041,7 +111041,7 @@ function XMe({ items: e, api: t, onNavigate: n }) {
 							borderRadius: 4,
 							flexShrink: 0,
 							border: t ? "1.5px solid #639922" : "1.5px solid var(--border-2, #d1d5db)",
-							background: t ? "#EAF3DE" : "var(--bg-0, #fff)",
+							background: t ? "#EAF3DE" : "var(--bg-0, transparent)",
 							display: "flex",
 							alignItems: "center",
 							justifyContent: "center",
@@ -111065,7 +111065,7 @@ function XMe({ items: e, api: t, onNavigate: n }) {
 							style: {
 								fontSize: 13,
 								fontWeight: 500,
-								color: t ? "var(--text-3, #9ca3af)" : "var(--text-0, #111)",
+								color: t ? "var(--text-3, #9ca3af)" : "var(--text-0, inherit)",
 								marginBottom: 2,
 								textDecoration: t ? "line-through" : "none"
 							},
@@ -111171,7 +111171,7 @@ function ZMe({ items: e }) {
 							style: {
 								fontSize: 13,
 								fontWeight: 500,
-								color: "var(--text-0, #111)",
+								color: "var(--text-0, inherit)",
 								marginBottom: 2
 							},
 							children: e.title
@@ -111221,7 +111221,7 @@ function ZMe({ items: e }) {
 									alignItems: "center",
 									gap: 4,
 									padding: "3px 8px",
-									background: "var(--bg-0, #fff)",
+									background: "var(--bg-0, transparent)",
 									border: "1px solid var(--border, #e5e7eb)",
 									borderRadius: 99,
 									fontSize: 11,
@@ -111361,7 +111361,7 @@ function QMe({ threads: e, api: t, subdomain: n }) {
 						style: {
 							fontSize: 13,
 							fontWeight: 500,
-							color: "var(--text-0, #111)",
+							color: "var(--text-0, inherit)",
 							marginBottom: 2
 						},
 						children: e.subject || "Support thread"
@@ -111427,8 +111427,8 @@ function QMe({ threads: e, api: t, subdomain: n }) {
 									borderRadius: 10,
 									borderBottomRightRadius: n ? 3 : 10,
 									borderBottomLeftRadius: n ? 10 : 3,
-									background: n ? "var(--accent, #7c5cbf)" : r ? "var(--accent-soft, #EEEDFE)" : "var(--bg-0, #fff)",
-									color: n ? "#fff" : r ? "var(--accent, #7c5cbf)" : "var(--text-0, #111)",
+									background: n ? "var(--accent, #7c5cbf)" : r ? "var(--accent-soft, #EEEDFE)" : "var(--bg-0, transparent)",
+									color: n ? "#fff" : r ? "var(--accent, #7c5cbf)" : "var(--text-0, inherit)",
 									border: r ? "1px solid hsla(262,60%,55%,.2)" : n ? "none" : "1px solid var(--border, #e5e7eb)",
 									marginLeft: n ? "auto" : 0,
 									marginRight: n ? 0 : "auto"
@@ -111481,7 +111481,7 @@ function QMe({ threads: e, api: t, subdomain: n }) {
 										fontSize: 11,
 										cursor: x ? "default" : "pointer",
 										border: "1px solid var(--border, #e5e7eb)",
-										background: "var(--bg-0, #fff)",
+										background: "var(--bg-0, transparent)",
 										color: "var(--text-2, #6b7280)",
 										fontFamily: "inherit",
 										opacity: x ? .5 : 1
@@ -111561,7 +111561,7 @@ function QMe({ threads: e, api: t, subdomain: n }) {
 									padding: "8px 10px",
 									border: "1px solid var(--border, #e5e7eb)",
 									borderRadius: 6,
-									background: "var(--bg-0, #fff)",
+									background: "var(--bg-0, transparent)",
 									color: "var(--text-1, #111)",
 									fontFamily: "inherit"
 								}
@@ -111700,7 +111700,7 @@ function $Me({ api: e, onNavigate: t }) {
 			borderRadius: "var(--radius-lg, 8px)",
 			overflow: "hidden",
 			height: 460,
-			background: "var(--bg-card, #fff)"
+			background: "var(--bg-card, inherit)"
 		},
 		children: [
 			/* @__PURE__ */ u("div", {
@@ -111773,7 +111773,7 @@ function $Me({ api: e, onNavigate: t }) {
 								padding: "3px 6px",
 								border: "1px solid var(--border, #e5e7eb)",
 								borderRadius: 4,
-								background: "var(--bg-0, #fff)",
+								background: "var(--bg-0, transparent)",
 								color: "var(--text-1, #111)",
 								fontFamily: "inherit"
 							},
@@ -111885,7 +111885,7 @@ function $Me({ api: e, onNavigate: t }) {
 													style: {
 														fontWeight: 600,
 														fontSize: 12,
-														color: "var(--text-0, #111)"
+														color: "var(--text-0, inherit)"
 													},
 													children: n.split(" ")[0]
 												}), /* @__PURE__ */ l("span", {
@@ -111983,7 +111983,7 @@ function $Me({ api: e, onNavigate: t }) {
 								style: {
 									fontWeight: 600,
 									fontSize: 13,
-									color: "var(--text-0, #111)"
+									color: "var(--text-0, inherit)"
 								},
 								children: W?.name || W?.email || "Anonymous"
 							}), /* @__PURE__ */ l("div", {
@@ -112120,7 +112120,7 @@ function $Me({ api: e, onNavigate: t }) {
 											borderBottomRightRadius: t ? 3 : 10,
 											borderBottomLeftRadius: t ? 10 : 3,
 											background: t ? "var(--accent, #7c5cbf)" : r ? "var(--accent-soft, #EEEDFE)" : "var(--bg-2, #f3f4f6)",
-											color: t ? "#fff" : r ? "var(--accent, #7c5cbf)" : "var(--text-0, #111)",
+											color: t ? "#fff" : r ? "var(--accent, #7c5cbf)" : "var(--text-0, inherit)",
 											border: r ? "1px solid hsla(262,60%,55%,.2)" : "none"
 										},
 										children: e.content
@@ -112183,7 +112183,7 @@ function $Me({ api: e, onNavigate: t }) {
 											fontSize: 11,
 											cursor: j ? "default" : "pointer",
 											border: "1px solid var(--border, #e5e7eb)",
-											background: "var(--bg-0, #fff)",
+											background: "var(--bg-0, transparent)",
 											color: "var(--text-2, #6b7280)",
 											fontFamily: "inherit",
 											opacity: j ? .5 : 1
@@ -112222,7 +112222,7 @@ function $Me({ api: e, onNavigate: t }) {
 											borderRadius: 6,
 											fontSize: 11,
 											border: "1px solid var(--border, #e5e7eb)",
-											background: "var(--bg-0, #fff)",
+											background: "var(--bg-0, transparent)",
 											color: "var(--text-1, #374151)"
 										},
 										children: [e.filename || e.id, /* @__PURE__ */ l("span", {
@@ -112264,7 +112264,7 @@ function $Me({ api: e, onNavigate: t }) {
 										borderRadius: 6,
 										padding: "8px 10px",
 										fontFamily: "inherit",
-										background: "var(--bg-0, #fff)",
+										background: "var(--bg-0, transparent)",
 										color: "var(--text-1, #111)"
 									}
 								}), /* @__PURE__ */ l("button", {
@@ -112434,7 +112434,7 @@ function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 					style: {
 						fontSize: 20,
 						fontWeight: 600,
-						color: "var(--text-0, #111)",
+						color: "var(--text-0, inherit)",
 						marginBottom: 4
 					},
 					children: r || "Updates"
@@ -112467,7 +112467,7 @@ function eNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 							border: "none",
 							background: "none",
 							borderBottom: t ? "2px solid var(--accent, #7c5cbf)" : "2px solid transparent",
-							color: t ? "var(--text-0, #111)" : "var(--text-3, #9ca3af)",
+							color: t ? "var(--text-0, inherit)" : "var(--text-3, #9ca3af)",
 							fontWeight: t ? 600 : 400,
 							transition: "color .15s, border-color .15s"
 						},
