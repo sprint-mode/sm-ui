@@ -149,7 +149,7 @@ var STATUS_COLORS: Record<string, { bg: string; color: string }> = {
   escalated: { bg: '#FCEBEB', color: '#791F1F' },
 }
 
-var PRODUCT_COLORS: Record<string, { bg: string; color: string }> = {
+var _PRODUCT_COLORS: Record<string, { bg: string; color: string }> = {
   studios: { bg: 'var(--violet-soft, #EEEDFE)', color: 'var(--violet, #534AB7)' },
   signal: { bg: 'hsla(340,55%,47%,.1)', color: 'hsl(340,55%,47%)' },
   mode: { bg: 'hsla(160,84%,39%,.1)', color: 'hsl(160,84%,39%)' },
@@ -449,7 +449,7 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <span style={{
-                      fontSize: 13, fontWeight: itemIsNew ? 500 : 500,
+                      fontSize: 13, fontWeight: itemIsNew ? 500 : 400,
                       color: isDone ? 'var(--text-3, #9ca3af)' : (itemIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)'),
                       textDecoration: isDone ? 'line-through' : 'none',
                     }}>{item.title}</span>
@@ -546,7 +546,7 @@ function BugsTab({ items, commentNotifications, onNavigate, lastSeenAt }: { item
                   {(function() { var bugIsNew = isItemNew(item.created_at, seenAt); return bugIsNew ? <NewDot /> : <SeenDotPlaceholder /> })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: isItemNew(item.created_at, seenAt) ? 500 : 500, color: isItemNew(item.created_at, seenAt) ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)' }}>{item.title}</span>
+                      <span style={{ fontSize: 13, fontWeight: isItemNew(item.created_at, seenAt) ? 500 : 400, color: isItemNew(item.created_at, seenAt) ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)' }}>{item.title}</span>
                       {isItemNew(item.created_at, seenAt) && <NewPill />}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
@@ -709,7 +709,7 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
                       threadIsNew ? React.createElement(NewDot, null) : React.createElement(SeenDotPlaceholder, null),
                       React.createElement('div', { style: { flex: 1, minWidth: 0 } },
                         React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 } },
-                          React.createElement('span', { style: { fontSize: 13, fontWeight: threadIsNew ? 500 : 500, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)' } }, t.subject || 'Support thread'),
+                          React.createElement('span', { style: { fontSize: 13, fontWeight: threadIsNew ? 500 : 400, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)' } }, t.subject || 'Support thread'),
                           threadIsNew ? React.createElement(NewPill, { label: isNewThread ? 'New' : 'New reply' }) : null
                         ),
                         React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3, #9ca3af)' } },
@@ -992,7 +992,6 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
           {filtered.map(function(t) {
             var isExpanded = expandedId === t.id
             var name = t.contact_name || t.contact_email || 'Anonymous'
-            var ps = PRODUCT_COLORS[t.product || ''] || { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' }
             var threadDetail = isExpanded ? detail : null
             var contact = threadDetail?.context?.contact as Record<string, unknown> | undefined
             var company = threadDetail?.context?.company as Record<string, unknown> | undefined
@@ -1003,32 +1002,23 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
               <div key={t.id}>
                 {/* Row */}
                 <div onClick={function() { toggleThread(t.id) }} style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '14px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
                   cursor: 'pointer',
                 }}>
                   {threadIsNew ? <NewDot /> : <SeenDotPlaceholder />}
-                  <div style={{
-                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
-                    background: t.status === 'escalated' ? '#FCEBEB' : 'var(--accent-soft, #EEEDFE)',
-                    color: t.status === 'escalated' ? '#791F1F' : 'var(--accent, #7c5cbf)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 11, fontWeight: 700,
-                  }}>{initials(name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: threadIsNew ? 500 : 500, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)' }}>
+                      <span style={{ fontSize: 13, fontWeight: threadIsNew ? 500 : 400, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)' }}>
                         {t.subject || name}
                       </span>
                       {threadIsNew && <NewPill label={isNewThread ? 'New' : 'New reply'} />}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {name}{t.last_message ? ' · ' + t.last_message : ''}
+                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
+                      {t.message_count ? t.message_count + ' messages' : ''}{t.message_count && t.updated_at ? ' \u00b7 ' : ''}{t.updated_at ? relativeTime(t.updated_at) : ''}{t.last_role ? ' \u00b7 ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : ''}
                     </div>
                   </div>
-                  {t.product && <Pill label={t.product.charAt(0).toUpperCase() + t.product.slice(1)} bg={ps.bg} color={ps.color} />}
                   <StatusPill status={t.status} />
-                  <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', flexShrink: 0 }}>{relativeTime(t.updated_at)}</span>
                 </div>
                 {/* Expanded detail */}
                 {isExpanded && (
@@ -1317,7 +1307,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, us
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
+      <div style={{ padding: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
           <div style={{
             width: 24, height: 24,
@@ -1334,14 +1324,14 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, us
 
   if (error) {
     return (
-      <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ padding: 0 }}>
         <div style={{ padding: 24, color: 'var(--red, #ef4444)', fontSize: 14 }}>{error}</div>
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
+    <div style={{ padding: 0 }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4 }}>{title || 'Inbox'}</h1>
       </div>
