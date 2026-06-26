@@ -850,14 +850,17 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var viewAsAnyRole = props.viewAsAnyRole
   var portalCfg = usePortalConfig()
   var bugPanelFlag = props.bugPanel !== undefined ? props.bugPanel : (portalCfg.config && (portalCfg.config as any).bug_panel)
-  var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0
   var bugPanelProduct = props.portalSubdomain || 'sm'
   var bugPanelLabel = props.bugPanelLabel
 
   var _s = useState<SessionData | null>(sessionProp || null); var session = _s[0]; var setSession = _s[1]
   var _l = useState(!sessionProp); var loading = _l[0]; var setLoading = _l[1]
 
-  var bugPanelAdmin = props.bugPanelAdmin || (session && ((session as any).portal_role === 'super_admin' || (session as any).portal_role === 'admin' || (session as any).role === 'super_admin' || (session as any).role === 'admin' || (session as any).is_sm_team))
+  // Bug panel RBAC: requires both the portal-level flag AND the user's bugs permission.
+  // Clients (no permissions object) never see the panel.
+  var _bugPerms = session && (session as any).permissions && (session as any).permissions.bugs
+  var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0 && !!(_bugPerms && _bugPerms.view)
+  var bugPanelAdmin = props.bugPanelAdmin || !!(_bugPerms && _bugPerms.edit)
   var _m = useState(false); var mobileOpen = _m[0]; var setMobileOpen = _m[1]
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
