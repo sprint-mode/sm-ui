@@ -108008,6 +108008,8 @@ var wMe = function(t) {
 			window.removeEventListener("keydown", e);
 		};
 	}, [H]), i(function() {
+		new URLSearchParams(window.location.search).get("bug") && H && q(!0);
+	}, [H]), i(function() {
 		o && (te(o), ie(!1));
 	}, [o]), i(function() {
 		G && typeof window < "u" && (window.__SM_SESSION = G);

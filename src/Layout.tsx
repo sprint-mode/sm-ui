@@ -875,6 +875,14 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     return function() { window.removeEventListener('keydown', handler) }
   }, [bugPanelEnabled])
 
+  // Deep link: ?bug=bug_xxx opens the bug panel automatically
+  useEffect(function() {
+    var params = new URLSearchParams(window.location.search)
+    if (params.get('bug') && bugPanelEnabled) {
+      setBugPanelOpen(true)
+    }
+  }, [bugPanelEnabled])
+
   useEffect(function() {
     if (sessionProp) { setSession(sessionProp); setLoading(false) }
   }, [sessionProp])
