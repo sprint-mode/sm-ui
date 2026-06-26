@@ -781,15 +781,14 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
   )
 }
 
-// ─── Admin support tab (split-pane inbox) ────────────────────────────────────
+// ─── Admin support tab (flat-list layout) ────────────────────────────────────
 
 function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
   var [threads, setThreads] = useState<SupportThread[]>([])
-  var [counts, setCounts] = useState<Record<string, number>>({})
   var [loading, setLoading] = useState(true)
-  var [filter, setFilter] = useState('open')
-  var [productFilter, setProductFilter] = useState('')
-  var [selectedId, setSelectedId] = useState<string | null>(null)
+  var [statusFilter, setStatusFilter] = useState('all')
+  var [productFilter, setProductFilter] = useState('all')
+  var [expandedId, setExpandedId] = useState<string | null>(null)
   var [detail, setDetail] = useState<AdminThreadDetail | null>(null)
   var [detailLoading, setDetailLoading] = useState(false)
   var [replyText, setReplyText] = useState('')
@@ -797,42 +796,43 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
   var [adminQueuedAttachments, setAdminQueuedAttachments] = useState<Attachment[]>([])
   var [adminUploading, setAdminUploading] = useState(false)
   var adminFileInputRef = useRef<HTMLInputElement>(null)
-  var messagesEndRef = useRef<HTMLDivElement>(null)
 
   var loadList = useCallback(function() {
     setLoading(true)
-    var qs = productFilter ? '&product=' + productFilter : ''
-    Promise.all([
-      api('/api/support/threads?status=open' + qs),
-      api('/api/support/threads?status=escalated' + qs),
-      api('/api/support/threads?status=' + filter + qs),
-    ]).then(function(results) {
-      var openCnt = results[0].ok ? ((results[0].data as { threads?: unknown[] })?.threads || []).length : 0
-      var escCnt = results[1].ok ? ((results[1].data as { threads?: unknown[] })?.threads || []).length : 0
-      setCounts({ open: openCnt, escalated: escCnt })
-      if (results[2].ok) setThreads((results[2].data as { threads?: SupportThread[] })?.threads || [])
+    var qs = ''
+    if (statusFilter !== 'all') qs += '&status=' + statusFilter
+    if (productFilter !== 'all') qs += '&product=' + productFilter
+    api('/api/support/threads?' + qs.replace(/^&/, '')).then(function(res) {
+      if (res.ok) setThreads((res.data as { threads?: SupportThread[] })?.threads || [])
     }).catch(function() {}).finally(function() { setLoading(false) })
-  }, [api, filter, productFilter])
+  }, [api, statusFilter, productFilter])
 
   useEffect(function() { loadList() }, [loadList])
 
   useEffect(function() {
-    if (!selectedId) { setDetail(null); return }
+    if (!expandedId) { setDetail(null); return }
     setDetailLoading(true)
-    api('/api/support/threads/' + selectedId).then(function(res) {
+    api('/api/support/threads/' + expandedId).then(function(res) {
       if (res.ok) setDetail(res.data as AdminThreadDetail)
       setDetailLoading(false)
     }).catch(function() { setDetailLoading(false) })
-  }, [selectedId, api])
+  }, [expandedId, api])
 
-  useEffect(function() {
-    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
-  }, [detail?.messages])
+  function toggleThread(threadId: string) {
+    if (expandedId === threadId) {
+      setExpandedId(null)
+      setDetail(null)
+    } else {
+      setExpandedId(threadId)
+    }
+    setReplyText('')
+    setAdminQueuedAttachments([])
+  }
 
   function sendReply() {
-    if (!replyText.trim() || !selectedId || sending) return
+    if (!replyText.trim() || !expandedId || sending) return
     setSending(true)
-    api('/api/support/threads/' + selectedId + '/reply', {
+    api('/api/support/threads/' + expandedId + '/reply', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: replyText.trim(), attachments: adminQueuedAttachments.length > 0 ? JSON.stringify(adminQueuedAttachments) : undefined }),
@@ -840,18 +840,18 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
       setReplyText('')
       setAdminQueuedAttachments([])
       setSending(false)
-      api('/api/support/threads/' + selectedId).then(function(res) {
+      api('/api/support/threads/' + expandedId).then(function(res) {
         if (res.ok) setDetail(res.data as AdminThreadDetail)
       })
     }).catch(function() { setSending(false) })
   }
 
   function adminUploadFile(file: File) {
-    if (!selectedId || adminUploading) return
+    if (!expandedId || adminUploading) return
     setAdminUploading(true)
     var fd = new FormData()
     fd.append('file', file)
-    fetch('/api/support/threads/' + selectedId + '/attachments', {
+    fetch('/api/support/threads/' + expandedId + '/attachments', {
       method: 'POST', credentials: 'include', body: fd,
     }).then(function(r) { return r.json() }).then(function(res: Record<string, unknown>) {
       if (res.ok && res.data) {
@@ -878,249 +878,234 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
     setAdminQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== attId }) })
   }
 
-  function closeThread() {
-    if (!selectedId) return
-    api('/api/support/threads/' + selectedId + '/close', {
+  function closeThread(threadId: string) {
+    api('/api/support/threads/' + threadId + '/close', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reason: 'resolved' }),
-    }).then(function() { loadList(); setSelectedId(null) }).catch(function() {})
+    }).then(function() { setExpandedId(null); setDetail(null); loadList() }).catch(function() {})
   }
 
   function getSignedUrl(_updateId: string, attId: string) {
-    if (!selectedId) return Promise.resolve({} as { url?: string; data?: { url?: string } })
-    return api('/api/support/threads/' + selectedId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
+    if (!expandedId) return Promise.resolve({} as { url?: string; data?: { url?: string } })
+    return api('/api/support/threads/' + expandedId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
   }
 
-  var thread = detail?.thread
-  var contact = detail?.context?.contact as Record<string, unknown> | undefined
-  var company = detail?.context?.company as Record<string, unknown> | undefined
-  var engagement = detail?.context?.engagement as Record<string, unknown> | undefined
+  var filtered = threads.filter(function(t) {
+    if (statusFilter !== 'all' && t.status !== statusFilter) return false
+    if (productFilter !== 'all' && t.product !== productFilter) return false
+    return true
+  })
 
   return (
-    <div style={{
-      display: 'flex', border: '1px solid var(--border, #e5e7eb)',
-      borderRadius: 'var(--radius-lg, 8px)', overflow: 'hidden',
-      height: 460, background: 'var(--bg-card, inherit)',
-    }}>
-      {/* Thread list */}
-      <div style={{ width: 240, borderRight: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-        <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 4 }}>
-          {(['open', 'escalated', 'closed'] as const).map(function(tab) {
-            var active = filter === tab
-            var count = counts[tab] || 0
-            return (
-              <button key={tab} onClick={function() { setFilter(tab); setSelectedId(null) }} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '4px 8px', borderRadius: 5, fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', border: 'none', fontFamily: 'inherit',
-                background: active ? 'var(--accent-soft, #EEEDFE)' : 'transparent',
-                color: active ? 'var(--accent, #7c5cbf)' : 'var(--text-2, #6b7280)',
-              }}>
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                {count > 0 && <span style={{
-                  padding: '1px 5px', borderRadius: 99, fontSize: 9, fontWeight: 700,
-                  background: active ? 'var(--accent, #7c5cbf)' : tab === 'escalated' ? '#FCEBEB' : 'var(--bg-3, #e5e7eb)',
-                  color: active ? '#fff' : tab === 'escalated' ? '#791F1F' : 'var(--text-1, #111)',
-                }}>{count}</span>}
-              </button>
-            )
-          })}
+    <div>
+      <FilterRow count={filtered.length} countLabel="thread">
+        <SelectFilter value={statusFilter} onChange={function(v) { setStatusFilter(v); setExpandedId(null) }} options={[
+          { value: 'all', label: 'All statuses' },
+          { value: 'open', label: 'Open' },
+          { value: 'escalated', label: 'Escalated' },
+          { value: 'closed', label: 'Closed' },
+        ]} />
+        <SelectFilter value={productFilter} onChange={function(v) { setProductFilter(v); setExpandedId(null) }} options={[
+          { value: 'all', label: 'All products' },
+          { value: 'studios', label: 'Studios' },
+          { value: 'signal', label: 'Signal' },
+          { value: 'mode', label: 'Mode' },
+          { value: 'privacyai', label: 'PrivacyAI' },
+        ]} />
+      </FilterRow>
+      {loading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
+          <div style={{ width: 20, height: 20, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
+          <style>{`@keyframes pu2-spin { to { transform: rotate(360deg) } }`}</style>
         </div>
-        <div style={{ padding: '6px 10px', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-          <select value={productFilter} onChange={function(e) { setProductFilter(e.target.value); setSelectedId(null) }} style={{
-            width: '100%', fontSize: 11, padding: '3px 6px',
-            border: '1px solid var(--border, #e5e7eb)', borderRadius: 4,
-            background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)', fontFamily: 'inherit',
-          }}>
-            <option value="">All products</option>
-            <option value="studios">Studios</option>
-            <option value="signal">Signal</option>
-            <option value="mode">Mode</option>
-            <option value="privacyai">PrivacyAI</option>
-          </select>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-              <div style={{ width: 20, height: 20, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
-            </div>
-          ) : threads.length === 0 ? (
-            <div style={{ padding: '40px 16px', textAlign: 'center', fontSize: 13, color: 'var(--text-3, #9ca3af)' }}>
-              No {filter} threads
-            </div>
-          ) : threads.map(function(t) {
-            var active = t.id === selectedId
+      ) : filtered.length === 0 ? (
+        <EmptyState message="No support threads" />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+          {filtered.map(function(t) {
+            var isExpanded = expandedId === t.id
             var name = t.contact_name || t.contact_email || 'Anonymous'
             var ps = PRODUCT_COLORS[t.product || ''] || { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' }
+            var threadDetail = isExpanded ? detail : null
+            var contact = threadDetail?.context?.contact as Record<string, unknown> | undefined
+            var company = threadDetail?.context?.company as Record<string, unknown> | undefined
+            var engagement = threadDetail?.context?.engagement as Record<string, unknown> | undefined
             return (
-              <div key={t.id} onClick={function() { setSelectedId(t.id) }} style={{
-                padding: '10px 12px', borderBottom: '1px solid var(--border-subtle, #f3f4f6)', cursor: 'pointer',
-                background: active ? 'var(--accent-soft, #EEEDFE)' : 'transparent',
-                borderLeft: active ? '2px solid var(--accent, #7c5cbf)' : '2px solid transparent',
-              }}>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+              <div key={t.id}>
+                {/* Row */}
+                <div onClick={function() { toggleThread(t.id) }} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
+                  cursor: 'pointer',
+                }}>
                   <div style={{
-                    width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+                    width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                     background: t.status === 'escalated' ? '#FCEBEB' : 'var(--accent-soft, #EEEDFE)',
                     color: t.status === 'escalated' ? '#791F1F' : 'var(--accent, #7c5cbf)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 700,
+                    fontSize: 11, fontWeight: 700,
                   }}>{initials(name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                      <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-0, inherit)' }}>{name.split(' ')[0]}</span>
-                      <span style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)' }}>{relativeTime(t.updated_at)}</span>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>
+                      {t.subject || name}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
-                      {t.last_message || ''}
+                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {name}{t.last_message ? ' · ' + t.last_message : ''}
                     </div>
-                    {t.product && <span style={{ display: 'inline-block', padding: '2px 7px', borderRadius: 99, fontSize: 9, fontWeight: 600, background: ps.bg, color: ps.color }}>
-                      {t.product.charAt(0).toUpperCase() + t.product.slice(1)}
-                    </span>}
                   </div>
+                  {t.product && <Pill label={t.product.charAt(0).toUpperCase() + t.product.slice(1)} bg={ps.bg} color={ps.color} />}
+                  <StatusPill status={t.status} />
+                  <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', flexShrink: 0 }}>{relativeTime(t.updated_at)}</span>
                 </div>
+                {/* Expanded detail */}
+                {isExpanded && (
+                  <div style={{
+                    background: 'var(--bg-2, #f9fafb)', border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: 'var(--radius, 8px)', margin: '4px 0 12px',
+                    display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden',
+                  }}>
+                    {detailLoading ? (
+                      <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
+                        <div style={{ width: 18, height: 18, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
+                      </div>
+                    ) : threadDetail ? (
+                      <>
+                        {/* Contact header */}
+                        <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft, #EEEDFE)', color: 'var(--accent, #7c5cbf)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                              {initials(contact?.name as string || contact?.email as string || name)}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-0, inherit)' }}>
+                                {contact?.name as string || contact?.email as string || name}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)' }}>
+                                {[company?.name as string, t.product ? t.product.charAt(0).toUpperCase() + t.product.slice(1) : ''].filter(Boolean).join(' · ')}
+                              </div>
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {onNavigate && <button onClick={function(e) { e.stopPropagation(); onNavigate('/crm') }} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>CRM</button>}
+                            {t.status !== 'closed' && <button onClick={function(e) { e.stopPropagation(); closeThread(t.id) }} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>Close</button>}
+                          </div>
+                        </div>
+                        {/* Context chips */}
+                        {(engagement || (contact && Boolean((contact as Record<string, unknown>).last_login_at))) && (
+                          <div style={{ padding: '6px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                            {engagement && (function() {
+                              var engTitle = String(engagement.title || '')
+                              var sprintStr = engagement.current_sprint ? ' · Sprint ' + String(engagement.current_sprint) + '/' + String(engagement.total_sprints) : ''
+                              return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
+                                {engTitle}{sprintStr}
+                              </span>
+                            })()}
+                            {contact && Boolean((contact as Record<string, unknown>).last_login_at) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
+                              Last login {relativeTime((contact as Record<string, unknown>).last_login_at as string)}
+                            </span>}
+                          </div>
+                        )}
+                        {/* Messages */}
+                        <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          {(threadDetail.messages || []).map(function(msg) {
+                            var isUser = msg.role === 'user'
+                            var isBot = msg.role === 'assistant'
+                            var isHuman = msg.role === 'human'
+                            if (!isUser && !isBot && !isHuman) {
+                              return <div key={msg.id} style={{ display: 'flex', justifyContent: 'center' }}>
+                                <span style={{ padding: '3px 12px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-2, #6b7280)' }}>{msg.content}</span>
+                              </div>
+                            }
+                            return (
+                              <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                                {!isUser && <div style={{ fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)', marginBottom: 4 }}>
+                                  {isBot ? 'AI · Support' : 'Team'}
+                                </div>}
+                                <div style={{
+                                  maxWidth: '82%', padding: '8px 12px', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                                  borderRadius: 10,
+                                  borderBottomRightRadius: isUser ? 3 : 10,
+                                  borderBottomLeftRadius: !isUser ? 3 : 10,
+                                  background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, transparent)',
+                                  color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, inherit)',
+                                  border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : isUser ? 'none' : '1px solid var(--border, #e5e7eb)',
+                                }}>{msg.content}</div>
+                                {msg.attachments && (
+                                  <div style={{ maxWidth: '82%' }}>
+                                    <UpdateAttachments attachments={msg.attachments} updateId={t.id} getSignedUrl={getSignedUrl} compact />
+                                  </div>
+                                )}
+                                <div style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)', marginTop: 3, padding: '0 2px' }}>{relativeTime(msg.created_at)}</div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                        {/* Reply bar */}
+                        {t.status !== 'closed' && (
+                          <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-2, #f9fafb)' }}
+                            onDragOver={function(e) { e.preventDefault() }}
+                            onDrop={adminHandleDrop}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <button onClick={function() { adminFileInputRef.current && adminFileInputRef.current.click() }} disabled={adminUploading} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4,
+                                padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: adminUploading ? 'default' : 'pointer',
+                                border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
+                                color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: adminUploading ? 0.5 : 1,
+                              }}>{adminUploading ? 'Uploading...' : 'Attach file'}</button>
+                              <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
+                              <input ref={adminFileInputRef} type="file" style={{ display: 'none' }} onChange={adminHandleFileChange}
+                                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
+                            </div>
+                            {adminQueuedAttachments.length > 0 && (
+                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {adminQueuedAttachments.map(function(att) {
+                                  return <span key={att.id} style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                                    padding: '3px 8px', borderRadius: 6, fontSize: 11,
+                                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-2, #f9fafb)',
+                                    color: 'var(--text-1, #374151)',
+                                  }}>
+                                    {att.filename || att.id}
+                                    <span onClick={function() { adminRemoveAttachment(att.id) }} style={{ cursor: 'pointer', color: 'var(--text-3, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
+                                  </span>
+                                })}
+                              </div>
+                            )}
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <input
+                                type="text"
+                                value={replyText}
+                                onChange={function(e) { setReplyText(e.target.value) }}
+                                onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey) sendReply() }}
+                                placeholder="Reply to this thread..."
+                                disabled={sending}
+                                style={{
+                                  flex: 1, fontSize: 13, padding: '8px 10px',
+                                  border: '1px solid var(--border, #e5e7eb)', borderRadius: 6,
+                                  background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)',
+                                  fontFamily: 'inherit',
+                                }}
+                              />
+                              <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
+                                padding: '6px 14px', borderRadius: 6, border: 'none',
+                                background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
+                                cursor: 'pointer', fontFamily: 'inherit',
+                                opacity: !replyText.trim() || sending ? 0.5 : 1,
+                              }}>Send</button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : null}
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
-      </div>
-
-      {/* Thread detail */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        {!selectedId ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--text-3, #9ca3af)' }}>
-            <span style={{ fontSize: 13 }}>Select a thread</span>
-          </div>
-        ) : detailLoading ? (
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ width: 20, height: 20, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
-          </div>
-        ) : detail ? (
-          <>
-            {/* Header */}
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft, #EEEDFE)', color: 'var(--accent, #7c5cbf)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
-                  {initials(contact?.name as string || contact?.email as string || 'A')}
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-0, inherit)' }}>{contact?.name as string || contact?.email as string || 'Anonymous'}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)' }}>
-                    {[company?.name as string, thread?.product ? (thread.product as string).charAt(0).toUpperCase() + (thread.product as string).slice(1) : ''].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {onNavigate && <button onClick={function() { onNavigate('/crm') }} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>CRM</button>}
-                {thread?.status !== 'closed' && <button onClick={closeThread} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>Close</button>}
-              </div>
-            </div>
-            {/* Context chips */}
-            {(engagement || (contact && (contact as Record<string, unknown>).last_login_at)) && (
-              <div style={{ padding: '6px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {engagement && (function() {
-                  var engTitle = String(engagement.title || '')
-                  var sprintStr = engagement.current_sprint ? ' · Sprint ' + String(engagement.current_sprint) + '/' + String(engagement.total_sprints) : ''
-                  return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
-                    {engTitle}{sprintStr}
-                  </span>
-                })()}
-                {contact && Boolean((contact as Record<string, unknown>).last_login_at) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
-                  Last login {relativeTime((contact as Record<string, unknown>).last_login_at as string)}
-                </span>}
-              </div>
-            )}
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(detail.messages || []).map(function(msg) {
-                var isUser = msg.role === 'user'
-                var isBot = msg.role === 'assistant'
-                var isHuman = msg.role === 'human'
-                if (!isUser && !isBot && !isHuman) {
-                  return <div key={msg.id} style={{ display: 'flex', justifyContent: 'center' }}>
-                    <span style={{ padding: '3px 12px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-2, #6b7280)' }}>{msg.content}</span>
-                  </div>
-                }
-                return (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
-                    {!isUser && <div style={{ fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)', marginBottom: 4 }}>
-                      {isBot ? 'AI · Support' : 'Team'}
-                    </div>}
-                    <div style={{
-                      maxWidth: '82%', padding: '8px 12px', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
-                      borderRadius: 10,
-                      borderBottomRightRadius: isUser ? 3 : 10,
-                      borderBottomLeftRadius: !isUser ? 3 : 10,
-                      background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-2, #f3f4f6)',
-                      color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, inherit)',
-                      border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : 'none',
-                    }}>{msg.content}</div>
-                    {msg.attachments && (
-                      <div style={{ maxWidth: '82%' }}>
-                        <UpdateAttachments attachments={msg.attachments} updateId={selectedId || ''} getSignedUrl={getSignedUrl} compact />
-                      </div>
-                    )}
-                    <div style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)', marginTop: 3, padding: '0 2px' }}>{relativeTime(msg.created_at)}</div>
-                  </div>
-                )
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-            {/* Reply bar */}
-            {thread?.status !== 'closed' && (
-              <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-2, #f9fafb)', flexShrink: 0 }}
-                onDragOver={function(e) { e.preventDefault() }}
-                onDrop={adminHandleDrop}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <button onClick={function() { adminFileInputRef.current && adminFileInputRef.current.click() }} disabled={adminUploading} style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: adminUploading ? 'default' : 'pointer',
-                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
-                    color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: adminUploading ? 0.5 : 1,
-                  }}>{adminUploading ? 'Uploading...' : 'Attach'}</button>
-                  <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
-                  <input ref={adminFileInputRef} type="file" style={{ display: 'none' }} onChange={adminHandleFileChange}
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
-                </div>
-                {adminQueuedAttachments.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {adminQueuedAttachments.map(function(att) {
-                      return <span key={att.id} style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 4,
-                        padding: '3px 8px', borderRadius: 6, fontSize: 11,
-                        border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
-                        color: 'var(--text-1, #374151)',
-                      }}>
-                        {att.filename || att.id}
-                        <span onClick={function() { adminRemoveAttachment(att.id) }} style={{ cursor: 'pointer', color: 'var(--text-3, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
-                      </span>
-                    })}
-                  </div>
-                )}
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <textarea
-                    value={replyText}
-                    onChange={function(e) { setReplyText(e.target.value) }}
-                    onKeyDown={function(e) { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) sendReply() }}
-                    rows={2}
-                    placeholder="Reply... (Cmd+Enter to send)"
-                    style={{ flex: 1, resize: 'none', fontSize: 13, lineHeight: 1.5, border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, padding: '8px 10px', fontFamily: 'inherit', background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)' }}
-                  />
-                  <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
-                    alignSelf: 'flex-end', padding: '6px 14px', borderRadius: 6, border: 'none',
-                    background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
-                    cursor: 'pointer', fontFamily: 'inherit',
-                    opacity: !replyText.trim() || sending ? 0.5 : 1,
-                  }}>Send</button>
-                </div>
-              </div>
-            )}
-          </>
-        ) : null}
-      </div>
-      <style>{`@keyframes pu2-spin { to { transform: rotate(360deg) } }`}</style>
+      )}
     </div>
   )
 }
