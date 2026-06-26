@@ -23,7 +23,7 @@ export declare function NotificationBellNav(props: NotificationBellNavProps): Re
         transition: "border-color .2s";
         flexShrink: number;
         padding: number;
-        color: "var(--foreground)" | "var(--accent)";
+        color: "var(--muted)" | "var(--foreground)";
         textDecoration: string;
     };
 }, HTMLElement>;

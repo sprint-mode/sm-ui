@@ -7,4 +7,4 @@ export interface PortalUpdatesV2Props {
     userContactId?: string;
     onNavigate?: (path: string) => void;
 }
-export declare function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId, onNavigate }: PortalUpdatesV2Props): React.JSX.Element;
+export declare function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, userContactId, onNavigate }: PortalUpdatesV2Props): React.JSX.Element;
