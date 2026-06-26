@@ -281,7 +281,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   var _posting = useState(false); var posting = _posting[0]; var setPosting = _posting[1]
   var _closing = useState(false); var closing = _closing[0]; var setClosure = _closing[1]
   var _closeReason = useState(''); var closeReason = _closeReason[0]; var setCloseReason = _closeReason[1]
-  var _viewingAtt = useState<string | null>(null); var viewingAtt = _viewingAtt[0]; var setViewingAtt = _viewingAtt[1]
+  var _viewingAtt = useState<string | null>(null); var _viewingAttVal = _viewingAtt[0]; var _setViewingAtt = _viewingAtt[1]
 
   var sm = STATUS_META[bug.status] || STATUS_META['open']
   var ai: AiClassification | null = null
