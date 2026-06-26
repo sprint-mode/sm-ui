@@ -1317,7 +1317,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, us
 
   if (loading) {
     return (
-      <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
+      <div style={{ padding: 0 }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}>
           <div style={{
             width: 24, height: 24,
@@ -1334,14 +1334,14 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, us
 
   if (error) {
     return (
-      <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ padding: 0 }}>
         <div style={{ padding: 24, color: 'var(--red, #ef4444)', fontSize: 14 }}>{error}</div>
       </div>
     )
   }
 
   return (
-    <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
+    <div style={{ padding: 0 }}>
       <div style={{ marginBottom: 16 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4 }}>{title || 'Inbox'}</h1>
       </div>

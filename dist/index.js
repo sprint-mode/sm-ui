@@ -112637,11 +112637,7 @@ function sNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 		});
 	}
 	return d ? /* @__PURE__ */ l("div", {
-		style: {
-			maxWidth: "var(--max-w-app, 760px)",
-			margin: "0 auto",
-			padding: "24px 16px 80px"
-		},
+		style: { padding: 0 },
 		children: /* @__PURE__ */ u("div", {
 			style: {
 				display: "flex",
@@ -112658,11 +112654,7 @@ function sNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 			} }), /* @__PURE__ */ l("style", { children: "@keyframes pu2-spin { to { transform: rotate(360deg) } }" })]
 		})
 	}) : p ? /* @__PURE__ */ l("div", {
-		style: {
-			maxWidth: "var(--max-w-app, 760px)",
-			margin: "0 auto",
-			padding: "24px 16px"
-		},
+		style: { padding: 0 },
 		children: /* @__PURE__ */ l("div", {
 			style: {
 				padding: 24,
@@ -112672,11 +112664,7 @@ function sNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 			children: p
 		})
 	}) : /* @__PURE__ */ u("div", {
-		style: {
-			maxWidth: "var(--max-w-app, 760px)",
-			margin: "0 auto",
-			padding: "24px 16px 80px"
-		},
+		style: { padding: 0 },
 		children: [
 			/* @__PURE__ */ l("div", {
 				style: { marginBottom: 16 },
