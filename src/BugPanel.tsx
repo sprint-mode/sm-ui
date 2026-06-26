@@ -319,7 +319,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   }
 
   return (
-    <div style={S.card(expanded)} onClick={onToggle}>
+    <div style={S.card(expanded)} onClick={onToggle} data-bug-id={bug.id}>
       <div style={S.meta}>
         <span style={S.dot(sm.color)} />
         <span style={S.typeBadge}>{bug.type || 'bug'}</span>
@@ -567,14 +567,28 @@ export function BugPanel(props: BugPanelProps) {
   }
 
   // Deep link: ?bug=bug_xxx opens panel and expands that bug
+  var deepLinkBugId = useRef<string | null>(null)
   useEffect(function() {
     var params = new URLSearchParams(window.location.search)
     var bugId = params.get('bug')
     if (bugId) {
       setSelfOpen(true)
       setExpanded(bugId)
+      deepLinkBugId.current = bugId
     }
   }, [])
+
+  // Scroll to deep-linked bug once it's rendered
+  useEffect(function() {
+    if (deepLinkBugId.current && bugs.length > 0) {
+      var id = deepLinkBugId.current
+      deepLinkBugId.current = null
+      setTimeout(function() {
+        var el = document.querySelector('[data-bug-id="' + id + '"]')
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }, 100)
+    }
+  }, [bugs])
 
   useEffect(function() {
     if (!showForm) return
