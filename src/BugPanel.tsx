@@ -351,6 +351,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
           {bug.attachments && bug.attachments.length > 0 && (
             <>
               <div style={S.sectionLabel}>Attachments</div>
+              <div onClick={function(e) { e.stopPropagation() }}>
               <UpdateAttachments
                 attachments={bug.attachments.map(function(att) { return { id: att.id, type: att.type || 'file', filename: att.filename, r2Key: att.r2_key || att.id, size: att.size, mime: att.mime } })}
                 updateId={bug.id}
@@ -359,6 +360,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
                     .then(function(r) { return r.json() })
                 }}
               />
+              </div>
             </>
           )}
 

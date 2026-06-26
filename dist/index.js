@@ -105384,23 +105384,28 @@ function uMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 					e.attachments && e.attachments.length > 0 && /* @__PURE__ */ u(c, { children: [/* @__PURE__ */ l("div", {
 						style: Q.sectionLabel,
 						children: "Attachments"
-					}), /* @__PURE__ */ l(e9, {
-						attachments: e.attachments.map(function(e) {
-							return {
-								id: e.id,
-								type: e.type || "file",
-								filename: e.filename,
-								r2Key: e.r2_key || e.id,
-								size: e.size,
-								mime: e.mime
-							};
-						}),
-						updateId: e.id,
-						getSignedUrl: function(t, n) {
-							return fetch(f + "/api/bugs/" + e.id + "/attachments/" + n + "/url", { credentials: "include" }).then(function(e) {
-								return e.json();
-							});
-						}
+					}), /* @__PURE__ */ l("div", {
+						onClick: function(e) {
+							e.stopPropagation();
+						},
+						children: /* @__PURE__ */ l(e9, {
+							attachments: e.attachments.map(function(e) {
+								return {
+									id: e.id,
+									type: e.type || "file",
+									filename: e.filename,
+									r2Key: e.r2_key || e.id,
+									size: e.size,
+									mime: e.mime
+								};
+							}),
+							updateId: e.id,
+							getSignedUrl: function(t, n) {
+								return fetch(f + "/api/bugs/" + e.id + "/attachments/" + n + "/url", { credentials: "include" }).then(function(e) {
+									return e.json();
+								});
+							}
+						})
 					})] }),
 					j && /* @__PURE__ */ u("div", {
 						style: Q.aiTriage,
