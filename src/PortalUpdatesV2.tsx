@@ -32,6 +32,7 @@ interface TaskItem {
   contact_id?: string
   due_date?: string
   product?: string
+  created_at?: string
 }
 
 interface BugItem {
@@ -178,6 +179,41 @@ function initials(name: string | undefined): string {
   return (name || 'A').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase()
 }
 
+// ─── Seen tracking helpers ─────────────────────────────────────────────────────
+
+var SEEN_KEY_PREFIX = 'sm_inbox_seen_'
+
+function getTabSeenAt(tabId: string): number {
+  try {
+    var val = localStorage.getItem(SEEN_KEY_PREFIX + tabId)
+    return val ? parseInt(val, 10) : 0
+  } catch { return 0 }
+}
+
+function setTabSeenAt(tabId: string): void {
+  try { localStorage.setItem(SEEN_KEY_PREFIX + tabId, String(Date.now())) } catch {}
+}
+
+function isItemNew(dateStr: string | undefined, seenAt: number): boolean {
+  if (!dateStr || !seenAt) return !seenAt && !!dateStr
+  return new Date(dateStr).getTime() > seenAt
+}
+
+function NewDot() {
+  return <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c5cbf', flexShrink: 0 }} />
+}
+
+function SeenDotPlaceholder() {
+  return <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent', flexShrink: 0 }} />
+}
+
+function NewPill({ label }: { label?: string }) {
+  return <span style={{
+    fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 10,
+    background: '#EEEDFE', color: '#534AB7', whiteSpace: 'nowrap', flexShrink: 0,
+  }}>{label || 'New'}</span>
+}
+
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 
 function Pill({ label, bg, color }: { label: string; bg: string; color: string }) {
@@ -250,9 +286,10 @@ function SelectFilter({ value, onChange, options }: { value: string; onChange: (
 
 // ─── Tab content renderers ──────────────────────────────────────────────────────
 
-function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2Props['api'] }) {
+function GeneralTab({ items, api, lastSeenAt }: { items: UpdateItem[]; api: PortalUpdatesV2Props['api']; lastSeenAt?: number }) {
   var [filter, setFilter] = useState('all')
   var [expandedId, setExpandedId] = useState<string | null>(null)
+  var seenAt = lastSeenAt || 0
   var filtered = items.filter(function(i) {
     if (filter === 'unread') return !i.read_at
     if (filter === 'read') return !!i.read_at
@@ -276,6 +313,7 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {filtered.map(function(item) {
             var isRead = !!item.read_at
+            var itemIsNew = isItemNew(item.published_at, seenAt)
             var isExpanded = expandedId === item.id
             return (
               <div key={item.id} style={{
@@ -285,16 +323,17 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
               }} onClick={function() { setExpandedId(isExpanded ? null : item.id) }}>
                 <div style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    {!isRead && <span style={{
+                    {itemIsNew ? <NewDot /> : (!isRead ? <span style={{
                       width: 6, height: 6, borderRadius: '50%', background: '#378ADD',
                       flexShrink: 0, marginTop: 6,
-                    }} />}
+                    }} /> : <SeenDotPlaceholder />)}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
                         <span style={{
-                          fontSize: 14, fontWeight: isRead ? 400 : 600,
-                          color: 'var(--text-0, inherit)',
+                          fontSize: 14, fontWeight: itemIsNew ? 500 : (isRead ? 400 : 600),
+                          color: itemIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)',
                         }}>{item.title}</span>
+                        {itemIsNew && <NewPill />}
                         <TypePill type={item.update_type || item.comm_type} />
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--text-3, #9ca3af)' }}>
@@ -340,10 +379,11 @@ function GeneralTab({ items, api }: { items: UpdateItem[]; api: PortalUpdatesV2P
   )
 }
 
-function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
+function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
   var [statusFilter, setStatusFilter] = useState('all')
   var [completing, setCompleting] = useState<string | null>(null)
   var [localItems, setLocalItems] = useState(items)
+  var seenAt = lastSeenAt || 0
 
   useEffect(function() { setLocalItems(items) }, [items])
 
@@ -387,6 +427,7 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
           {filtered.map(function(item) {
             var isDone = item.status === 'completed'
             var isCompleting = completing === item.id
+            var itemIsNew = isItemNew(item.created_at || item.due_date, seenAt)
             return (
               <div key={item.id} onClick={function() { handleRowClick(item) }} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
@@ -394,6 +435,7 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
                 cursor: onNavigate ? 'pointer' : 'default',
                 transition: 'background .1s',
               }}>
+                {itemIsNew ? <NewDot /> : <SeenDotPlaceholder />}
                 <div onClick={function(e) { if (!isDone && !isCompleting) markComplete(e, item.id) }} style={{
                   width: 18, height: 18, borderRadius: 4, flexShrink: 0,
                   border: isDone ? '1.5px solid #639922' : '1.5px solid var(--border-2, #d1d5db)',
@@ -405,12 +447,14 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
                   {isDone && <span style={{ fontSize: 12, color: '#639922' }}>&#10003;</span>}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{
-                    fontSize: 13, fontWeight: 500,
-                    color: isDone ? 'var(--text-3, #9ca3af)' : 'var(--text-0, inherit)',
-                    marginBottom: 2,
-                    textDecoration: isDone ? 'line-through' : 'none',
-                  }}>{item.title}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                    <span style={{
+                      fontSize: 13, fontWeight: itemIsNew ? 500 : 500,
+                      color: isDone ? 'var(--text-3, #9ca3af)' : (itemIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)'),
+                      textDecoration: isDone ? 'line-through' : 'none',
+                    }}>{item.title}</span>
+                    {itemIsNew && !isDone && <NewPill />}
+                  </div>
                   <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
                     {item.company_name ? item.company_name + ' · ' : ''}
                     {(item.task_type || '').replace(/_/g, ' ')}
@@ -428,10 +472,11 @@ function TasksTab({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUp
   )
 }
 
-function BugsTab({ items, commentNotifications, onNavigate }: { items: BugItem[]; commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void }) {
+function BugsTab({ items, commentNotifications, onNavigate, lastSeenAt }: { items: BugItem[]; commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
   var [typeFilter, setTypeFilter] = useState('all')
   var [prioFilter, setPrioFilter] = useState('all')
   var [expandedId, setExpandedId] = useState<string | null>(null)
+  var seenAt = lastSeenAt || 0
 
   var typeSet = new Set<string>()
   items.forEach(function(i) { if (i.type) typeSet.add(i.type) })
@@ -498,8 +543,12 @@ function BugsTab({ items, commentNotifications, onNavigate }: { items: BugItem[]
                   padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
                   cursor: 'pointer', transition: 'background .1s',
                 }}>
+                  {(function() { var bugIsNew = isItemNew(item.created_at, seenAt); return bugIsNew ? <NewDot /> : <SeenDotPlaceholder /> })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>{item.title}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: isItemNew(item.created_at, seenAt) ? 500 : 500, color: isItemNew(item.created_at, seenAt) ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)' }}>{item.title}</span>
+                      {isItemNew(item.created_at, seenAt) && <NewPill />}
+                    </div>
                     <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
                       {item.product ? item.product + ' · ' : ''}
                       {item.thread_id || ''}
@@ -543,7 +592,7 @@ function BugsTab({ items, commentNotifications, onNavigate }: { items: BugItem[]
 
 // ─── Portal support tab (client/investor) ────────────────────────────────────
 
-function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[]; api: PortalUpdatesV2Props['api']; subdomain: string }) {
+function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: SupportThread[]; api: PortalUpdatesV2Props['api']; subdomain: string; lastSeenAt?: number }) {
   var [statusFilter, setStatusFilter] = useState('all')
   var [expandedId, setExpandedId] = useState<string | null>(null)
   var [messages, setMessages] = useState<SupportMessage[]>([])
@@ -553,6 +602,7 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
   var [queuedAttachments, setQueuedAttachments] = useState<Attachment[]>([])
   var [uploading, setUploading] = useState(false)
   var fileInputRef = useRef<HTMLInputElement>(null)
+  var seenAt = lastSeenAt || 0
 
   var filtered = threads.filter(function(t) {
     if (statusFilter === 'active') return t.status === 'active' || t.status === 'escalated'
@@ -652,17 +702,25 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
                   padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
                   cursor: 'pointer',
                 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>
-                      {t.subject || 'Support thread'}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
-                      {t.message_count ? t.message_count + ' messages · ' : ''}
-                      {t.updated_at ? relativeTime(t.updated_at) : ''}
-                      {t.last_role ? ' · ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : ''}
-                    </div>
-                  </div>
-                  <StatusPill status={t.status === 'active' || t.status === 'escalated' ? 'active' : 'resolved'} />
+                  {(function() {
+                    var threadIsNew = isItemNew(t.updated_at || t.created_at, seenAt)
+                    var isNewThread = isItemNew(t.created_at, seenAt)
+                    return React.createElement(React.Fragment, null,
+                      threadIsNew ? React.createElement(NewDot, null) : React.createElement(SeenDotPlaceholder, null),
+                      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
+                        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 } },
+                          React.createElement('span', { style: { fontSize: 13, fontWeight: threadIsNew ? 500 : 500, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)' } }, t.subject || 'Support thread'),
+                          threadIsNew ? React.createElement(NewPill, { label: isNewThread ? 'New' : 'New reply' }) : null
+                        ),
+                        React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3, #9ca3af)' } },
+                          (t.message_count ? t.message_count + ' messages \u00b7 ' : '') +
+                          (t.updated_at ? relativeTime(t.updated_at) : '') +
+                          (t.last_role ? ' \u00b7 ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : '')
+                        )
+                      ),
+                      React.createElement(StatusPill, { status: t.status === 'active' || t.status === 'escalated' ? 'active' : 'resolved' })
+                    )
+                  })()}
                 </div>
                 {isExpanded && (
                   <div style={{
@@ -783,7 +841,7 @@ function SupportTabPortal({ threads, api, subdomain }: { threads: SupportThread[
 
 // ─── Admin support tab (flat-list layout) ────────────────────────────────────
 
-function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
+function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void; lastSeenAt?: number; onHasNew?: (hasNew: boolean) => void }) {
   var [threads, setThreads] = useState<SupportThread[]>([])
   var [loading, setLoading] = useState(true)
   var [statusFilter, setStatusFilter] = useState('all')
@@ -796,6 +854,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
   var [adminQueuedAttachments, setAdminQueuedAttachments] = useState<Attachment[]>([])
   var [adminUploading, setAdminUploading] = useState(false)
   var adminFileInputRef = useRef<HTMLInputElement>(null)
+  var seenAt = lastSeenAt || 0
 
   var loadList = useCallback(function() {
     setLoading(true)
@@ -803,9 +862,16 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
     if (statusFilter !== 'all') qs += '&status=' + statusFilter
     if (productFilter !== 'all') qs += '&product=' + productFilter
     api('/api/support/threads?' + qs.replace(/^&/, '')).then(function(res) {
-      if (res.ok) setThreads((res.data as { threads?: SupportThread[] })?.threads || [])
+      if (res.ok) {
+        var loadedThreads = (res.data as { threads?: SupportThread[] })?.threads || []
+        setThreads(loadedThreads)
+        if (onHasNew) {
+          var hasAnyNew = loadedThreads.some(function(t) { return isItemNew(t.updated_at || t.created_at, seenAt) })
+          onHasNew(hasAnyNew)
+        }
+      }
     }).catch(function() {}).finally(function() { setLoading(false) })
-  }, [api, statusFilter, productFilter])
+  }, [api, statusFilter, productFilter, onHasNew, seenAt])
 
   useEffect(function() { loadList() }, [loadList])
 
@@ -931,6 +997,8 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
             var contact = threadDetail?.context?.contact as Record<string, unknown> | undefined
             var company = threadDetail?.context?.company as Record<string, unknown> | undefined
             var engagement = threadDetail?.context?.engagement as Record<string, unknown> | undefined
+            var threadIsNew = isItemNew(t.updated_at || t.created_at, seenAt)
+            var isNewThread = isItemNew(t.created_at, seenAt)
             return (
               <div key={t.id}>
                 {/* Row */}
@@ -939,6 +1007,7 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                   padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
                   cursor: 'pointer',
                 }}>
+                  {threadIsNew ? <NewDot /> : <SeenDotPlaceholder />}
                   <div style={{
                     width: 30, height: 30, borderRadius: '50%', flexShrink: 0,
                     background: t.status === 'escalated' ? '#FCEBEB' : 'var(--accent-soft, #EEEDFE)',
@@ -947,8 +1016,11 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
                     fontSize: 11, fontWeight: 700,
                   }}>{initials(name)}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>
-                      {t.subject || name}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: threadIsNew ? 500 : 500, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)' }}>
+                        {t.subject || name}
+                      </span>
+                      {threadIsNew && <NewPill label={isNewThread ? 'New' : 'New reply'} />}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {name}{t.last_message ? ' · ' + t.last_message : ''}
@@ -1112,11 +1184,20 @@ function SupportTabAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId, onNavigate }: PortalUpdatesV2Props) {
+export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, userContactId, onNavigate }: PortalUpdatesV2Props) {
   var [loading, setLoading] = useState(true)
   var [error, setError] = useState<string | null>(null)
   var [audiences, setAudiences] = useState<string[]>([])
   var [activeTab, setActiveTab] = useState<TabId | null>(null)
+  var [supportAdminHasNew, setSupportAdminHasNew] = useState(false)
+
+  // Seen-at timestamps per tab (from localStorage)
+  var [seenTimestamps, setSeenTimestamps] = useState<Record<string, number>>(function() {
+    var ts: Record<string, number> = {}
+    var tabIds: TabId[] = ['general', 'tasks', 'project', 'bugs', 'reports', 'support']
+    tabIds.forEach(function(id) { ts[id] = getTabSeenAt(id) })
+    return ts
+  })
 
   // Data stores
   var [generalItems, setGeneralItems] = useState<UpdateItem[]>([])
@@ -1212,6 +1293,28 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
     effectiveTab = tabs.length > 0 ? tabs[0].id : null
   }
 
+  // Compute per-tab hasNew for tab dots
+  function tabHasNew(tabId: TabId): boolean {
+    var ts = seenTimestamps[tabId] || 0
+    if (tabId === 'general') return generalItems.some(function(i) { return isItemNew(i.published_at, ts) })
+    if (tabId === 'tasks') return taskItems.some(function(i) { return isItemNew(i.created_at || i.due_date, ts) })
+    if (tabId === 'project' || tabId === 'reports') return projectItems.some(function(i) { return isItemNew(i.published_at, ts) })
+    if (tabId === 'bugs') return bugItems.some(function(i) { return isItemNew(i.created_at, ts) }) || bugCommentItems.some(function(i) { return isItemNew(i.published_at, ts) })
+    if (tabId === 'support' && isTeam) return supportAdminHasNew
+    if (tabId === 'support') return supportThreads.some(function(t) { return isItemNew(t.updated_at || t.created_at, ts) })
+    return false
+  }
+
+  function handleTabClick(tabId: TabId) {
+    setActiveTab(tabId)
+    setTabSeenAt(tabId)
+    setSeenTimestamps(function(prev) {
+      var next = Object.assign({}, prev)
+      next[tabId] = Date.now()
+      return next
+    })
+  }
+
   if (loading) {
     return (
       <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
@@ -1240,18 +1343,18 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
   return (
     <div style={{ maxWidth: 'var(--max-w-app, 760px)', margin: '0 auto', padding: '24px 16px 80px' }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4 }}>{title || 'Updates'}</h1>
-        {subtitle && <p style={{ fontSize: 13, color: 'var(--text-3, #9ca3af)', margin: 0 }}>{subtitle}</p>}
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4 }}>{title || 'Inbox'}</h1>
       </div>
 
       {tabs.length > 1 && (
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: 16 }}>
           {tabs.map(function(tab) {
             var isActive = tab.id === effectiveTab
+            var hasNew = tabHasNew(tab.id)
             return (
               <button
                 key={tab.id}
-                onClick={function() { setActiveTab(tab.id) }}
+                onClick={function() { handleTabClick(tab.id) }}
                 style={{
                   fontSize: 13, padding: '8px 16px', cursor: 'pointer',
                   border: 'none', background: 'none',
@@ -1259,29 +1362,31 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle, userContactId
                   color: isActive ? 'var(--text-0, inherit)' : 'var(--text-3, #9ca3af)',
                   fontWeight: isActive ? 600 : 400,
                   transition: 'color .15s, border-color .15s',
+                  display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
                 {tab.label}
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  minWidth: 18, height: 18, borderRadius: 99, marginLeft: 6,
+                  minWidth: 18, height: 18, borderRadius: 99,
                   fontSize: 10, fontWeight: 500, padding: '0 5px',
                   background: isActive ? 'var(--accent-bg, #EEEDFE)' : 'var(--bg-2, #f3f4f6)',
                   color: isActive ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)',
                 }}>{tab.count}</span>
+                {hasNew && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c5cbf', flexShrink: 0 }} />}
               </button>
             )
           })}
         </div>
       )}
 
-      {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} />}
-      {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} />}
-      {effectiveTab === 'bugs' && <BugsTab items={bugItems} commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} />}
-      {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} />}
-      {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} />}
-      {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} />}
-      {effectiveTab === 'support' && !isTeam && subdomain && <SupportTabPortal threads={supportThreads} api={api} subdomain={subdomain} />}
+      {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} lastSeenAt={seenTimestamps.general} />}
+      {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.tasks} />}
+      {effectiveTab === 'bugs' && <BugsTab items={bugItems} commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} />}
+      {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.project} />}
+      {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.reports} />}
+      {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.support} onHasNew={setSupportAdminHasNew} />}
+      {effectiveTab === 'support' && !isTeam && subdomain && <SupportTabPortal threads={supportThreads} api={api} subdomain={subdomain} lastSeenAt={seenTimestamps.support} />}
     </div>
   )
 }

@@ -873,6 +873,12 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     var handler = function(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCmdkOpen(true) }
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); if (bugPanelEnabled) setBugPanelOpen(function(v) { return !v }) }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+        var tag = (document.activeElement?.tagName || '').toLowerCase()
+        if (tag !== 'input' && tag !== 'textarea' && !(document.activeElement as HTMLElement)?.isContentEditable) {
+          e.preventDefault(); navigate('/user/updates')
+        }
+      }
     }
     window.addEventListener('keydown', handler)
     return function() { window.removeEventListener('keydown', handler) }
