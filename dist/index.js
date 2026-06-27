@@ -103976,10 +103976,12 @@ function K7(t) {
 	function p(e) {
 		o && (e.preventDefault(), o(r));
 	}
+	var m = typeof navigator < "u" && navigator.platform && navigator.platform.indexOf("Mac") !== -1;
 	return e.createElement("a", {
 		href: r,
 		onClick: p,
 		"aria-label": "Inbox" + (u ? " (new items)" : ""),
+		title: m ? "Inbox (⌘I)" : "Inbox (Ctrl+I)",
 		style: {
 			position: "relative",
 			width: 34,
@@ -106828,10 +106830,11 @@ function l9(e) {
 	})] });
 }
 function u9({ onClick: t }) {
+	var n = typeof navigator < "u" && navigator.platform && navigator.platform.indexOf("Mac") !== -1;
 	return e.createElement("button", {
 		onClick: t,
 		"aria-label": "Report bug",
-		title: "Bug Catcher (Ctrl+B)",
+		title: n ? "Bug Catcher (⌘B)" : "Bug Catcher (Ctrl+B)",
 		style: {
 			width: 34,
 			height: 34,
@@ -107452,7 +107455,7 @@ var x9 = {
 	investors: "ti-chart-pie",
 	docs: "ti-file-text",
 	dev: "ti-terminal-2",
-	website: "ti-world",
+	website: "ti-globe",
 	privacyai: "ti-shield-lock",
 	"privacyai-docs": "ti-shield-lock",
 	nomada: "ti-home",
@@ -107520,6 +107523,12 @@ function CMe({ open: t, onClose: n }) {
 			}
 			if (e.key === "Enter") {
 				e.preventDefault(), _(a);
+				return;
+			}
+			if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "c" || e.key === "C")) {
+				e.preventDefault(), c(function(e) {
+					return g.length ? (e - 1 + g.length) % g.length : 0;
+				});
 				return;
 			}
 			(e.metaKey || e.ctrlKey) && e.key === "c" && (e.preventDefault(), c(function(e) {

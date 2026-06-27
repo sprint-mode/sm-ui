@@ -484,7 +484,7 @@ var ICON_KEY_SVG_PATHS: Record<string, string> = {
 var PORTAL_ICONS: Record<string, string> = {
   admin: 'ti-layout-dashboard', studios: 'ti-code', signal: 'ti-chart-bar',
   mode: 'ti-scan', hub: 'ti-server-2', investors: 'ti-chart-pie',
-  docs: 'ti-file-text', dev: 'ti-terminal-2', website: 'ti-world',
+  docs: 'ti-file-text', dev: 'ti-terminal-2', website: 'ti-globe',
   privacyai: 'ti-shield-lock', 'privacyai-docs': 'ti-shield-lock',
   nomada: 'ti-home', safeshepherd: 'ti-shield-check', capital: 'ti-chart-pie',
   launchpad: 'ti-rocket',
@@ -536,6 +536,11 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
       if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 }); return }
       if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 }); return }
       if (e.key === 'Enter') { e.preventDefault(); openPortal(sel); return }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault()
+        setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 })
+        return
+      }
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
         e.preventDefault()
         setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 })
