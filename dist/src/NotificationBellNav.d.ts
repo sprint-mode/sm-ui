@@ -9,6 +9,7 @@ export declare function NotificationBellNav(props: NotificationBellNavProps): Re
     href: string;
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => void;
     'aria-label': string;
+    title: string;
     style: {
         position: "relative";
         width: number;
