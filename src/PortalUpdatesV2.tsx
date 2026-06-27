@@ -97,6 +97,7 @@ export interface PortalUpdatesV2Props {
   subdomain?: string
   title?: string
   subtitle?: string
+  shortcutKey?: string
   userContactId?: string
   onNavigate?: (path: string) => void
 }
@@ -1174,7 +1175,7 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, userContactId, onNavigate }: PortalUpdatesV2Props) {
+export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, shortcutKey, userContactId, onNavigate }: PortalUpdatesV2Props) {
   var [loading, setLoading] = useState(true)
   var [error, setError] = useState<string | null>(null)
   var [audiences, setAudiences] = useState<string[]>([])
@@ -1333,7 +1334,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, us
   return (
     <div style={{ padding: 0 }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4 }}>{title || 'Inbox'}</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>{title || 'Inbox'}{shortcutKey && <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4, fontFamily: 'var(--font-mono,monospace)', fontWeight: 400 }}>{typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318' + shortcutKey.toUpperCase() : 'Ctrl+' + shortcutKey.toUpperCase()}</kbd>}</h1>
       </div>
 
       {tabs.length > 1 && (

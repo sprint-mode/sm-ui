@@ -858,7 +858,9 @@ export function BugPanel(props: BugPanelProps) {
       <div data-bug-panel="" style={Object.assign({}, S.panel, isMobile ? S.panelMobile : {})}>
 
         <div style={S.header}>
-          <span style={S.title}>{isAdmin ? 'Bug Panel' : label}</span>
+          <span style={S.title}>{isAdmin ? 'Bug Catcher' : label}</span>
+          <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4, marginLeft: 6, fontFamily: 'var(--font-mono,monospace)' }}>{typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318B' : 'Ctrl+B'}</kbd>
+          <span style={{ flex: 1 }} />
           <button style={S.closeBtn} onClick={closePanel}><CloseIcon /></button>
         </div>
 
@@ -1102,7 +1104,7 @@ export function BugPanelHeaderButton({ onClick }: BugPanelHeaderButtonProps) {
   return React.createElement('button', {
     onClick: onClick,
     'aria-label': 'Report bug',
-    title: 'Report Bug (Ctrl+B)',
+    title: 'Bug Catcher (Ctrl+B)',
     style: {
       width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7,
       background: 'var(--bg-card)', cursor: 'pointer', display: 'flex',

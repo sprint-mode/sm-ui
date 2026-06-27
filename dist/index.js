@@ -106168,14 +106168,32 @@ function l9(e) {
 		children: [
 			/* @__PURE__ */ u("div", {
 				style: Z.header,
-				children: [/* @__PURE__ */ l("span", {
-					style: Z.title,
-					children: t ? "Bug Panel" : d
-				}), /* @__PURE__ */ l("button", {
-					style: Z.closeBtn,
-					onClick: it,
-					children: /* @__PURE__ */ l(cMe, {})
-				})]
+				children: [
+					/* @__PURE__ */ l("span", {
+						style: Z.title,
+						children: t ? "Bug Catcher" : d
+					}),
+					/* @__PURE__ */ l("kbd", {
+						style: {
+							fontSize: 10,
+							padding: "1px 5px",
+							border: "1px solid var(--border)",
+							borderRadius: 4,
+							background: "var(--bg-subtle,var(--bg))",
+							color: "var(--muted)",
+							lineHeight: 1.4,
+							marginLeft: 6,
+							fontFamily: "var(--font-mono,monospace)"
+						},
+						children: typeof navigator < "u" && navigator.platform && navigator.platform.indexOf("Mac") !== -1 ? "⌘B" : "Ctrl+B"
+					}),
+					/* @__PURE__ */ l("span", { style: { flex: 1 } }),
+					/* @__PURE__ */ l("button", {
+						style: Z.closeBtn,
+						onClick: it,
+						children: /* @__PURE__ */ l(cMe, {})
+					})
+				]
 			}),
 			t && /* @__PURE__ */ u("div", {
 				style: Z.sourceToggle,
@@ -106813,7 +106831,7 @@ function u9({ onClick: t }) {
 	return e.createElement("button", {
 		onClick: t,
 		"aria-label": "Report bug",
-		title: "Report Bug (Ctrl+B)",
+		title: "Bug Catcher (Ctrl+B)",
 		style: {
 			width: 34,
 			height: 34,
@@ -108008,7 +108026,7 @@ var OMe = function(t) {
 		var e = function(e) {
 			if ((e.metaKey || e.ctrlKey) && e.key === "k" && (e.preventDefault(), he(!0)), (e.metaKey || e.ctrlKey) && e.key === "b" && (e.preventDefault(), ae && _e(function(e) {
 				return !e;
-			})), (e.metaKey || e.ctrlKey) && e.key === "i") {
+			})), (e.metaKey || e.ctrlKey) && e.key === "i" && (e.preventDefault(), ye && ye(L || "/user/updates")), (e.metaKey || e.ctrlKey) && e.key === "i") {
 				var t = (document.activeElement?.tagName || "").toLowerCase();
 				t !== "input" && t !== "textarea" && !document.activeElement?.isContentEditable && (e.preventDefault(), ye("/user/updates"));
 			}
@@ -112468,8 +112486,8 @@ function aNe({ api: e, onNavigate: t, lastSeenAt: r, onHasNew: a }) {
 		})
 	})] });
 }
-function oNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, onNavigate: c }) {
-	var [d, f] = s(!0), [p, m] = s(null), [h, g] = s([]), [_, v] = s(null), [y, b] = s(!1), [x, S] = s(function() {
+function oNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, userContactId: c, onNavigate: d }) {
+	var [f, p] = s(!0), [m, h] = s(null), [g, _] = s([]), [v, y] = s(null), [b, x] = s(!1), [S, C] = s(function() {
 		var e = {};
 		return [
 			"general",
@@ -112481,37 +112499,37 @@ function oNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 		].forEach(function(t) {
 			e[t] = eNe(t);
 		}), e;
-	}), [C, w] = s([]), [T, E] = s([]), [D, O] = s([]), [k, A] = s([]), [j, M] = s([]), [N, P] = s([]), F = n(function() {
-		f(!0), m(null);
+	}), [w, T] = s([]), [E, D] = s([]), [O, k] = s([]), [A, j] = s([]), [M, N] = s([]), [P, F] = s([]), I = n(function() {
+		p(!0), h(null);
 		var n = e("/api/portal/updates").then(function(e) {
 			var t = e.data, n = t?.items || [], r = t?.audiences || ["clients"];
-			g(r);
+			_(r);
 			var i = [], a = [];
 			if (n.forEach(function(e) {
 				e.comm_type === "bug_comment" || e.update_type === "bug_comment" ? i.push(e) : a.push(e);
-			}), O(i), r.includes("team")) {
-				w(a);
+			}), k(i), r.includes("team")) {
+				T(a);
 				return;
 			}
 			var o = [], s = [];
 			a.forEach(function(e) {
 				e.update_type === "ai_weekly" || e.update_type === "sprint_report" ? s.push(e) : o.push(e);
-			}), w(o), E(s);
+			}), T(o), D(s);
 		}), r = e("/api/portal/tasks").then(function(e) {
 			var t = e.data;
-			A(t?.items || []);
+			j(t?.items || []);
 		}).catch(function() {
-			A([]);
-		}), i = e("/api/bugs/threads" + (o ? "?assigned_to=" + o : "")).then(function(e) {
+			j([]);
+		}), i = e("/api/bugs/threads" + (c ? "?assigned_to=" + c : "")).then(function(e) {
 			var t = e.data;
-			M(t || []);
+			N(t || []);
 		}).catch(function() {
-			M([]);
+			N([]);
 		}), a = t ? e("/api/portals/" + t + "/support/threads").then(function(e) {
 			var t = e.data;
-			P(t || []);
+			F(t || []);
 		}).catch(function() {
-			P([]);
+			F([]);
 		}) : Promise.resolve();
 		Promise.all([
 			n,
@@ -112519,73 +112537,73 @@ function oNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 			i,
 			a
 		]).then(function() {
-			f(!1);
+			p(!1);
 		}).catch(function(e) {
-			m(e.message || "Failed to load"), f(!1);
+			h(e.message || "Failed to load"), p(!1);
 		});
 	}, [
 		e,
 		t,
-		o
+		c
 	]);
 	i(function() {
-		F();
-	}, [F]);
-	var I = [];
-	h.length > 0 && (I.push({
+		I();
+	}, [I]);
+	var L = [];
+	g.length > 0 && (L.push({
 		id: "general",
 		label: "General",
-		count: C.length
-	}), I.push({
+		count: w.length
+	}), L.push({
 		id: "tasks",
 		label: "Tasks",
-		count: k.length
-	}), h.includes("clients") && I.push({
+		count: A.length
+	}), g.includes("clients") && L.push({
 		id: "project",
 		label: "Project",
-		count: T.length
-	}), h.includes("investors") && I.push({
+		count: E.length
+	}), g.includes("investors") && L.push({
 		id: "reports",
 		label: "Reports",
-		count: T.length
-	}), h.includes("team") && I.push({
+		count: E.length
+	}), g.includes("team") && L.push({
 		id: "bugs",
 		label: "Bugs",
-		count: j.length + D.length
-	}), I.push({
+		count: M.length + O.length
+	}), L.push({
 		id: "support",
 		label: "Support",
-		count: h.includes("team") ? 0 : N.length
+		count: g.includes("team") ? 0 : P.length
 	}));
-	var L = h.includes("team"), R = c || (L ? function(e) {
+	var R = g.includes("team"), z = d || (R ? function(e) {
 		window.open("https://admin.sprintmode.ai" + e, "_blank");
-	} : void 0), z = _;
-	(!z || !I.find(function(e) {
-		return e.id === z;
-	})) && (z = I.length > 0 ? I[0].id : null);
-	function B(e) {
-		var t = x[e] || 0;
-		return e === "general" ? C.some(function(e) {
+	} : void 0), B = v;
+	(!B || !L.find(function(e) {
+		return e.id === B;
+	})) && (B = L.length > 0 ? L[0].id : null);
+	function V(e) {
+		var t = S[e] || 0;
+		return e === "general" ? w.some(function(e) {
 			return Q(e.published_at, t);
-		}) : e === "tasks" ? k.some(function(e) {
+		}) : e === "tasks" ? A.some(function(e) {
 			return Q(e.created_at || e.due_date, t);
-		}) : e === "project" || e === "reports" ? T.some(function(e) {
+		}) : e === "project" || e === "reports" ? E.some(function(e) {
 			return Q(e.published_at, t);
-		}) : e === "bugs" ? j.some(function(e) {
+		}) : e === "bugs" ? M.some(function(e) {
 			return Q(e.created_at, t);
-		}) || D.some(function(e) {
+		}) || O.some(function(e) {
 			return Q(e.published_at, t);
-		}) : e === "support" && L ? y : e === "support" ? N.some(function(e) {
+		}) : e === "support" && R ? b : e === "support" ? P.some(function(e) {
 			return Q(e.updated_at || e.created_at, t);
 		}) : !1;
 	}
-	function V(e) {
-		v(e), tNe(e), S(function(t) {
+	function H(e) {
+		y(e), tNe(e), C(function(t) {
 			var n = Object.assign({}, t);
 			return n[e] = Date.now(), n;
 		});
 	}
-	return d ? /* @__PURE__ */ l("div", {
+	return f ? /* @__PURE__ */ l("div", {
 		style: { padding: 0 },
 		children: /* @__PURE__ */ u("div", {
 			style: {
@@ -112602,7 +112620,7 @@ function oNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 				animation: "pu2-spin 0.7s linear infinite"
 			} }), /* @__PURE__ */ l("style", { children: "@keyframes pu2-spin { to { transform: rotate(360deg) } }" })]
 		})
-	}) : p ? /* @__PURE__ */ l("div", {
+	}) : m ? /* @__PURE__ */ l("div", {
 		style: { padding: 0 },
 		children: /* @__PURE__ */ l("div", {
 			style: {
@@ -112610,35 +112628,51 @@ function oNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 				color: "var(--red, #ef4444)",
 				fontSize: 14
 			},
-			children: p
+			children: m
 		})
 	}) : /* @__PURE__ */ u("div", {
 		style: { padding: 0 },
 		children: [
 			/* @__PURE__ */ l("div", {
 				style: { marginBottom: 16 },
-				children: /* @__PURE__ */ l("h1", {
+				children: /* @__PURE__ */ u("h1", {
 					style: {
 						fontSize: 20,
 						fontWeight: 600,
 						color: "var(--text-0, inherit)",
-						marginBottom: 4
+						marginBottom: 4,
+						display: "flex",
+						alignItems: "center",
+						gap: 8
 					},
-					children: r || "Inbox"
+					children: [r || "Inbox", o && /* @__PURE__ */ l("kbd", {
+						style: {
+							fontSize: 10,
+							padding: "1px 5px",
+							border: "1px solid var(--border)",
+							borderRadius: 4,
+							background: "var(--bg-subtle,var(--bg))",
+							color: "var(--muted)",
+							lineHeight: 1.4,
+							fontFamily: "var(--font-mono,monospace)",
+							fontWeight: 400
+						},
+						children: typeof navigator < "u" && navigator.platform && navigator.platform.indexOf("Mac") !== -1 ? "⌘" + o.toUpperCase() : "Ctrl+" + o.toUpperCase()
+					})]
 				})
 			}),
-			I.length > 1 && /* @__PURE__ */ l("div", {
+			L.length > 1 && /* @__PURE__ */ l("div", {
 				style: {
 					display: "flex",
 					gap: 0,
 					borderBottom: "1px solid var(--border, #e5e7eb)",
 					marginBottom: 16
 				},
-				children: I.map(function(e) {
-					var t = e.id === z, n = B(e.id);
+				children: L.map(function(e) {
+					var t = e.id === B, n = V(e.id);
 					return /* @__PURE__ */ u("button", {
 						onClick: function() {
-							V(e.id);
+							H(e.id);
 						},
 						style: {
 							fontSize: 13,
@@ -112683,44 +112717,44 @@ function oNe({ api: e, subdomain: t, title: r, subtitle: a, userContactId: o, on
 					}, e.id);
 				})
 			}),
-			z === "general" && /* @__PURE__ */ l(X9, {
-				items: C,
+			B === "general" && /* @__PURE__ */ l(X9, {
+				items: w,
 				api: e,
-				lastSeenAt: x.general
+				lastSeenAt: S.general
 			}),
-			z === "tasks" && /* @__PURE__ */ l(nNe, {
-				items: k,
+			B === "tasks" && /* @__PURE__ */ l(nNe, {
+				items: A,
 				api: e,
-				onNavigate: R,
-				lastSeenAt: x.tasks
+				onNavigate: z,
+				lastSeenAt: S.tasks
 			}),
-			z === "bugs" && /* @__PURE__ */ l(rNe, {
-				items: j,
-				commentNotifications: D,
-				onNavigate: R,
-				lastSeenAt: x.bugs
+			B === "bugs" && /* @__PURE__ */ l(rNe, {
+				items: M,
+				commentNotifications: O,
+				onNavigate: z,
+				lastSeenAt: S.bugs
 			}),
-			z === "project" && /* @__PURE__ */ l(X9, {
-				items: T,
+			B === "project" && /* @__PURE__ */ l(X9, {
+				items: E,
 				api: e,
-				lastSeenAt: x.project
+				lastSeenAt: S.project
 			}),
-			z === "reports" && /* @__PURE__ */ l(X9, {
-				items: T,
+			B === "reports" && /* @__PURE__ */ l(X9, {
+				items: E,
 				api: e,
-				lastSeenAt: x.reports
+				lastSeenAt: S.reports
 			}),
-			z === "support" && L && /* @__PURE__ */ l(aNe, {
+			B === "support" && R && /* @__PURE__ */ l(aNe, {
 				api: e,
-				onNavigate: R,
-				lastSeenAt: x.support,
-				onHasNew: b
+				onNavigate: z,
+				lastSeenAt: S.support,
+				onHasNew: x
 			}),
-			z === "support" && !L && t && /* @__PURE__ */ l(iNe, {
-				threads: N,
+			B === "support" && !R && t && /* @__PURE__ */ l(iNe, {
+				threads: P,
 				api: e,
 				subdomain: t,
-				lastSeenAt: x.support
+				lastSeenAt: S.support
 			})
 		]
 	});
