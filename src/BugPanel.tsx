@@ -1101,10 +1101,11 @@ export function BugPanel(props: BugPanelProps) {
 }
 
 export function BugPanelHeaderButton({ onClick }: BugPanelHeaderButtonProps) {
+  var isMac = typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1
   return React.createElement('button', {
     onClick: onClick,
     'aria-label': 'Report bug',
-    title: 'Bug Catcher (Ctrl+B)',
+    title: isMac ? 'Bug Catcher (\u2318B)' : 'Bug Catcher (Ctrl+B)',
     style: {
       width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7,
       background: 'var(--bg-card)', cursor: 'pointer', display: 'flex',

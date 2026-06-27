@@ -53,10 +53,13 @@ export function NotificationBellNav(props: NotificationBellNavProps) {
     }
   }
 
+  var isMac = typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1
+
   return React.createElement('a', {
     href: href,
     onClick: handleClick,
     'aria-label': 'Inbox' + (hasNew ? ' (new items)' : ''),
+    title: isMac ? 'Inbox (\u2318I)' : 'Inbox (Ctrl+I)',
     style: {
       position: 'relative', width: 34, height: 34, border: '1px solid var(--border)',
       borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer',
