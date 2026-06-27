@@ -515,18 +515,39 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
 
   useEffect(function() { setSel(0) }, [q])
 
-  function handleKey(e: React.KeyboardEvent) {
-    if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return Math.min(s + 1, filtered.length - 1) }) }
-    else if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return Math.max(s - 1, 0) }) }
-    else if (e.key === 'Enter' && filtered[sel]) {
-      e.preventDefault()
-      var p = filtered[sel]
-      var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
-      window.open('https://' + domain, '_blank')
-      onClose()
-    }
-    else if (e.key === 'Escape') { onClose() }
+  useEffect(function() {
+    if (!open) return
+    var el = document.querySelector('[data-picker-idx="' + sel + '"]') as HTMLElement | null
+    if (el) el.scrollIntoView({ block: 'nearest' })
+  }, [sel, open])
+
+  function openPortal(idx: number) {
+    var p = filtered[idx]
+    if (!p) return
+    var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
+    window.open('https://' + domain, '_blank')
+    onClose()
   }
+
+  useEffect(function() {
+    if (!open) return
+    function onDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 }); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 }); return }
+      if (e.key === 'Enter') { e.preventDefault(); openPortal(sel); return }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        e.preventDefault()
+        setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 })
+      }
+    }
+    function onUp(e: KeyboardEvent) {
+      if (e.key === 'Meta' || e.key === 'Control') { openPortal(sel) }
+    }
+    window.addEventListener('keydown', onDown, true)
+    window.addEventListener('keyup', onUp, true)
+    return function() { window.removeEventListener('keydown', onDown, true); window.removeEventListener('keyup', onUp, true) }
+  }, [open, sel, filtered])
 
   if (!open) return null
 
@@ -538,8 +559,7 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
       style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9998 }
     }),
     React.createElement('div', {
-      style: { position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 420, maxHeight: '60vh', background: 'var(--bg-card, var(--surface-2, #fff))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 9999, display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' },
-      onKeyDown: handleKey
+      style: { position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 420, maxHeight: '60vh', background: 'var(--bg-card, var(--bg, transparent))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 9999, display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' },
     },
       React.createElement('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 } },
         React.createElement('i', { className: 'ti ti-apps', style: { fontSize: 16, color: 'var(--muted)' }, 'aria-hidden': 'true' }),
@@ -552,7 +572,7 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
         }),
         React.createElement('kbd', { style: { fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4 } }, 'esc')
       ),
-      React.createElement('div', { style: { overflowY: 'auto' as const, padding: '6px 0' } },
+      React.createElement('div', { id: 'portal-picker-list', style: { overflowY: 'auto' as const, padding: '6px 0', maxHeight: '50vh' } },
         filtered.length === 0
           ? React.createElement('div', { style: { padding: '16px', textAlign: 'center' as const, color: 'var(--muted)', fontSize: 13 } }, 'No portals found')
           : filtered.map(function(p, i) {
@@ -561,15 +581,16 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
             var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
             return React.createElement('div', {
               key: p.portal,
+              'data-picker-idx': i,
               onClick: function() { window.open('https://' + domain, '_blank'); onClose() },
               style: {
                 display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer',
-                background: i === sel ? 'var(--bg-hover, var(--surface-1, #f5f5f5))' : 'transparent',
+                background: i === sel ? 'rgba(128,128,128,0.12)' : 'transparent',
                 borderLeft: '3px solid ' + (i === sel ? color : 'transparent'),
               }
             },
               React.createElement('div', {
-                style: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border)', background: 'var(--bg-card, var(--surface-2, #fff))' }
+                style: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border)', background: 'var(--bg-card, var(--bg, transparent))' }
               },
                 p.logo_mark_url
                   ? React.createElement('img', { src: p.logo_mark_url, alt: '', style: { width: 20, height: 20, objectFit: 'contain' as const } })
@@ -992,14 +1013,14 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-        if (!window.getSelection()?.toString()) {
-          e.preventDefault(); setPortalPickerOpen(function(v) { return !v })
+        if (!portalPickerOpen && !window.getSelection()?.toString()) {
+          e.preventDefault(); setPortalPickerOpen(true)
         }
       }
     }
     window.addEventListener('keydown', handler)
     return function() { window.removeEventListener('keydown', handler) }
-  }, [bugPanelEnabled])
+  }, [bugPanelEnabled, portalPickerOpen])
 
   // Deep link: ?bug=bug_xxx opens the bug panel automatically
   useEffect(function() {
