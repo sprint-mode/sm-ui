@@ -479,6 +479,145 @@ var ICON_KEY_SVG_PATHS: Record<string, string> = {
   'book':        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/>',
 }
 
+// ─── Portal Picker (Cmd+C) ──────────────────────────────────────────────────
+
+var PORTAL_ICONS: Record<string, string> = {
+  admin: 'ti-layout-dashboard', studios: 'ti-code', signal: 'ti-chart-bar',
+  mode: 'ti-scan', hub: 'ti-server-2', investors: 'ti-chart-pie',
+  docs: 'ti-file-text', dev: 'ti-terminal-2', website: 'ti-world',
+  privacyai: 'ti-shield-lock', 'privacyai-docs': 'ti-shield-lock',
+  nomada: 'ti-home', safeshepherd: 'ti-shield-check', capital: 'ti-chart-pie',
+  launchpad: 'ti-rocket',
+}
+
+function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
+  var _sel = useState(0); var sel = _sel[0]; var setSel = _sel[1]
+  var _portals = useState<PortalEntry[]>([]); var portals = _portals[0]; var setPortals = _portals[1]
+  var _q = useState(''); var q = _q[0]; var setQ = _q[1]
+  var _cmdHeld = useState(false); var cmdHeld = _cmdHeld[0]; var setCmdHeld = _cmdHeld[1]
+  var inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(function() {
+    if (!open) { setQ(''); setSel(0); setCmdHeld(true); return }
+    if (_portalCache) { setPortals(_portalCache); return }
+    fetch('/api/my-portals', { credentials: 'include' })
+      .then(function(r) { return r.json() })
+      .then(function(d: { ok: boolean; data?: { portals?: PortalEntry[] } }) {
+        if (d.ok && d.data && d.data.portals) { _portalCache = d.data.portals; setPortals(d.data.portals) }
+      }).catch(function() {})
+  }, [open])
+
+  var filtered = q ? portals.filter(function(p) {
+    var name = (p.name || p.portal || '').toLowerCase()
+    return name.indexOf(q.toLowerCase()) !== -1
+  }) : portals
+
+  useEffect(function() { setSel(0) }, [q])
+
+  function openPortal(idx: number) {
+    var p = filtered[idx]
+    if (!p) return
+    var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
+    window.open('https://' + domain, '_blank')
+    onClose()
+  }
+
+  useEffect(function() {
+    if (!open) return
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        e.preventDefault()
+        setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 })
+        return
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault()
+        setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 })
+        return
+      }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 }) }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 }) }
+      if (e.key === 'Enter') { e.preventDefault(); openPortal(sel) }
+    }
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key === 'Meta' || e.key === 'Control') {
+        if (cmdHeld) { openPortal(sel) }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown, true)
+    window.addEventListener('keyup', onKeyUp, true)
+    return function() {
+      window.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('keyup', onKeyUp, true)
+    }
+  }, [open, sel, filtered, cmdHeld])
+
+  useEffect(function() {
+    if (open && !cmdHeld && inputRef.current) setTimeout(function() { inputRef.current?.focus() }, 50)
+  }, [open, cmdHeld])
+
+  if (!open) return null
+
+  var isMac = typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1
+
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', {
+      onClick: onClose,
+      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9998 }
+    }),
+    React.createElement('div', {
+      style: { position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 420, maxHeight: '60vh', background: 'var(--bg-card, var(--surface-2, #fff))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 9999, display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' },
+    },
+      React.createElement('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 } },
+        React.createElement('i', { className: 'ti ti-apps', style: { fontSize: 16, color: 'var(--muted)' }, 'aria-hidden': 'true' }),
+        React.createElement('input', {
+          ref: inputRef,
+          value: q,
+          onChange: function(e: React.ChangeEvent<HTMLInputElement>) { setCmdHeld(false); setQ(e.target.value) },
+          onFocus: function() { setCmdHeld(false) },
+          placeholder: 'Switch portal\u2026',
+          style: { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--foreground, inherit)', fontFamily: 'inherit' }
+        }),
+        React.createElement('kbd', { style: { fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4 } }, 'esc')
+      ),
+      React.createElement('div', { style: { overflowY: 'auto' as const, padding: '6px 0' } },
+        filtered.length === 0
+          ? React.createElement('div', { style: { padding: '16px', textAlign: 'center' as const, color: 'var(--muted)', fontSize: 13 } }, 'No portals found')
+          : filtered.map(function(p, i) {
+            var icon = PORTAL_ICONS[p.portal] || 'ti-layout-grid'
+            var color = p.brand_color || 'var(--accent, #7947d1)'
+            var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
+            return React.createElement('div', {
+              key: p.portal,
+              onClick: function() { window.open('https://' + domain, '_blank'); onClose() },
+              style: {
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer',
+                background: i === sel ? 'var(--bg-hover, var(--surface-1, #f5f5f5))' : 'transparent',
+                borderLeft: '3px solid ' + (i === sel ? color : 'transparent'),
+              }
+            },
+              React.createElement('div', {
+                style: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border)', background: 'var(--bg-card, var(--surface-2, #fff))' }
+              },
+                p.logo_mark_url
+                  ? React.createElement('img', { src: p.logo_mark_url, alt: '', style: { width: 20, height: 20, objectFit: 'contain' as const } })
+                  : React.createElement('i', { className: 'ti ' + icon, style: { fontSize: 18, color: color }, 'aria-hidden': 'true' })
+              ),
+              React.createElement('span', { style: { flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--foreground, inherit)' } }, p.name || p.portal),
+              React.createElement('i', { className: 'ti ti-chevron-right', style: { fontSize: 14, color: 'var(--muted)' }, 'aria-hidden': 'true' })
+            )
+          })
+      ),
+      React.createElement('div', { style: { padding: '6px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 12, fontSize: 11, color: 'var(--muted)' } },
+        React.createElement('span', null, cmdHeld ? (isMac ? '\u2318C' : 'Ctrl+C') + ' cycle' : '\u2191\u2193 navigate'),
+        React.createElement('span', null, cmdHeld ? 'release to open' : '\u21B5 open'),
+        React.createElement('span', null, 'esc close')
+      )
+    )
+  )
+}
+
 interface PortalEntry {
   portal: string
   role?: string
@@ -865,6 +1004,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
   var _bugPanelOpen = useState(false); var bugPanelOpen = _bugPanelOpen[0]; var setBugPanelOpen = _bugPanelOpen[1]
+  var _portalPicker = useState(false); var portalPickerOpen = _portalPicker[0]; var setPortalPickerOpen = _portalPicker[1]
   var theme = useTheme()
   var navigate = useNavigate()
   var location = useLocation()
@@ -873,17 +1013,21 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     var handler = function(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCmdkOpen(true) }
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); if (bugPanelEnabled) setBugPanelOpen(function(v) { return !v }) }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'i') { e.preventDefault(); if (navigate) navigate(notificationHref || '/user/updates') }
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
         var tag = (document.activeElement?.tagName || '').toLowerCase()
         if (tag !== 'input' && tag !== 'textarea' && !(document.activeElement as HTMLElement)?.isContentEditable) {
-          e.preventDefault(); navigate('/user/updates')
+          e.preventDefault(); navigate(notificationHref || '/user/updates')
+        }
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        if (!portalPickerOpen && !window.getSelection()?.toString()) {
+          e.preventDefault(); setPortalPickerOpen(true)
         }
       }
     }
     window.addEventListener('keydown', handler)
     return function() { window.removeEventListener('keydown', handler) }
-  }, [bugPanelEnabled])
+  }, [bugPanelEnabled, portalPickerOpen])
 
   // Deep link: ?bug=bug_xxx opens the bug panel automatically
   useEffect(function() {
@@ -1304,6 +1448,8 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
             session={session ? { contact_id: (session as any).contact_id, display_name: session.name, email: session.email } : null}
           />
         )}
+
+        <PortalPicker open={portalPickerOpen} onClose={function() { setPortalPickerOpen(false) }} />
       </div>
     </ViewAsContext.Provider>
     </SessionContext.Provider>
