@@ -113989,7 +113989,7 @@ function TNe(t) {
 //#region src/DocumentDetail.jsx
 function ENe(e) {
 	for (var t = [], n = /<h[23][^>]*>(.*?)<\/h[23]>/gi, r; (r = n.exec(e)) !== null;) t.push({
-		title: r[1].replace(/<[^>]+>/g, "").trim(),
+		title: r[1].replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").trim(),
 		pos: r.index
 	});
 	if (t.length >= 2) return t.map(function(n, r) {
@@ -114119,6 +114119,9 @@ function J9({ html: e, filterKeys: t }) {
 			gap: 8
 		},
 		children: n.map(function(e, n) {
+			if (t && t.some(function(t) {
+				return e.title.toLowerCase().includes(t.toLowerCase());
+			})) return null;
 			var r = t ? e.rows.filter(function(e) {
 				return !t.some(function(t) {
 					return e.key.toLowerCase().includes(t.toLowerCase());
