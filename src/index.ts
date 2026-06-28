@@ -69,3 +69,6 @@ export { AvatarUpload } from './AvatarUpload.tsx'
 export { PortalSupportWidget } from './PortalSupportWidget.tsx'
 
 export { NotificationPrefs } from './NotificationPrefs.tsx'
+
+// Document detail — universal 5-section document viewer
+export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx'
