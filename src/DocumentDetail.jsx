@@ -10,7 +10,7 @@ function extractSections(html) {
   var re = /<h[23][^>]*>(.*?)<\/h[23]>/gi
   var m
   while ((m = re.exec(html)) !== null) {
-    headers.push({ title: m[1].replace(/<[^>]+>/g, '').trim(), pos: m.index })
+    headers.push({ title: m[1].replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').trim(), pos: m.index })
   }
   if (headers.length >= 2) {
     return headers.map(function(h, i) {
@@ -110,6 +110,10 @@ export function TermCards({ html, filterKeys }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {sections.map(function(sec, i) {
+        // Filter entire sections whose title matches a filterKey (e.g., "Resources & Rates")
+        if (filterKeys && filterKeys.some(function(k) { return sec.title.toLowerCase().includes(k.toLowerCase()) })) {
+          return null
+        }
         var rows = filterKeys ? sec.rows.filter(function(r) {
           return !filterKeys.some(function(k) { return r.key.toLowerCase().includes(k.toLowerCase()) })
         }) : sec.rows
