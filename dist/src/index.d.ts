@@ -16,3 +16,4 @@ export { BugPanel, BugPanelHeaderButton } from './BugPanel.js';
 export { AvatarUpload } from './AvatarUpload.js';
 export { PortalSupportWidget } from './PortalSupportWidget.js';
 export { NotificationPrefs } from './NotificationPrefs.js';
+export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx';
