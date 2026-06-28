@@ -251,7 +251,11 @@ export function CmdK(props: CmdKProps) {
   useEffect(function() { if (open && inputRef.current) { inputRef.current.focus(); setQ(''); setHi(0); setAsyncItems([]); setAsyncTotal(0); setLoading(false) } }, [open])
   useEffect(function() { setHi(0) }, [q])
 
-  var allItems = q ? filtered.concat(asyncItems) : (recentItems.length > 0 ? recentItems : filtered)
+  // Merge static filtered items with async results, deduplicating by `to` path.
+  // Static items appear first; async results with the same `to` are suppressed.
+  var staticToPaths = new Set(filtered.map(function(i) { return i.to || '' }).filter(Boolean))
+  var dedupedAsync = q ? asyncItems.filter(function(i) { return !i.to || !staticToPaths.has(i.to) }) : []
+  var allItems = q ? filtered.concat(dedupedAsync) : (recentItems.length > 0 ? recentItems : filtered)
 
   useEffect(function() {
     if (!open) return

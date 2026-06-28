@@ -107021,7 +107021,11 @@ function p9(t) {
 	}, [n]), i(function() {
 		_(0);
 	}, [p]);
-	var M = p ? A.concat(y) : j.length > 0 ? j : A;
+	var M = new Set(A.map(function(e) {
+		return e.to || "";
+	}).filter(Boolean)), N = p ? y.filter(function(e) {
+		return !e.to || !M.has(e.to);
+	}) : [], P = p ? A.concat(N) : j.length > 0 ? j : A;
 	if (i(function() {
 		if (n) {
 			var e = function(e) {
@@ -107030,12 +107034,12 @@ function p9(t) {
 					return;
 				}
 				if (e.key === "ArrowDown" && (e.preventDefault(), _(function(e) {
-					return e < M.length - 1 ? e + 1 : 0;
+					return e < P.length - 1 ? e + 1 : 0;
 				})), e.key === "ArrowUp" && (e.preventDefault(), _(function(e) {
-					return e > 0 ? e - 1 : M.length - 1;
+					return e > 0 ? e - 1 : P.length - 1;
 				})), e.key === "Enter") {
 					e.preventDefault();
-					var t = M[g];
+					var t = P[g];
 					t && t.to && (d && d9(d, t), r(), c ? c(t.to) : window.location.href = t.to);
 				}
 			};
@@ -107045,19 +107049,19 @@ function p9(t) {
 		}
 	}, [
 		n,
-		M.length,
+		P.length,
 		g
 	]), !n) return null;
-	function N(e) {
+	function F(e) {
 		d && d9(d, e), r(), c ? c(e.to) : e.to && (window.location.href = e.to);
 	}
-	function P(t, n, r) {
+	function I(t, n, r) {
 		var i = t.meta || {}, a = l9[i.badgeColor || ""] || l9.gray, o = t.subsection ? t.section + " > " + t.subsection : "";
 		return e.createElement("a", {
 			key: t.to || t.label || n,
 			href: t.to || "#",
 			onClick: function(e) {
-				e.preventDefault(), N(t);
+				e.preventDefault(), F(t);
 			},
 			onMouseEnter: function() {
 				_(n);
@@ -107122,7 +107126,7 @@ function p9(t) {
 			textOverflow: "ellipsis"
 		} }, i.detail) : null) : null);
 	}
-	function F(t, n) {
+	function L(t, n) {
 		var r = [], i = {};
 		t.forEach(function(e) {
 			var t = e.section || "";
@@ -107139,11 +107143,11 @@ function p9(t) {
 				padding: "8px 12px 4px"
 			} }, t) : null, i[t].map(function(e) {
 				var t = a++;
-				return P(e, t, t === g);
+				return I(e, t, t === g);
 			}));
 		});
 	}
-	function I() {
+	function R() {
 		return [
 			0,
 			1,
@@ -107173,7 +107177,7 @@ function p9(t) {
 			} }));
 		});
 	}
-	var L = !p && j.length > 0, R = !p && j.length === 0 && A.length === 0, z = p && A.length === 0 && y.length === 0 && !T, B = S > y.length ? S - y.length : 0, V = p ? A.length + y.length : L ? j.length : A.length;
+	var z = !p && j.length > 0, B = !p && j.length === 0 && A.length === 0, V = p && A.length === 0 && y.length === 0 && !T, H = S > y.length ? S - y.length : 0, U = p ? A.length + y.length : z ? j.length : A.length;
 	return e.createElement(e.Fragment, null, e.createElement("style", null, "@keyframes cmdk-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }"), e.createElement("div", {
 		onClick: r,
 		style: {
@@ -107237,7 +107241,7 @@ function p9(t) {
 		flex: 1,
 		overflowY: "auto",
 		padding: 6
-	} }, L ? e.createElement(e.Fragment, null, e.createElement("div", { style: {
+	} }, z ? e.createElement(e.Fragment, null, e.createElement("div", { style: {
 		fontSize: 9,
 		fontWeight: 700,
 		textTransform: "uppercase",
@@ -107245,23 +107249,23 @@ function p9(t) {
 		color: "var(--muted)",
 		padding: "8px 12px 4px"
 	} }, "Recent"), j.map(function(e, t) {
-		return P(e, t, t === g);
-	})) : null, p && A.length > 0 ? F(A, 0) : null, p && y.length > 0 ? F(y, A.length) : null, p && T ? I() : null, B > 0 ? e.createElement("div", { style: {
+		return I(e, t, t === g);
+	})) : null, p && A.length > 0 ? L(A, 0) : null, p && y.length > 0 ? L(y, A.length) : null, p && T ? R() : null, H > 0 ? e.createElement("div", { style: {
 		padding: "6px 12px",
 		fontSize: 11,
 		color: "var(--muted)",
 		textAlign: "center"
-	} }, B + " more results") : null, R ? e.createElement("div", { style: {
+	} }, H + " more results") : null, B ? e.createElement("div", { style: {
 		padding: "16px 12px",
 		fontSize: 13,
 		color: "var(--muted)",
 		textAlign: "center"
-	} }, "Start typing to search") : null, z ? e.createElement("div", { style: {
+	} }, "Start typing to search") : null, V ? e.createElement("div", { style: {
 		padding: "16px 12px",
 		fontSize: 13,
 		color: "var(--muted)",
 		textAlign: "center"
-	} }, "Try searching by name, domain, or email") : null, !p && !L && A.length > 0 ? F(A, 0) : null), e.createElement("div", { style: {
+	} }, "Try searching by name, domain, or email") : null, !p && !z && A.length > 0 ? L(A, 0) : null), e.createElement("div", { style: {
 		borderTop: "1px solid var(--border)",
 		padding: "6px 16px",
 		display: "flex",
@@ -107271,7 +107275,7 @@ function p9(t) {
 	} }, e.createElement("span", { style: {
 		fontSize: 9,
 		color: "var(--muted)"
-	} }, V + " items"), e.createElement("div", { style: { flex: 1 } }), e.createElement("span", { style: {
+	} }, U + " items"), e.createElement("div", { style: { flex: 1 } }), e.createElement("span", { style: {
 		fontSize: 9,
 		color: "var(--muted)",
 		fontFamily: "var(--font-mono)",
