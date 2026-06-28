@@ -34,4 +34,9 @@ const iconsDst = join(distSrc, 'Icons.d.ts')
 copyFileSync(iconsSrc, iconsDst)
 console.log('copied: Icons.d.ts -> dist/src/Icons.d.ts')
 
+// 3. Copy DocumentDetail.d.ts from dist/ root into dist/src/
+const docDetailSrc = join(distRoot, 'DocumentDetail.d.ts')
+const docDetailDst = join(distSrc, 'DocumentDetail.d.ts')
+try { copyFileSync(docDetailSrc, docDetailDst); console.log('copied: DocumentDetail.d.ts -> dist/src/DocumentDetail.d.ts') } catch (_e) { /* not present yet */ }
+
 console.log('done')
