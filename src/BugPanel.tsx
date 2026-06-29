@@ -650,43 +650,23 @@ export function BugPanel(props: BugPanelProps) {
   var loadBugs = useCallback(function() {
     setLoading(true)
     var params: string[] = []
-    if (!isAdmin && rFilter !== 'all') {
-      var rf = REPORTER_FILTERS.find(function(f) { return f.id === rFilter })
-      if (rf && rf.statuses) params.push('status=' + rf.statuses.join(','))
-    }
-    if (isAdmin && source === 'reports') {
-      var at = ADMIN_TABS.find(function(t) { return t.id === tab })
-      if (at) at.statuses.forEach(function(s) { params.push('status=' + s) })
-    }
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
     if (filterType !== 'all') params.push('type=' + filterType)
     if (filterPriority !== 'all') params.push('priority=' + filterPriority)
     if (debouncedSearch.trim()) params.push('q=' + encodeURIComponent(debouncedSearch.trim()))
-    params.push('limit=100')
+    params.push('limit=200')
 
-    var url = apiBase + '/api/bugs'
-    if (isAdmin && source === 'reports') {
-      var at2 = ADMIN_TABS.find(function(t) { return t.id === tab })
-      if (at2) {
-        url += '?' + params.filter(function(p) { return !p.startsWith('status=') }).join('&')
-      }
-    } else {
-      url += '?' + params.join('&')
-    }
+    var url = apiBase + '/api/bugs?' + params.join('&')
 
     fetch(url, { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d: { data?: Bug[] }) {
         var items: Bug[] = Array.isArray(d.data) ? d.data : []
-        if (isAdmin && source === 'reports') {
-          var at3 = ADMIN_TABS.find(function(t) { return t.id === tab })
-          if (at3) { var at3s = at3.statuses; items = items.filter(function(b) { return at3s.indexOf(b.status) !== -1 }) }
-        }
         setBugs(items)
         setLoading(false)
       })
       .catch(function() { setLoading(false) })
-  }, [apiBase, isAdmin, source, tab, rFilter, filterProduct, filterType, filterPriority, debouncedSearch])
+  }, [apiBase, filterProduct, filterType, filterPriority, debouncedSearch])
 
   var _threadLimit = useState(50); var threadLimit = _threadLimit[0]; var setThreadLimit = _threadLimit[1]
 
@@ -716,7 +696,7 @@ export function BugPanel(props: BugPanelProps) {
         .then(function(d: { total?: number }) { if (d.total !== undefined) setThreadTotal(d.total) })
         .catch(function() {})
     }
-  }, [open, source, tab, rFilter, filterProduct, filterType, filterPriority, debouncedSearch, loadBugs, loadThreads, isAdmin, apiBase])
+  }, [open, source, filterProduct, filterType, filterPriority, debouncedSearch, loadBugs, loadThreads, isAdmin, apiBase])
 
   useEffect(function() {
     if (!expanded || source !== 'reports') return
@@ -883,28 +863,7 @@ export function BugPanel(props: BugPanelProps) {
           </div>
         )}
 
-        {!isAdmin && (
-          <div style={{ padding: '4px 16px 8px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input
-                type="text"
-                placeholder="Search bugs..."
-                value={searchQuery}
-                onChange={function(e) { setSearchQuery(e.target.value) }}
-                style={Object.assign({}, S.filterSelect, { width: '100%', padding: '6px 28px 6px 8px', boxSizing: 'border-box' as const })}
-              />
-              {searchQuery && (
-                <button
-                  onClick={function() { setSearchQuery('') }}
-                  style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: 12, lineHeight: 1, color: 'var(--muted)', fontWeight: 700, width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  aria-label="Clear search"
-                >×</button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {isAdmin && (
+        {source === 'reports' && (
           <div style={S.filterBar}>
             <select style={S.filterSelect} value={filterProduct} onChange={function(e) { setFilterProduct(e.target.value) }}>
               <option value="all">Products</option>
@@ -914,16 +873,10 @@ export function BugPanel(props: BugPanelProps) {
                 </optgroup>
               })}
             </select>
-            {source === 'reports' ? (
-              <select style={S.filterSelect} value={filterType} onChange={function(e) { setFilterType(e.target.value) }}>
-                <option value="all">Types</option>
-                {TYPES.map(function(t) { return <option key={t} value={t}>{t}</option> })}
-              </select>
-            ) : (
-              <select style={Object.assign({}, S.filterSelect, { opacity: 0.4, pointerEvents: 'none' as const })} disabled value="all">
-                <option value="all">Types</option>
-              </select>
-            )}
+            <select style={S.filterSelect} value={filterType} onChange={function(e) { setFilterType(e.target.value) }}>
+              <option value="all">Types</option>
+              {TYPES.map(function(t) { return <option key={t} value={t}>{t}</option> })}
+            </select>
             <select style={S.filterSelect} value={filterPriority} onChange={function(e) { setFilterPriority(e.target.value) }}>
               <option value="all">Priorities</option>
               <option value="critical">P0 Critical</option>
@@ -931,12 +884,14 @@ export function BugPanel(props: BugPanelProps) {
               <option value="normal">P2 Normal</option>
               <option value="low">P3 Low</option>
             </select>
-            <select style={S.filterSelect} value={filterPerson} onChange={function(e) { setFilterPerson(e.target.value) }}>
-              <option value="all">People</option>
-              {Array.from(new Set(bugs.map(function(b) { return b.submitted_by_name }).filter(Boolean))).sort().map(function(name) {
-                return <option key={name} value={name}>{name}</option>
-              })}
-            </select>
+            {isAdmin && (
+              <select style={S.filterSelect} value={filterPerson} onChange={function(e) { setFilterPerson(e.target.value) }}>
+                <option value="all">People</option>
+                {Array.from(new Set(bugs.map(function(b) { return b.submitted_by_name }).filter(Boolean))).sort().map(function(name) {
+                  return <option key={name} value={name}>{name}</option>
+                })}
+              </select>
+            )}
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center', flex: '1 1 120px', minWidth: 100 }}>
               <input
                 type="text"
@@ -974,7 +929,17 @@ export function BugPanel(props: BugPanelProps) {
           {loading && <div style={S.empty}>Loading...</div>}
           {!loading && items.length === 0 && <div style={S.empty}>No items.</div>}
           {!loading && source === 'reports' && bugs.filter(function(b) {
-            return filterPerson === 'all' || b.submitted_by_name === filterPerson
+            // Status filter: admin uses tab, reporter uses pill
+            if (isAdmin) {
+              var at = ADMIN_TABS.find(function(t) { return t.id === tab })
+              if (at && at.statuses.indexOf(b.status) === -1) return false
+            } else if (rFilter !== 'all') {
+              var rf = REPORTER_FILTERS.find(function(f) { return f.id === rFilter })
+              if (rf && rf.statuses && rf.statuses.indexOf(b.status) === -1) return false
+            }
+            // People filter (admin only)
+            if (isAdmin && filterPerson !== 'all' && b.submitted_by_name !== filterPerson) return false
+            return true
           }).slice().sort(function(a, b) {
             if (sortBy === 'priority') {
               return ((PRIORITY_META[a.priority || ''] || PRIORITY_META['normal']).sort) - ((PRIORITY_META[b.priority || ''] || PRIORITY_META['normal']).sort)
