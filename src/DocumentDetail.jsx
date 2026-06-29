@@ -215,6 +215,133 @@ function PasswordWidget({ password }) {
   )
 }
 
+// ── PDF Viewer (PDF.js canvas rendering) ────────────────────────────────────
+
+var PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168'
+var pdfjsLib = null
+
+function loadPdfjs() {
+  if (pdfjsLib) return Promise.resolve(pdfjsLib)
+  return new Promise(function(resolve, reject) {
+    var script = document.createElement('script')
+    script.src = PDFJS_CDN + '/pdf.min.mjs'
+    script.type = 'module'
+    // PDF.js 4.x uses ES modules — use dynamic import instead
+    var importScript = document.createElement('script')
+    importScript.type = 'module'
+    importScript.textContent = 'import * as pdfjsLib from "' + PDFJS_CDN + '/pdf.min.mjs"; window.__pdfjsLib = pdfjsLib; window.__pdfjsLib.GlobalWorkerOptions.workerSrc = "' + PDFJS_CDN + '/pdf.worker.min.mjs"; window.dispatchEvent(new Event("pdfjs-ready"));'
+    document.head.appendChild(importScript)
+    function onReady() {
+      window.removeEventListener('pdfjs-ready', onReady)
+      pdfjsLib = window.__pdfjsLib
+      resolve(pdfjsLib)
+    }
+    window.addEventListener('pdfjs-ready', onReady)
+    setTimeout(function() { reject(new Error('PDF.js load timeout')) }, 10000)
+  })
+}
+
+function PdfViewer({ url }) {
+  var canvasRef = React.useRef(null)
+  var [pdfDoc, setPdfDoc] = useState(null)
+  var [page, setPage] = useState(1)
+  var [numPages, setNumPages] = useState(0)
+  var [scale, setScale] = useState(1.4)
+  var [loading, setLoading] = useState(true)
+  var [error, setError] = useState(null)
+
+  // Load PDF
+  React.useEffect(function() {
+    if (!url) return
+    setLoading(true)
+    setError(null)
+    loadPdfjs().then(function(lib) {
+      return lib.getDocument({ url: url, withCredentials: true }).promise
+    }).then(function(pdf) {
+      setPdfDoc(pdf)
+      setNumPages(pdf.numPages)
+      setPage(1)
+      setLoading(false)
+    }).catch(function(_e) {
+      setError('Unable to load PDF')
+      setLoading(false)
+    })
+  }, [url])
+
+  // Render page
+  React.useEffect(function() {
+    if (!pdfDoc || !canvasRef.current) return
+    pdfDoc.getPage(page).then(function(pg) {
+      var viewport = pg.getViewport({ scale: scale })
+      var canvas = canvasRef.current
+      if (!canvas) return
+      var context = canvas.getContext('2d')
+      var dpr = window.devicePixelRatio || 1
+      canvas.width = viewport.width * dpr
+      canvas.height = viewport.height * dpr
+      canvas.style.width = viewport.width + 'px'
+      canvas.style.height = viewport.height + 'px'
+      context.setTransform(dpr, 0, 0, dpr, 0, 0)
+      pg.render({ canvasContext: context, viewport: viewport })
+    })
+  }, [pdfDoc, page, scale])
+
+  if (error) {
+    return (
+      <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        {error}
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+        Loading document...
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {/* Controls */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button onClick={function() { setPage(Math.max(1, page - 1)) }} disabled={page <= 1} style={viewerBtnStyle} title="Previous page">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span style={{ fontSize: 12, color: 'var(--foreground)', minWidth: 60, textAlign: 'center' }}>
+            {page} / {numPages}
+          </span>
+          <button onClick={function() { setPage(Math.min(numPages, page + 1)) }} disabled={page >= numPages} style={viewerBtnStyle} title="Next page">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <button onClick={function() { setScale(Math.max(0.5, scale - 0.2)) }} style={viewerBtnStyle} title="Zoom out">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+          <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 36, textAlign: 'center' }}>{Math.round(scale * 100)}%</span>
+          <button onClick={function() { setScale(Math.min(3, scale + 0.2)) }} style={viewerBtnStyle} title="Zoom in">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Canvas */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 6px)', overflow: 'auto', maxHeight: 700, background: '#f5f5f5', display: 'flex', justifyContent: 'center', padding: 8 }}>
+        <canvas ref={canvasRef} style={{ display: 'block' }} />
+      </div>
+    </div>
+  )
+}
+
+var viewerBtnStyle = {
+  background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 6px)',
+  padding: '4px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
+  color: 'var(--foreground)',
+}
+
 // ── DocumentDetail ──────────────────────────────────────────────────────────
 // Universal 5-section document detail component.
 // Used by: sm-studios, sm-investors, sm-admin, File Manager.
@@ -226,13 +353,17 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
   var docName = doc.contract_number || doc.pandadoc_document_name || doc.name || docTypeLabel(docType)
   var hasHtml = doc.html_content && !doc.html_content.startsWith('%PDF') && !doc.html_content.startsWith('JVBERi')
   var pdfUrl = doc.pdf_url || doc.url || null
+  // Only show progression bar for signing-flow documents (contracts), not tax/entity docs
+  var SIGNING_FLOW_TYPES = ['msa', 'sales_order', 'sow', 'amendment', 'nda', 'subscription_agreement', 'llc_amendment', 'investor_agreement', 'executive_services_agreement', 'fund_side_letter', 'fund_subscription']
+  var isSigningFlow = SIGNING_FLOW_TYPES.indexOf(docType) >= 0
+  var shouldShowProgression = showProgression === true || (showProgression !== false && isSigningFlow && doc.status)
   var hasPassword = !!doc.doc_password
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
-      {/* 1. Progression bar */}
-      {showProgression !== false && doc.status && (
+      {/* 1. Progression bar (signing-flow contracts only) */}
+      {shouldShowProgression && (
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 8px)', padding: '16px 20px' }}>
           <PipelineBar
             status={doc.status}
@@ -286,17 +417,18 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
         </div>
       )}
 
-      {/* 4. Download PDF */}
+      {/* 4. Document viewer + download */}
       {pdfUrl && (
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 8px)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 14 }}>Download</div>
+          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 14 }}>Document</div>
           {hasPassword && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Document password (needed to open the PDF):</div>
               <PasswordWidget password={doc.doc_password} />
             </div>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <PdfViewer url={pdfUrl} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
             {hasPassword ? (
               <a
                 href={onDownload ? undefined : (pdfUrl + (pdfUrl.includes('?') ? '&' : '?') + 'download=1')}
@@ -305,8 +437,7 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
                 style={downloadBtnStyle}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download PDF
+                Download encrypted
               </a>
             ) : (
               <a
