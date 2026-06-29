@@ -463,33 +463,64 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt }: { commentNoti
   var seenAt = lastSeenAt || 0
   var items = commentNotifications || []
 
+  // Mark as read when tab is viewed with items
+  useEffect(function() {
+    if (items.length > 0) {
+      setTabSeenAt('bugs')
+    }
+  }, [items.length])
+
   if (items.length === 0) {
-    return <EmptyState message="No bug comment notifications" />
+    return <EmptyState message="No open items" />
   }
 
   return (
     <div>
       {items.map(function(notif) {
         var isNew = isItemNew(notif.published_at, seenAt)
+        var isComment = (notif.title || '').startsWith('Comment on:')
+        var displayTitle = isComment ? (notif.title || '').replace('Comment on: ', '') : (notif.title || '').replace('New bug: ', '')
+        var typeLabel = isComment ? 'Comment' : 'New bug'
         return (
           <div key={notif.id} onClick={function() {
             if (notif.action_url && onNavigate) onNavigate(notif.action_url)
           }} style={{
-            display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
-            background: isNew ? 'var(--accent-bg, hsla(262,60%,55%,.06))' : 'transparent',
-            border: '1px solid ' + (isNew ? 'var(--accent-border, hsla(262,60%,55%,.15))' : 'var(--border, #e5e7eb)'),
-            borderRadius: 'var(--radius, 8px)', marginBottom: 6,
+            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+            borderBottom: '1px solid var(--border, #e5e7eb)',
             cursor: notif.action_url ? 'pointer' : 'default',
+            background: 'transparent',
+            transition: 'background .15s',
           }}>
-            {isNew ? <NewDot /> : <SeenDotPlaceholder />}
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: isNew ? '#7c5cbf' : 'transparent',
+            }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: isNew ? 500 : 400, color: isNew ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)', marginBottom: 2 }}>{notif.title}</div>
-              {notif.body && <div style={{ fontSize: 12, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notif.body}</div>}
-              <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 4 }}>
-                {notif.author_name ? notif.author_name + ' · ' : ''}{relativeTime(notif.published_at)}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <span style={{
+                  fontSize: 13, fontWeight: isNew ? 500 : 400,
+                  color: isNew ? 'var(--text-0, inherit)' : 'var(--text-1, #6b7280)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{displayTitle}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 500, padding: '1px 7px', borderRadius: 10, flexShrink: 0,
+                  background: isComment ? '#E6F1FB' : '#EEEDFE',
+                  color: isComment ? '#0C447C' : '#534AB7',
+                }}>{typeLabel}</span>
+                {isNew && <NewPill label="New" />}
+              </div>
+              {notif.body && <div style={{
+                fontSize: 12, color: 'var(--text-2, #9ca3af)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{notif.body}</div>}
+              <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 3 }}>
+                {notif.author_name ? notif.author_name + ' \u00b7 ' : ''}{relativeTime(notif.published_at)}
               </div>
             </div>
-            {notif.action_url && <span style={{ fontSize: 11, color: 'var(--accent, #7c5cbf)', flexShrink: 0, marginTop: 2 }}>View</span>}
+            {notif.action_url && <span style={{
+              display: 'flex', alignItems: 'center', gap: 2,
+              fontSize: 12, color: 'var(--accent, #7c5cbf)', flexShrink: 0, fontWeight: 500,
+            }}>View <i className="ti ti-chevron-right" style={{ fontSize: 14 }} /></span>}
           </div>
         )
       })}
