@@ -459,9 +459,21 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
   )
 }
 
-function BugsTab({ commentNotifications, onNavigate, lastSeenAt }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
+function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
   var seenAt = lastSeenAt || 0
   var items = commentNotifications || []
+  var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
+
+  function handleView(notif: UpdateItem) {
+    // Mark as read via API
+    if (api && notif.id) {
+      api('/api/notifications/' + notif.id + '/read', { method: 'POST' }).catch(function() {})
+    }
+    // Mark as read locally immediately
+    setReadIds(function(prev) { var next = Object.assign({}, prev); next[notif.id] = true; return next })
+    // Navigate to bug
+    if (notif.action_url && onNavigate) onNavigate(notif.action_url)
+  }
 
   if (items.length === 0) {
     return <EmptyState message="No open items" />
@@ -470,14 +482,12 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt }: { commentNoti
   return (
     <div>
       {items.map(function(notif) {
-        var isNew = isItemNew(notif.published_at, seenAt)
+        var isNew = !readIds[notif.id] && isItemNew(notif.published_at, seenAt)
         var isComment = (notif.title || '').startsWith('Comment on:')
         var displayTitle = isComment ? (notif.title || '').replace('Comment on: ', '') : (notif.title || '').replace('New bug: ', '')
         var typeLabel = isComment ? 'Comment' : 'New bug'
         return (
-          <div key={notif.id} onClick={function() {
-            if (notif.action_url && onNavigate) onNavigate(notif.action_url)
-          }} style={{
+          <div key={notif.id} onClick={function() { handleView(notif) }} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
             borderBottom: '1px solid var(--border, #e5e7eb)',
             cursor: notif.action_url ? 'pointer' : 'default',
@@ -1233,21 +1243,6 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     })
   }
 
-  // Auto-mark tab as seen after viewing for 3 seconds
-  useEffect(function() {
-    if (!effectiveTab || loading) return
-    var tab = effectiveTab
-    var timer = setTimeout(function() {
-      setTabSeenAt(tab)
-      setSeenTimestamps(function(prev) {
-        var next = Object.assign({}, prev)
-        next[tab] = Date.now()
-        return next
-      })
-    }, 3000)
-    return function() { clearTimeout(timer) }
-  }, [effectiveTab, loading])
-
   if (loading) {
     return (
       <div style={{ padding: 0 }}>
@@ -1315,7 +1310,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
 
       {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} lastSeenAt={seenTimestamps.general} />}
       {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.tasks} />}
-      {effectiveTab === 'bugs' && <BugsTab commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} />}
+      {effectiveTab === 'bugs' && <BugsTab commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} api={api} />}
       {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.project} />}
       {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.reports} />}
       {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.support} onHasNew={setSupportAdminHasNew} />}
