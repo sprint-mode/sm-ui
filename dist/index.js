@@ -105879,7 +105879,7 @@ function n9(e) {
 	i(function() {
 		var e = new URLSearchParams(window.location.search).get("bug");
 		e && (_(!0), U(e), Ke.current = e);
-	}, []), i(function() {
+	}, [v]), i(function() {
 		if (Ke.current && x.length > 0) {
 			var e = Ke.current;
 			Ke.current = null, setTimeout(function() {
@@ -108285,7 +108285,7 @@ var LMe = function(t) {
 		};
 	}, [K, ve]), i(function() {
 		new URLSearchParams(window.location.search).get("bug") && K && ge(!0);
-	}, [K]), i(function() {
+	}, [K, xe.search]), i(function() {
 		o && (G(o), re(!1));
 	}, [o]), i(function() {
 		W && typeof window < "u" && (window.__SM_SESSION = W);

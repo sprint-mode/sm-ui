@@ -1037,7 +1037,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     if (params.get('bug') && bugPanelEnabled) {
       setBugPanelOpen(true)
     }
-  }, [bugPanelEnabled])
+  }, [bugPanelEnabled, location.search])
 
   useEffect(function() {
     if (sessionProp) { setSession(sessionProp); setLoading(false) }

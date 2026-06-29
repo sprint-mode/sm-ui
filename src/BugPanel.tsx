@@ -576,7 +576,7 @@ export function BugPanel(props: BugPanelProps) {
       setExpanded(bugId)
       deepLinkBugId.current = bugId
     }
-  }, [])
+  }, [open])
 
   // Scroll to deep-linked bug once it's rendered
   useEffect(function() {
