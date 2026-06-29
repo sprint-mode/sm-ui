@@ -65,18 +65,10 @@ export function NotificationBellNav(props: NotificationBellNavProps) {
       borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       transition: 'border-color .2s', flexShrink: 0, padding: 0,
-      color: hasNew ? 'var(--foreground)' : 'var(--muted)',
+      color: hasNew ? '#b8860b' : 'var(--muted)',
       textDecoration: 'none',
     }
   },
-    React.createElement(MailboxIcon, null),
-    hasNew && React.createElement('span', {
-      style: {
-        position: 'absolute', top: -1, right: -1,
-        width: 8, height: 8, borderRadius: '50%',
-        background: '#7c5cbf',
-        border: '2px solid var(--bg)',
-      }
-    })
+    React.createElement(MailboxIcon, null)
   )
 }
