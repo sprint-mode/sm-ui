@@ -112542,38 +112542,46 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 		P();
 	}, [P]);
 	var F = [];
-	g.length > 0 && (F.push({
-		id: "general",
-		label: "General",
-		count: w.length
-	}), F.push({
-		id: "tasks",
-		label: "Tasks",
-		count: A.length
-	}), g.includes("clients") && F.push({
-		id: "project",
-		label: "Project",
-		count: E.length
-	}), g.includes("investors") && F.push({
-		id: "reports",
-		label: "Reports",
-		count: E.length
-	}), g.includes("team") && F.push({
-		id: "bugs",
-		label: "Bugs",
-		count: O.length
-	}), F.push({
-		id: "support",
-		label: "Support",
-		count: g.includes("team") ? 0 : M.length
-	}));
-	var I = g.includes("team"), L = d || (I ? function(e) {
+	if (g.length > 0) {
+		if (F.push({
+			id: "general",
+			label: "General",
+			count: w.length
+		}), F.push({
+			id: "tasks",
+			label: "Tasks",
+			count: A.length
+		}), g.includes("clients") && F.push({
+			id: "project",
+			label: "Project",
+			count: E.length
+		}), g.includes("investors") && F.push({
+			id: "reports",
+			label: "Reports",
+			count: E.length
+		}), g.includes("team")) {
+			var I = S.bugs || 0;
+			F.push({
+				id: "bugs",
+				label: "Bugs",
+				count: O.filter(function(e) {
+					return Q(e.published_at, I);
+				}).length
+			});
+		}
+		F.push({
+			id: "support",
+			label: "Support",
+			count: g.includes("team") ? 0 : M.length
+		});
+	}
+	var L = g.includes("team"), R = d || (L ? function(e) {
 		window.open("https://admin.sprintmode.ai" + e, "_blank");
-	} : void 0), R = v;
-	(!R || !F.find(function(e) {
-		return e.id === R;
-	})) && (R = F.length > 0 ? F[0].id : null);
-	function z(e) {
+	} : void 0), z = v;
+	(!z || !F.find(function(e) {
+		return e.id === z;
+	})) && (z = F.length > 0 ? F[0].id : null);
+	function B(e) {
 		var t = S[e] || 0;
 		return e === "general" ? w.some(function(e) {
 			return Q(e.published_at, t);
@@ -112583,11 +112591,11 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 			return Q(e.published_at, t);
 		}) : e === "bugs" ? O.some(function(e) {
 			return Q(e.published_at, t);
-		}) : e === "support" && I ? b : e === "support" ? M.some(function(e) {
+		}) : e === "support" && L ? b : e === "support" ? M.some(function(e) {
 			return Q(e.updated_at || e.created_at, t);
 		}) : !1;
 	}
-	function B(e) {
+	function V(e) {
 		y(e), cNe(e), C(function(t) {
 			var n = Object.assign({}, t);
 			return n[e] = Date.now(), n;
@@ -112659,10 +112667,10 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 					marginBottom: 16
 				},
 				children: F.map(function(e) {
-					var t = e.id === R, n = z(e.id);
+					var t = e.id === z, n = B(e.id);
 					return /* @__PURE__ */ u("button", {
 						onClick: function() {
-							B(e.id);
+							V(e.id);
 						},
 						style: {
 							fontSize: 13,
@@ -112707,39 +112715,39 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 					}, e.id);
 				})
 			}),
-			R === "general" && /* @__PURE__ */ l(U9, {
+			z === "general" && /* @__PURE__ */ l(U9, {
 				items: w,
 				api: e,
 				lastSeenAt: S.general
 			}),
-			R === "tasks" && /* @__PURE__ */ l(dNe, {
+			z === "tasks" && /* @__PURE__ */ l(dNe, {
 				items: A,
 				api: e,
-				onNavigate: L,
+				onNavigate: R,
 				lastSeenAt: S.tasks
 			}),
-			R === "bugs" && /* @__PURE__ */ l(fNe, {
+			z === "bugs" && /* @__PURE__ */ l(fNe, {
 				commentNotifications: O,
-				onNavigate: L,
+				onNavigate: R,
 				lastSeenAt: S.bugs
 			}),
-			R === "project" && /* @__PURE__ */ l(U9, {
+			z === "project" && /* @__PURE__ */ l(U9, {
 				items: E,
 				api: e,
 				lastSeenAt: S.project
 			}),
-			R === "reports" && /* @__PURE__ */ l(U9, {
+			z === "reports" && /* @__PURE__ */ l(U9, {
 				items: E,
 				api: e,
 				lastSeenAt: S.reports
 			}),
-			R === "support" && I && /* @__PURE__ */ l(mNe, {
+			z === "support" && L && /* @__PURE__ */ l(mNe, {
 				api: e,
-				onNavigate: L,
+				onNavigate: R,
 				lastSeenAt: S.support,
 				onHasNew: x
 			}),
-			R === "support" && !I && t && /* @__PURE__ */ l(pNe, {
+			z === "support" && !L && t && /* @__PURE__ */ l(pNe, {
 				threads: M,
 				api: e,
 				subdomain: t,
