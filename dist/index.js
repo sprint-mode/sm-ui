@@ -114521,38 +114521,23 @@ function FNe({ document: e, relatedDocs: t, onDownload: n, showProgression: r, f
 					padding: "16px 20px"
 				},
 				children: [
-					/* @__PURE__ */ l("div", {
-						style: {
-							fontSize: 11,
-							fontWeight: 600,
-							textTransform: "uppercase",
-							letterSpacing: ".5px",
-							color: "var(--muted)",
-							marginBottom: 14
-						},
-						children: "Document"
-					}),
-					p && /* @__PURE__ */ u("div", {
-						style: { marginBottom: 12 },
-						children: [/* @__PURE__ */ l("div", {
-							style: {
-								fontSize: 12,
-								color: "var(--muted)",
-								marginBottom: 6
-							},
-							children: "Document password (needed to open the PDF):"
-						}), /* @__PURE__ */ l(MNe, { password: e.doc_password })]
-					}),
-					/* @__PURE__ */ l(PNe, { url: c }),
-					/* @__PURE__ */ l("div", {
+					/* @__PURE__ */ u("div", {
 						style: {
 							display: "flex",
 							alignItems: "center",
-							justifyContent: "flex-end",
-							marginTop: 10,
-							gap: 8
+							justifyContent: "space-between",
+							marginBottom: 14
 						},
-						children: p ? /* @__PURE__ */ u("a", {
+						children: [/* @__PURE__ */ l("div", {
+							style: {
+								fontSize: 11,
+								fontWeight: 600,
+								textTransform: "uppercase",
+								letterSpacing: ".5px",
+								color: "var(--muted)"
+							},
+							children: "Document"
+						}), p ? /* @__PURE__ */ u("a", {
 							href: n ? void 0 : c + (c.includes("?") ? "&" : "?") + "download=1",
 							onClick: n ? function(t) {
 								t.preventDefault(), n(e, !0);
@@ -114608,8 +114593,20 @@ function FNe({ document: e, relatedDocs: t, onDownload: n, showProgression: r, f
 									})
 								]
 							}), "Download PDF"]
-						})
-					})
+						})]
+					}),
+					p && /* @__PURE__ */ u("div", {
+						style: { marginBottom: 12 },
+						children: [/* @__PURE__ */ l("div", {
+							style: {
+								fontSize: 12,
+								color: "var(--muted)",
+								marginBottom: 6
+							},
+							children: "Document password (needed to open the PDF):"
+						}), /* @__PURE__ */ l(MNe, { password: e.doc_password })]
+					}),
+					/* @__PURE__ */ l(PNe, { url: c })
 				]
 			}),
 			t && t.length > 0 && /* @__PURE__ */ u("div", {

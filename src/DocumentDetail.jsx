@@ -420,15 +420,8 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
       {/* 4. Document viewer + download */}
       {pdfUrl && (
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 8px)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 14 }}>Document</div>
-          {hasPassword && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Document password (needed to open the PDF):</div>
-              <PasswordWidget password={doc.doc_password} />
-            </div>
-          )}
-          <PdfViewer url={pdfUrl} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)' }}>Document</div>
             {hasPassword ? (
               <a
                 href={onDownload ? undefined : (pdfUrl + (pdfUrl.includes('?') ? '&' : '?') + 'download=1')}
@@ -451,6 +444,13 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
               </a>
             )}
           </div>
+          {hasPassword && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Document password (needed to open the PDF):</div>
+              <PasswordWidget password={doc.doc_password} />
+            </div>
+          )}
+          <PdfViewer url={pdfUrl} />
         </div>
       )}
 
