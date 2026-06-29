@@ -463,13 +463,6 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt }: { commentNoti
   var seenAt = lastSeenAt || 0
   var items = commentNotifications || []
 
-  // Mark as read when tab is viewed with items
-  useEffect(function() {
-    if (items.length > 0) {
-      setTabSeenAt('bugs')
-    }
-  }, [items.length])
-
   if (items.length === 0) {
     return <EmptyState message="No open items" />
   }
@@ -1239,6 +1232,21 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
       return next
     })
   }
+
+  // Auto-mark tab as seen after viewing for 3 seconds
+  useEffect(function() {
+    if (!effectiveTab || loading) return
+    var tab = effectiveTab
+    var timer = setTimeout(function() {
+      setTabSeenAt(tab)
+      setSeenTimestamps(function(prev) {
+        var next = Object.assign({}, prev)
+        next[tab] = Date.now()
+        return next
+      })
+    }, 3000)
+    return function() { clearTimeout(timer) }
+  }, [effectiveTab, loading])
 
   if (loading) {
     return (
