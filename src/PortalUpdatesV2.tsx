@@ -35,20 +35,6 @@ interface TaskItem {
   created_at?: string
 }
 
-interface BugItem {
-  id: string
-  title: string
-  type?: string
-  priority?: string
-  status?: string
-  product?: string
-  thread_id?: string
-  created_at?: string
-  body?: string
-  tags?: string
-  assigned_to?: string
-}
-
 interface SupportThread {
   id: string
   subject?: string
@@ -473,120 +459,42 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
   )
 }
 
-function BugsTab({ items, commentNotifications, onNavigate, lastSeenAt }: { items: BugItem[]; commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
-  var [typeFilter, setTypeFilter] = useState('all')
-  var [prioFilter, setPrioFilter] = useState('all')
-  var [expandedId, setExpandedId] = useState<string | null>(null)
+function BugsTab({ commentNotifications, onNavigate, lastSeenAt }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
   var seenAt = lastSeenAt || 0
 
-  var typeSet = new Set<string>()
-  items.forEach(function(i) { if (i.type) typeSet.add(i.type) })
-  var typeOptions = [{ value: 'all', label: 'All types' }]
-  Array.from(typeSet).sort().forEach(function(t) {
-    typeOptions.push({ value: t, label: t.replace(/_/g, ' ') })
+  // Only show notifications the user hasn't seen yet
+  var unseen = (commentNotifications || []).filter(function(n) {
+    return isItemNew(n.published_at, seenAt)
   })
 
-  var filtered = items.filter(function(i) {
-    if (typeFilter !== 'all' && i.type !== typeFilter) return false
-    if (prioFilter !== 'all' && i.priority !== prioFilter) return false
-    return true
-  })
+  if (unseen.length === 0) {
+    return <EmptyState message="No new notifications" />
+  }
 
   return (
     <div>
-      {/* Bug comment notifications */}
-      {commentNotifications && commentNotifications.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.05em', color: 'var(--text-3, #9ca3af)', marginBottom: 8 }}>
-            New comments
+      {unseen.map(function(notif) {
+        return (
+          <div key={notif.id} onClick={function() {
+            if (notif.action_url && onNavigate) onNavigate(notif.action_url)
+          }} style={{
+            display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
+            background: 'var(--accent-bg, hsla(262,60%,55%,.06))', border: '1px solid var(--accent-border, hsla(262,60%,55%,.15))',
+            borderRadius: 'var(--radius, 8px)', marginBottom: 6,
+            cursor: notif.action_url ? 'pointer' : 'default',
+          }}>
+            <NewDot />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>{notif.title}</div>
+              {notif.body && <div style={{ fontSize: 12, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notif.body}</div>}
+              <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 4 }}>
+                {notif.author_name ? notif.author_name + ' · ' : ''}{relativeTime(notif.published_at)}
+              </div>
+            </div>
+            {notif.action_url && <span style={{ fontSize: 11, color: 'var(--accent, #7c5cbf)', flexShrink: 0, marginTop: 2 }}>View</span>}
           </div>
-          {commentNotifications.map(function(notif) {
-            return (
-              <div key={notif.id} onClick={function() {
-                if (notif.action_url && onNavigate) onNavigate(notif.action_url)
-              }} style={{
-                display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
-                background: 'var(--accent-bg, hsla(262,60%,55%,.06))', border: '1px solid var(--accent-border, hsla(262,60%,55%,.15))',
-                borderRadius: 'var(--radius, 8px)', marginBottom: 6,
-                cursor: notif.action_url ? 'pointer' : 'default',
-              }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>{notif.title}</div>
-                  {notif.body && <div style={{ fontSize: 12, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notif.body}</div>}
-                  <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 4 }}>
-                    {notif.author_name ? notif.author_name + ' · ' : ''}{relativeTime(notif.published_at)}
-                  </div>
-                </div>
-                {notif.action_url && <span style={{ fontSize: 11, color: 'var(--accent, #7c5cbf)', flexShrink: 0, marginTop: 2 }}>View</span>}
-              </div>
-            )
-          })}
-        </div>
-      )}
-      <FilterRow count={filtered.length} countLabel="item">
-        <SelectFilter value={typeFilter} onChange={setTypeFilter} options={typeOptions} />
-        <SelectFilter value={prioFilter} onChange={setPrioFilter} options={[
-          { value: 'all', label: 'All priorities' },
-          { value: 'critical', label: 'Critical' },
-          { value: 'high', label: 'High' },
-          { value: 'normal', label: 'Normal' },
-          { value: 'low', label: 'Low' },
-        ]} />
-      </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No open items" /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {filtered.map(function(item) {
-            var isExpanded = expandedId === item.id
-            return (
-              <div key={item.id}>
-                <div onClick={function() { setExpandedId(isExpanded ? null : item.id) }} style={{
-                  display: 'flex', alignItems: 'flex-start', gap: 12,
-                  padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
-                  cursor: 'pointer', transition: 'background .1s',
-                }}>
-                  {(function() { var bugIsNew = isItemNew(item.created_at, seenAt); return bugIsNew ? <NewDot /> : <SeenDotPlaceholder /> })()}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: isItemNew(item.created_at, seenAt) ? 500 : 400, color: isItemNew(item.created_at, seenAt) ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)' }}>{item.title}</span>
-                      {isItemNew(item.created_at, seenAt) && <NewPill />}
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
-                      {item.product ? item.product + ' · ' : ''}
-                      {item.thread_id || ''}
-                      {item.created_at ? ' · ' + relativeTime(item.created_at) : ''}
-                    </div>
-                  </div>
-                  <TypePill type={item.type} />
-                  <PriorityPill priority={item.priority} />
-                </div>
-                {isExpanded && (
-                  <div style={{
-                    padding: '12px 16px', background: 'var(--bg-2, #f9fafb)',
-                    borderBottom: '1px solid var(--border, #e5e7eb)',
-                    fontSize: 13, lineHeight: 1.6, color: 'var(--text-1, #374151)',
-                  }}>
-                    {item.body && <div style={{ marginBottom: 8, whiteSpace: 'pre-wrap' }}>{item.body}</div>}
-                    {item.tags && (
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                        {item.tags.split(',').map(function(tag) {
-                          var t = tag.trim()
-                          return t ? <span key={t} style={{
-                            display: 'inline-flex', alignItems: 'center', gap: 4,
-                            padding: '3px 8px', background: 'var(--bg-0, transparent)',
-                            border: '1px solid var(--border, #e5e7eb)', borderRadius: 99,
-                            fontSize: 11, color: 'var(--text-1, #374151)',
-                          }}>{t}</span> : null
-                        })}
-                      </div>
-                    )}
-                    {!item.body && !item.tags && <div style={{ color: 'var(--text-3, #9ca3af)' }}>No additional details</div>}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
+        )
+      })}
     </div>
   )
 }
@@ -1195,7 +1103,6 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
   var [projectItems, setProjectItems] = useState<UpdateItem[]>([])
   var [bugCommentItems, setBugCommentItems] = useState<UpdateItem[]>([])
   var [taskItems, setTaskItems] = useState<TaskItem[]>([])
-  var [bugItems, setBugItems] = useState<BugItem[]>([])
   var [supportThreads, setSupportThreads] = useState<SupportThread[]>([])
 
   var load = useCallback(function() {
@@ -1242,11 +1149,6 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
       setTaskItems(d?.items || [])
     }).catch(function() { setTaskItems([]) })
 
-    var bugsPromise = api('/api/bugs/threads' + (userContactId ? '?assigned_to=' + userContactId : '')).then(function(res: Record<string, unknown>) {
-      var d = res.data as BugItem[] | undefined
-      setBugItems(d || [])
-    }).catch(function() { setBugItems([]) })
-
     // Portal support: fetch threads for the portal's subdomain
     var supportPromise = subdomain
       ? api('/api/portals/' + subdomain + '/support/threads').then(function(res: Record<string, unknown>) {
@@ -1255,7 +1157,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
         }).catch(function() { setSupportThreads([]) })
       : Promise.resolve()
 
-    Promise.all([generalPromise, tasksPromise, bugsPromise, supportPromise])
+    Promise.all([generalPromise, tasksPromise, supportPromise])
       .then(function() { setLoading(false) })
       .catch(function(e: Error) {
         setError(e.message || 'Failed to load')
@@ -1272,7 +1174,11 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
     if (audiences.includes('clients')) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
     if (audiences.includes('investors')) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
-    if (audiences.includes('team')) tabs.push({ id: 'bugs', label: 'Bugs', count: bugItems.length + bugCommentItems.length })
+    if (audiences.includes('team')) {
+      var bugSeenAt = seenTimestamps.bugs || 0
+      var unseenBugCount = bugCommentItems.filter(function(n) { return isItemNew(n.published_at, bugSeenAt) }).length
+      tabs.push({ id: 'bugs', label: 'Bugs', count: unseenBugCount })
+    }
     tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
   }
   var isTeam = audiences.includes('team')
@@ -1290,7 +1196,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     if (tabId === 'general') return generalItems.some(function(i) { return isItemNew(i.published_at, ts) })
     if (tabId === 'tasks') return taskItems.some(function(i) { return isItemNew(i.created_at || i.due_date, ts) })
     if (tabId === 'project' || tabId === 'reports') return projectItems.some(function(i) { return isItemNew(i.published_at, ts) })
-    if (tabId === 'bugs') return bugItems.some(function(i) { return isItemNew(i.created_at, ts) }) || bugCommentItems.some(function(i) { return isItemNew(i.published_at, ts) })
+    if (tabId === 'bugs') return bugCommentItems.some(function(i) { return isItemNew(i.published_at, ts) })
     if (tabId === 'support' && isTeam) return supportAdminHasNew
     if (tabId === 'support') return supportThreads.some(function(t) { return isItemNew(t.updated_at || t.created_at, ts) })
     return false
@@ -1373,7 +1279,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
 
       {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} lastSeenAt={seenTimestamps.general} />}
       {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.tasks} />}
-      {effectiveTab === 'bugs' && <BugsTab items={bugItems} commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} />}
+      {effectiveTab === 'bugs' && <BugsTab commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} />}
       {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.project} />}
       {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.reports} />}
       {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.support} onHasNew={setSupportAdminHasNew} />}
