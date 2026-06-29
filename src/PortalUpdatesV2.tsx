@@ -1236,11 +1236,12 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
   // Auto-mark tab as seen after viewing for 3 seconds
   useEffect(function() {
     if (!effectiveTab || loading) return
+    var tab = effectiveTab
     var timer = setTimeout(function() {
-      setTabSeenAt(effectiveTab)
+      setTabSeenAt(tab)
       setSeenTimestamps(function(prev) {
         var next = Object.assign({}, prev)
-        next[effectiveTab] = Date.now()
+        next[tab] = Date.now()
         return next
       })
     }, 3000)

@@ -112690,14 +112690,14 @@ function vNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 	}
 	return i(function() {
 		if (!(!z || f)) {
-			var e = setTimeout(function() {
-				j9(z), C(function(e) {
-					var t = Object.assign({}, e);
-					return t[z] = Date.now(), t;
+			var e = z, t = setTimeout(function() {
+				j9(e), C(function(t) {
+					var n = Object.assign({}, t);
+					return n[e] = Date.now(), n;
 				});
 			}, 3e3);
 			return function() {
-				clearTimeout(e);
+				clearTimeout(t);
 			};
 		}
 	}, [z, f]), f ? /* @__PURE__ */ l("div", {
