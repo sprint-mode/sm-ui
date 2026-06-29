@@ -111527,10 +111527,8 @@ function mNe({ items: e, api: t, onNavigate: n, lastSeenAt: r }) {
 	})] });
 }
 function hNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n }) {
-	var r = n || 0, a = e || [];
-	return i(function() {
-		a.length > 0 && j9("bugs");
-	}, [a.length]), a.length === 0 ? /* @__PURE__ */ l(L9, { message: "No open items" }) : /* @__PURE__ */ l("div", { children: a.map(function(e) {
+	var r = n || 0, i = e || [];
+	return i.length === 0 ? /* @__PURE__ */ l(L9, { message: "No open items" }) : /* @__PURE__ */ l("div", { children: i.map(function(e) {
 		var n = Q(e.published_at, r), i = (e.title || "").startsWith("Comment on:"), a = i ? (e.title || "").replace("Comment on: ", "") : (e.title || "").replace("New bug: ", ""), o = i ? "Comment" : "New bug";
 		return /* @__PURE__ */ u("div", {
 			onClick: function() {
@@ -112690,7 +112688,19 @@ function vNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 			return n[e] = Date.now(), n;
 		});
 	}
-	return f ? /* @__PURE__ */ l("div", {
+	return i(function() {
+		if (!(!z || f)) {
+			var e = setTimeout(function() {
+				j9(z), C(function(e) {
+					var t = Object.assign({}, e);
+					return t[z] = Date.now(), t;
+				});
+			}, 3e3);
+			return function() {
+				clearTimeout(e);
+			};
+		}
+	}, [z, f]), f ? /* @__PURE__ */ l("div", {
 		style: { padding: 0 },
 		children: /* @__PURE__ */ u("div", {
 			style: {
