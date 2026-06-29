@@ -103959,11 +103959,11 @@ function uMe() {
 	}, e.createElement("path", { d: "M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 7 5h10c3 0 5 2 5 4.5Z" }), e.createElement("polyline", { points: "2 10 12 16 22 10" }));
 }
 function L7(t) {
-	var r = t.href || "/user/updates", a = t.apiBase || "", o = t.onNavigate, c = t.countEndpoint || "/api/notifications?count_only=true", l = s(!1), u = l[0], d = l[1], f = n(function() {
+	var r = t.href || "/user/updates", a = t.apiBase || "", o = t.onNavigate, c = t.countEndpoint || "/api/notifications?count_only=true", l = s(0), u = l[0], d = l[1], f = n(function() {
 		fetch(a + c, { credentials: "include" }).then(function(e) {
 			return e.ok ? e.json() : null;
 		}).then(function(e) {
-			e && e.ok && d((e.data?.unread_count || e.data?.count || 0) > 0);
+			e && e.ok && d(e.data?.unread_count || e.data?.count || 0);
 		}).catch(function() {});
 	}, [a, c]);
 	i(function() {
@@ -103980,7 +103980,7 @@ function L7(t) {
 	return e.createElement("a", {
 		href: r,
 		onClick: p,
-		"aria-label": "Inbox" + (u ? " (new items)" : ""),
+		"aria-label": "Inbox" + (u > 0 ? " (" + u + " new)" : ""),
 		title: m ? "Inbox (⌘I)" : "Inbox (Ctrl+I)",
 		style: {
 			position: "relative",
@@ -103996,10 +103996,27 @@ function L7(t) {
 			transition: "border-color .2s",
 			flexShrink: 0,
 			padding: 0,
-			color: u ? "#b8860b" : "var(--muted)",
+			color: "var(--muted)",
 			textDecoration: "none"
 		}
-	}, e.createElement(uMe, null));
+	}, e.createElement(uMe, null), u > 0 && e.createElement("span", { style: {
+		position: "absolute",
+		top: -6,
+		right: -6,
+		minWidth: 18,
+		height: 18,
+		borderRadius: 9,
+		background: "#ef4444",
+		color: "#fff",
+		fontSize: 10,
+		fontWeight: 600,
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		padding: "0 4px",
+		border: "2px solid var(--bg, #fff)",
+		lineHeight: 1
+	} }, u > 99 ? "99+" : String(u)));
 }
 //#endregion
 //#region src/UpdateAttachments.tsx
