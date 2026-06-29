@@ -1173,7 +1173,8 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     if (audiences.includes('clients')) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
     if (audiences.includes('investors')) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
     if (audiences.includes('team')) {
-      tabs.push({ id: 'bugs', label: 'Bugs', count: bugCommentItems.length })
+      var bugSeenAt = seenTimestamps.bugs || 0
+      tabs.push({ id: 'bugs', label: 'Bugs', count: bugCommentItems.filter(function(n) { return isItemNew(n.published_at, bugSeenAt) }).length })
     }
     tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
   }
