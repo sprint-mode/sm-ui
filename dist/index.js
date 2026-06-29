@@ -105944,51 +105944,17 @@ function i9(e) {
 	var Je = n(function() {
 		j(!0);
 		var e = [];
-		if (!t && z !== "all") {
-			var n = $7.find(function(e) {
-				return e.id === z;
-			});
-			n && n.statuses && e.push("status=" + n.statuses.join(","));
-		}
-		if (t && N === "reports") {
-			var i = Q7.find(function(e) {
-				return e.id === I;
-			});
-			i && i.statuses.forEach(function(t) {
-				e.push("status=" + t);
-			});
-		}
-		q !== "all" && e.push("product=" + q), ve !== "all" && e.push("type=" + ve), J !== "all" && e.push("priority=" + J), je.trim() && e.push("q=" + encodeURIComponent(je.trim())), e.push("limit=100");
-		var a = r + "/api/bugs";
-		t && N === "reports" ? Q7.find(function(e) {
-			return e.id === I;
-		}) && (a += "?" + e.filter(function(e) {
-			return !e.startsWith("status=");
-		}).join("&")) : a += "?" + e.join("&"), fetch(a, { credentials: "include" }).then(function(e) {
+		q !== "all" && e.push("product=" + q), ve !== "all" && e.push("type=" + ve), J !== "all" && e.push("priority=" + J), je.trim() && e.push("q=" + encodeURIComponent(je.trim())), e.push("limit=200");
+		var t = r + "/api/bugs?" + e.join("&");
+		fetch(t, { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			var n = Array.isArray(e.data) ? e.data : [];
-			if (t && N === "reports") {
-				var r = Q7.find(function(e) {
-					return e.id === I;
-				});
-				if (r) {
-					var i = r.statuses;
-					n = n.filter(function(e) {
-						return i.indexOf(e.status) !== -1;
-					});
-				}
-			}
-			S(n), j(!1);
+			S(Array.isArray(e.data) ? e.data : []), j(!1);
 		}).catch(function() {
 			j(!1);
 		});
 	}, [
 		r,
-		t,
-		N,
-		I,
-		z,
 		q,
 		ve,
 		J,
@@ -106025,8 +105991,6 @@ function i9(e) {
 	}, [
 		v,
 		N,
-		I,
-		z,
 		q,
 		ve,
 		J,
@@ -106241,59 +106205,7 @@ function i9(e) {
 					}, e.id);
 				})
 			}),
-			!t && /* @__PURE__ */ l("div", {
-				style: {
-					padding: "4px 16px 8px",
-					borderBottom: "1px solid var(--border)",
-					flexShrink: 0
-				},
-				children: /* @__PURE__ */ u("div", {
-					style: {
-						position: "relative",
-						display: "flex",
-						alignItems: "center"
-					},
-					children: [/* @__PURE__ */ l("input", {
-						type: "text",
-						placeholder: "Search bugs...",
-						value: Oe,
-						onChange: function(e) {
-							ke(e.target.value);
-						},
-						style: Object.assign({}, Z.filterSelect, {
-							width: "100%",
-							padding: "6px 28px 6px 8px",
-							boxSizing: "border-box"
-						})
-					}), Oe && /* @__PURE__ */ l("button", {
-						onClick: function() {
-							ke("");
-						},
-						style: {
-							position: "absolute",
-							right: 4,
-							top: "50%",
-							transform: "translateY(-50%)",
-							background: "none",
-							border: "none",
-							cursor: "pointer",
-							padding: 0,
-							fontSize: 12,
-							lineHeight: 1,
-							color: "var(--muted)",
-							fontWeight: 700,
-							width: 16,
-							height: 16,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center"
-						},
-						"aria-label": "Clear search",
-						children: "×"
-					})]
-				})
-			}),
-			t && /* @__PURE__ */ u("div", {
+			N === "reports" && /* @__PURE__ */ u("div", {
 				style: Z.filterBar,
 				children: [
 					/* @__PURE__ */ u("select", {
@@ -106317,7 +106229,7 @@ function i9(e) {
 							}, e);
 						})]
 					}),
-					N === "reports" ? /* @__PURE__ */ u("select", {
+					/* @__PURE__ */ u("select", {
 						style: Z.filterSelect,
 						value: ve,
 						onChange: function(e) {
@@ -106332,17 +106244,6 @@ function i9(e) {
 								children: e
 							}, e);
 						})]
-					}) : /* @__PURE__ */ l("select", {
-						style: Object.assign({}, Z.filterSelect, {
-							opacity: .4,
-							pointerEvents: "none"
-						}),
-						disabled: !0,
-						value: "all",
-						children: /* @__PURE__ */ l("option", {
-							value: "all",
-							children: "Types"
-						})
 					}),
 					/* @__PURE__ */ u("select", {
 						style: Z.filterSelect,
@@ -106373,7 +106274,7 @@ function i9(e) {
 							})
 						]
 					}),
-					/* @__PURE__ */ u("select", {
+					t && /* @__PURE__ */ u("select", {
 						style: Z.filterSelect,
 						value: Ce,
 						onChange: function(e) {
@@ -106494,7 +106395,18 @@ function i9(e) {
 						children: "No items."
 					}),
 					!A && N === "reports" && x.filter(function(e) {
-						return Ce === "all" || e.submitted_by_name === Ce;
+						if (t) {
+							var n = Q7.find(function(e) {
+								return e.id === I;
+							});
+							if (n && n.statuses.indexOf(e.status) === -1) return !1;
+						} else if (z !== "all") {
+							var r = $7.find(function(e) {
+								return e.id === z;
+							});
+							if (r && r.statuses && r.statuses.indexOf(e.status) === -1) return !1;
+						}
+						return !(t && Ce !== "all" && e.submitted_by_name !== Ce);
 					}).slice().sort(function(e, t) {
 						return Ee === "priority" ? (Y7[e.priority || ""] || Y7.normal).sort - (Y7[t.priority || ""] || Y7.normal).sort : Ee === "oldest" ? (e.created_at || "").localeCompare(t.created_at || "") : (t.created_at || "").localeCompare(e.created_at || "");
 					}).map(function(e) {
