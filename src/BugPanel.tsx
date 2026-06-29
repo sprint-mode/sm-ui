@@ -545,7 +545,7 @@ export function BugPanel(props: BugPanelProps) {
   var _fType = useState('bug'); var fType = _fType[0]; var setFType = _fType[1]
   var _fProduct = useState(product); var fProduct = _fProduct[0]; var setFProduct = _fProduct[1]
   var _submitting = useState(false); var submitting = _submitting[0]; var setSubmitting = _submitting[1]
-  var _filterProduct = useState(isAdmin ? 'all' : (props.product || 'all')); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
+  var _filterProduct = useState('all'); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
   var _filterPriority = useState('all'); var filterPriority = _filterPriority[0]; var setFilterPriority = _filterPriority[1]
   var _filterPerson = useState('all'); var filterPerson = _filterPerson[0]; var setFilterPerson = _filterPerson[1]
