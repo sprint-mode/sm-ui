@@ -500,12 +500,15 @@ function fmtDate(d) {
   catch (_e) { return d }
 }
 
-function docTypeLabel(t) {
+export function docTypeLabel(t) {
   if (!t) return 'Document'
   var m = {
     msa: 'MSA', sales_order: 'Sales Order', amendment: 'Amendment', nda: 'NDA',
-    subscription_agreement: 'PUPA', llc_amendment: 'LLC Amendment',
-    investor_agreement: 'MIAGA', k1: 'K-1',
+    subscription_agreement: 'Purchase Agreement', llc_amendment: 'LLC Amendment',
+    investor_agreement: 'Grant Agreement', k1: 'K-1',
+    pupa: 'Purchase Agreement', miaga: 'Grant Agreement',
+    amended_llc: 'LLC Amendment', legal: 'Legal', tax: 'Tax',
+    statement: 'Statement', quarterly_report: 'Quarterly Report',
     '1065': '1065', state_return: 'State Return', adjusting_je: 'Adjusting JE',
     fund_side_letter: 'Side Letter', fund_subscription: 'Subscription',
     capital_call: 'Capital Call', capital_account: 'Capital Account',

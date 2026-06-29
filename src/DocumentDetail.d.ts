@@ -57,3 +57,4 @@ interface PipelineBarProps {
 export declare function DocumentDetail(props: DocumentDetailProps): ReactNode
 export declare function TermCards(props: TermCardsProps): ReactNode
 export declare function PipelineBar(props: PipelineBarProps): ReactNode
+export function docTypeLabel(t: string): string;
