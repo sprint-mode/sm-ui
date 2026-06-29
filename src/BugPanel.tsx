@@ -265,13 +265,14 @@ function highlightText(text: string, query: string): React.ReactNode {
   )
 }
 
-function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire, onFireTerminal, apiBase, searchQuery }: {
+function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDelete, onFire, onFireTerminal, apiBase, searchQuery }: {
   bug: Bug
   isAdmin?: boolean
   expanded: boolean
   onToggle: () => void
   onAction: (bugId: string, updates: Record<string, string>) => void
   onComment: (bugId: string, body: string) => Promise<void>
+  onDelete?: (bugId: string) => void
   onFire?: (bugId: string) => void
   onFireTerminal?: (bugId: string) => void
   apiBase: string
@@ -282,6 +283,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
   var _posting = useState(false); var posting = _posting[0]; var setPosting = _posting[1]
   var _closing = useState(false); var closing = _closing[0]; var setClosure = _closing[1]
   var _closeReason = useState(''); var closeReason = _closeReason[0]; var setCloseReason = _closeReason[1]
+  var _confirmDelete = useState(false); var confirmDelete = _confirmDelete[0]; var setConfirmDelete = _confirmDelete[1]
   var _viewingAtt = useState<string | null>(null); var _viewingAttVal = _viewingAtt[0]; var _setViewingAtt = _viewingAtt[1]
 
   var sm = STATUS_META[bug.status] || STATUS_META['open']
@@ -462,6 +464,16 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onFire
                 <>
                   <button style={S.btnSm('transparent', 'var(--accent)', '1px solid var(--accent)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'open' }) }}>Re-open</button>
                   {bug.close_reason && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{bug.close_reason.replace(/_/g, ' ')}</span>}
+                </>
+              )}
+              {onDelete && <span style={{ marginLeft: 'auto' }} />}
+              {onDelete && !confirmDelete && (
+                <button style={S.btnSm('transparent', 'var(--red)', '1px solid var(--border)')} onClick={function(e) { e.stopPropagation(); setConfirmDelete(true) }}>Delete</button>
+              )}
+              {onDelete && confirmDelete && (
+                <>
+                  <button style={S.btnSm('var(--red)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onDelete(bug.id); setConfirmDelete(false) }}>Confirm delete</button>
+                  <button style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 11, padding: '2px 4px' }} onClick={function(e) { e.stopPropagation(); setConfirmDelete(false) }}>Cancel</button>
                 </>
               )}
             </div>
@@ -726,6 +738,15 @@ export function BugPanel(props: BugPanelProps) {
     }).then(function() { loadBugs() })
   }
 
+  function handleDelete(bugId: string) {
+    fetch(apiBase + '/api/bugs/' + bugId, {
+      method: 'DELETE', credentials: 'include'
+    }).then(function(r) { return r.json() })
+      .then(function(d: { ok: boolean }) {
+        if (d.ok) { setExpanded(null); loadBugs() }
+      })
+  }
+
   function handleFire(bugId: string) {
     fetch(apiBase + '/api/bugs/' + bugId + '/fire', {
       method: 'POST', credentials: 'include',
@@ -953,7 +974,7 @@ export function BugPanel(props: BugPanelProps) {
           }).map(function(bug) {
             return <BugCard key={bug.id} bug={bug} isAdmin={isAdmin} expanded={expanded === bug.id}
               onToggle={function() { setExpanded(expanded === bug.id ? null : bug.id) }}
-              onAction={handleAction} onComment={handleComment} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} searchQuery={debouncedSearch} />
+              onAction={handleAction} onComment={handleComment} onDelete={isAdmin ? handleDelete : undefined} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} searchQuery={debouncedSearch} />
           })}
           {!loading && source === 'threads' && threads.map(function(item) {
             return <ThreadCard key={item.id} item={item} expanded={expanded === item.id}
