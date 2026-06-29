@@ -461,31 +461,29 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
 
 function BugsTab({ commentNotifications, onNavigate, lastSeenAt }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
   var seenAt = lastSeenAt || 0
+  var items = commentNotifications || []
 
-  // Only show notifications the user hasn't seen yet
-  var unseen = (commentNotifications || []).filter(function(n) {
-    return isItemNew(n.published_at, seenAt)
-  })
-
-  if (unseen.length === 0) {
-    return <EmptyState message="No new notifications" />
+  if (items.length === 0) {
+    return <EmptyState message="No bug comment notifications" />
   }
 
   return (
     <div>
-      {unseen.map(function(notif) {
+      {items.map(function(notif) {
+        var isNew = isItemNew(notif.published_at, seenAt)
         return (
           <div key={notif.id} onClick={function() {
             if (notif.action_url && onNavigate) onNavigate(notif.action_url)
           }} style={{
             display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
-            background: 'var(--accent-bg, hsla(262,60%,55%,.06))', border: '1px solid var(--accent-border, hsla(262,60%,55%,.15))',
+            background: isNew ? 'var(--accent-bg, hsla(262,60%,55%,.06))' : 'transparent',
+            border: '1px solid ' + (isNew ? 'var(--accent-border, hsla(262,60%,55%,.15))' : 'var(--border, #e5e7eb)'),
             borderRadius: 'var(--radius, 8px)', marginBottom: 6,
             cursor: notif.action_url ? 'pointer' : 'default',
           }}>
-            <NewDot />
+            {isNew ? <NewDot /> : <SeenDotPlaceholder />}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-0, inherit)', marginBottom: 2 }}>{notif.title}</div>
+              <div style={{ fontSize: 13, fontWeight: isNew ? 500 : 400, color: isNew ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)', marginBottom: 2 }}>{notif.title}</div>
               {notif.body && <div style={{ fontSize: 12, color: 'var(--text-2, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{notif.body}</div>}
               <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 4 }}>
                 {notif.author_name ? notif.author_name + ' · ' : ''}{relativeTime(notif.published_at)}
@@ -1175,9 +1173,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     if (audiences.includes('clients')) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
     if (audiences.includes('investors')) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
     if (audiences.includes('team')) {
-      var bugSeenAt = seenTimestamps.bugs || 0
-      var unseenBugCount = bugCommentItems.filter(function(n) { return isItemNew(n.published_at, bugSeenAt) }).length
-      tabs.push({ id: 'bugs', label: 'Bugs', count: unseenBugCount })
+      tabs.push({ id: 'bugs', label: 'Bugs', count: bugCommentItems.length })
     }
     tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
   }

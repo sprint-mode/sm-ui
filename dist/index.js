@@ -111476,10 +111476,9 @@ function dNe({ items: e, api: t, onNavigate: n, lastSeenAt: r }) {
 	})] });
 }
 function fNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n }) {
-	var r = n || 0, i = (e || []).filter(function(e) {
-		return Q(e.published_at, r);
-	});
-	return i.length === 0 ? /* @__PURE__ */ l(B9, { message: "No new notifications" }) : /* @__PURE__ */ l("div", { children: i.map(function(e) {
+	var r = n || 0, i = e || [];
+	return i.length === 0 ? /* @__PURE__ */ l(B9, { message: "No bug comment notifications" }) : /* @__PURE__ */ l("div", { children: i.map(function(e) {
+		var n = Q(e.published_at, r);
 		return /* @__PURE__ */ u("div", {
 			onClick: function() {
 				e.action_url && t && t(e.action_url);
@@ -111489,14 +111488,14 @@ function fNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n }) {
 				alignItems: "flex-start",
 				gap: 10,
 				padding: "10px 12px",
-				background: "var(--accent-bg, hsla(262,60%,55%,.06))",
-				border: "1px solid var(--accent-border, hsla(262,60%,55%,.15))",
+				background: n ? "var(--accent-bg, hsla(262,60%,55%,.06))" : "transparent",
+				border: "1px solid " + (n ? "var(--accent-border, hsla(262,60%,55%,.15))" : "var(--border, #e5e7eb)"),
 				borderRadius: "var(--radius, 8px)",
 				marginBottom: 6,
 				cursor: e.action_url ? "pointer" : "default"
 			},
 			children: [
-				/* @__PURE__ */ l(F9, {}),
+				l(n ? F9 : I9, {}),
 				/* @__PURE__ */ u("div", {
 					style: {
 						flex: 1,
@@ -111506,8 +111505,8 @@ function fNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n }) {
 						/* @__PURE__ */ l("div", {
 							style: {
 								fontSize: 13,
-								fontWeight: 500,
-								color: "var(--text-0, inherit)",
+								fontWeight: n ? 500 : 400,
+								color: n ? "var(--text-0, inherit)" : "var(--text-1, #374151)",
 								marginBottom: 2
 							},
 							children: e.title
@@ -112543,46 +112542,38 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 		P();
 	}, [P]);
 	var F = [];
-	if (g.length > 0) {
-		if (F.push({
-			id: "general",
-			label: "General",
-			count: w.length
-		}), F.push({
-			id: "tasks",
-			label: "Tasks",
-			count: A.length
-		}), g.includes("clients") && F.push({
-			id: "project",
-			label: "Project",
-			count: E.length
-		}), g.includes("investors") && F.push({
-			id: "reports",
-			label: "Reports",
-			count: E.length
-		}), g.includes("team")) {
-			var I = S.bugs || 0, L = O.filter(function(e) {
-				return Q(e.published_at, I);
-			}).length;
-			F.push({
-				id: "bugs",
-				label: "Bugs",
-				count: L
-			});
-		}
-		F.push({
-			id: "support",
-			label: "Support",
-			count: g.includes("team") ? 0 : M.length
-		});
-	}
-	var R = g.includes("team"), z = d || (R ? function(e) {
+	g.length > 0 && (F.push({
+		id: "general",
+		label: "General",
+		count: w.length
+	}), F.push({
+		id: "tasks",
+		label: "Tasks",
+		count: A.length
+	}), g.includes("clients") && F.push({
+		id: "project",
+		label: "Project",
+		count: E.length
+	}), g.includes("investors") && F.push({
+		id: "reports",
+		label: "Reports",
+		count: E.length
+	}), g.includes("team") && F.push({
+		id: "bugs",
+		label: "Bugs",
+		count: O.length
+	}), F.push({
+		id: "support",
+		label: "Support",
+		count: g.includes("team") ? 0 : M.length
+	}));
+	var I = g.includes("team"), L = d || (I ? function(e) {
 		window.open("https://admin.sprintmode.ai" + e, "_blank");
-	} : void 0), B = v;
-	(!B || !F.find(function(e) {
-		return e.id === B;
-	})) && (B = F.length > 0 ? F[0].id : null);
-	function V(e) {
+	} : void 0), R = v;
+	(!R || !F.find(function(e) {
+		return e.id === R;
+	})) && (R = F.length > 0 ? F[0].id : null);
+	function z(e) {
 		var t = S[e] || 0;
 		return e === "general" ? w.some(function(e) {
 			return Q(e.published_at, t);
@@ -112592,11 +112583,11 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 			return Q(e.published_at, t);
 		}) : e === "bugs" ? O.some(function(e) {
 			return Q(e.published_at, t);
-		}) : e === "support" && R ? b : e === "support" ? M.some(function(e) {
+		}) : e === "support" && I ? b : e === "support" ? M.some(function(e) {
 			return Q(e.updated_at || e.created_at, t);
 		}) : !1;
 	}
-	function H(e) {
+	function B(e) {
 		y(e), cNe(e), C(function(t) {
 			var n = Object.assign({}, t);
 			return n[e] = Date.now(), n;
@@ -112668,10 +112659,10 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 					marginBottom: 16
 				},
 				children: F.map(function(e) {
-					var t = e.id === B, n = V(e.id);
+					var t = e.id === R, n = z(e.id);
 					return /* @__PURE__ */ u("button", {
 						onClick: function() {
-							H(e.id);
+							B(e.id);
 						},
 						style: {
 							fontSize: 13,
@@ -112716,39 +112707,39 @@ function hNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 					}, e.id);
 				})
 			}),
-			B === "general" && /* @__PURE__ */ l(U9, {
+			R === "general" && /* @__PURE__ */ l(U9, {
 				items: w,
 				api: e,
 				lastSeenAt: S.general
 			}),
-			B === "tasks" && /* @__PURE__ */ l(dNe, {
+			R === "tasks" && /* @__PURE__ */ l(dNe, {
 				items: A,
 				api: e,
-				onNavigate: z,
+				onNavigate: L,
 				lastSeenAt: S.tasks
 			}),
-			B === "bugs" && /* @__PURE__ */ l(fNe, {
+			R === "bugs" && /* @__PURE__ */ l(fNe, {
 				commentNotifications: O,
-				onNavigate: z,
+				onNavigate: L,
 				lastSeenAt: S.bugs
 			}),
-			B === "project" && /* @__PURE__ */ l(U9, {
+			R === "project" && /* @__PURE__ */ l(U9, {
 				items: E,
 				api: e,
 				lastSeenAt: S.project
 			}),
-			B === "reports" && /* @__PURE__ */ l(U9, {
+			R === "reports" && /* @__PURE__ */ l(U9, {
 				items: E,
 				api: e,
 				lastSeenAt: S.reports
 			}),
-			B === "support" && R && /* @__PURE__ */ l(mNe, {
+			R === "support" && I && /* @__PURE__ */ l(mNe, {
 				api: e,
-				onNavigate: z,
+				onNavigate: L,
 				lastSeenAt: S.support,
 				onHasNew: x
 			}),
-			B === "support" && !R && t && /* @__PURE__ */ l(pNe, {
+			R === "support" && !I && t && /* @__PURE__ */ l(pNe, {
 				threads: M,
 				api: e,
 				subdomain: t,
