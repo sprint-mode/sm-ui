@@ -242,11 +242,10 @@ function loadPdfjs() {
 }
 
 function PdfViewer({ url }) {
-  var canvasRef = React.useRef(null)
+  var containerRef = React.useRef(null)
   var [pdfDoc, setPdfDoc] = useState(null)
-  var [page, setPage] = useState(1)
   var [numPages, setNumPages] = useState(0)
-  var [scale, setScale] = useState(1.4)
+  var [scale, setScale] = useState(1.2)
   var [loading, setLoading] = useState(true)
   var [error, setError] = useState(null)
 
@@ -260,7 +259,6 @@ function PdfViewer({ url }) {
     }).then(function(pdf) {
       setPdfDoc(pdf)
       setNumPages(pdf.numPages)
-      setPage(1)
       setLoading(false)
     }).catch(function(_e) {
       setError('Unable to load PDF')
@@ -268,23 +266,38 @@ function PdfViewer({ url }) {
     })
   }, [url])
 
-  // Render page
+  // Render all pages
   React.useEffect(function() {
-    if (!pdfDoc || !canvasRef.current) return
-    pdfDoc.getPage(page).then(function(pg) {
-      var viewport = pg.getViewport({ scale: scale })
-      var canvas = canvasRef.current
-      if (!canvas) return
-      var context = canvas.getContext('2d')
-      var dpr = window.devicePixelRatio || 1
-      canvas.width = viewport.width * dpr
-      canvas.height = viewport.height * dpr
-      canvas.style.width = viewport.width + 'px'
-      canvas.style.height = viewport.height + 'px'
-      context.setTransform(dpr, 0, 0, dpr, 0, 0)
-      pg.render({ canvasContext: context, viewport: viewport })
-    })
-  }, [pdfDoc, page, scale])
+    if (!pdfDoc || !containerRef.current) return
+    var container = containerRef.current
+    container.innerHTML = ''
+    var dpr = window.devicePixelRatio || 1
+
+    for (var i = 1; i <= pdfDoc.numPages; i++) {
+      (function(pageNum) {
+        pdfDoc.getPage(pageNum).then(function(pg) {
+          var viewport = pg.getViewport({ scale: scale })
+          var canvas = document.createElement('canvas')
+          canvas.width = viewport.width * dpr
+          canvas.height = viewport.height * dpr
+          canvas.style.width = viewport.width + 'px'
+          canvas.style.height = viewport.height + 'px'
+          canvas.style.display = 'block'
+          if (pageNum > 1) canvas.style.marginTop = '8px'
+          var context = canvas.getContext('2d')
+          context.setTransform(dpr, 0, 0, dpr, 0, 0)
+          pg.render({ canvasContext: context, viewport: viewport })
+          // Insert in order
+          var existing = container.children
+          if (pageNum - 1 >= existing.length) {
+            container.appendChild(canvas)
+          } else {
+            container.insertBefore(canvas, existing[pageNum - 1])
+          }
+        })
+      })(i)
+    }
+  }, [pdfDoc, scale])
 
   if (error) {
     return (
@@ -304,19 +317,9 @@ function PdfViewer({ url }) {
 
   return (
     <div>
-      {/* Controls */}
+      {/* Controls — zoom only, no pagination */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', marginBottom: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <button onClick={function() { setPage(Math.max(1, page - 1)) }} disabled={page <= 1} style={viewerBtnStyle} title="Previous page">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
-          </button>
-          <span style={{ fontSize: 12, color: 'var(--foreground)', minWidth: 60, textAlign: 'center' }}>
-            {page} / {numPages}
-          </span>
-          <button onClick={function() { setPage(Math.min(numPages, page + 1)) }} disabled={page >= numPages} style={viewerBtnStyle} title="Next page">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-          </button>
-        </div>
+        <span style={{ fontSize: 11, color: 'var(--muted)' }}>{numPages} page{numPages !== 1 ? 's' : ''}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <button onClick={function() { setScale(Math.max(0.5, scale - 0.2)) }} style={viewerBtnStyle} title="Zoom out">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -328,9 +331,9 @@ function PdfViewer({ url }) {
         </div>
       </div>
 
-      {/* Canvas */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 6px)', overflow: 'auto', maxHeight: 700, background: '#f5f5f5', display: 'flex', justifyContent: 'center', padding: 8 }}>
-        <canvas ref={canvasRef} style={{ display: 'block' }} />
+      {/* All pages — continuous scroll */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 6px)', overflow: 'auto', maxHeight: 800, background: '#f5f5f5', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8 }}>
+        <div ref={containerRef} />
       </div>
     </div>
   )
@@ -420,15 +423,8 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
       {/* 4. Document viewer + download */}
       {pdfUrl && (
         <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 8px)', padding: '16px 20px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)', marginBottom: 14 }}>Document</div>
-          {hasPassword && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Document password (needed to open the PDF):</div>
-              <PasswordWidget password={doc.doc_password} />
-            </div>
-          )}
-          <PdfViewer url={pdfUrl} />
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: 10, gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '.5px', color: 'var(--muted)' }}>Document</div>
             {hasPassword ? (
               <a
                 href={onDownload ? undefined : (pdfUrl + (pdfUrl.includes('?') ? '&' : '?') + 'download=1')}
@@ -451,6 +447,13 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
               </a>
             )}
           </div>
+          {hasPassword && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 6 }}>Document password (needed to open the PDF):</div>
+              <PasswordWidget password={doc.doc_password} />
+            </div>
+          )}
+          <PdfViewer url={pdfUrl} />
         </div>
       )}
 

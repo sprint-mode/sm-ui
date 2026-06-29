@@ -114172,42 +114172,45 @@ function NNe() {
 	});
 }
 function PNe({ url: t }) {
-	var n = e.useRef(null), [r, i] = s(null), [a, o] = s(1), [c, d] = s(0), [f, p] = s(1.4), [m, h] = s(!0), [g, _] = s(null);
+	var n = e.useRef(null), [r, i] = s(null), [a, o] = s(0), [c, d] = s(1.2), [f, p] = s(!0), [m, h] = s(null);
 	return e.useEffect(function() {
-		t && (h(!0), _(null), NNe().then(function(e) {
+		t && (p(!0), h(null), NNe().then(function(e) {
 			return e.getDocument({
 				url: t,
 				withCredentials: !0
 			}).promise;
 		}).then(function(e) {
-			i(e), d(e.numPages), o(1), h(!1);
+			i(e), o(e.numPages), p(!1);
 		}).catch(function(e) {
-			_("Unable to load PDF"), h(!1);
+			h("Unable to load PDF"), p(!1);
 		}));
 	}, [t]), e.useEffect(function() {
-		!r || !n.current || r.getPage(a).then(function(e) {
-			var t = e.getViewport({ scale: f }), r = n.current;
-			if (r) {
-				var i = r.getContext("2d"), a = window.devicePixelRatio || 1;
-				r.width = t.width * a, r.height = t.height * a, r.style.width = t.width + "px", r.style.height = t.height + "px", i.setTransform(a, 0, 0, a, 0, 0), e.render({
-					canvasContext: i,
-					viewport: t
+		if (!(!r || !n.current)) {
+			var e = n.current;
+			e.innerHTML = "";
+			for (var t = window.devicePixelRatio || 1, i = 1; i <= r.numPages; i++) (function(n) {
+				r.getPage(n).then(function(r) {
+					var i = r.getViewport({ scale: c }), a = document.createElement("canvas");
+					a.width = i.width * t, a.height = i.height * t, a.style.width = i.width + "px", a.style.height = i.height + "px", a.style.display = "block", n > 1 && (a.style.marginTop = "8px");
+					var o = a.getContext("2d");
+					o.setTransform(t, 0, 0, t, 0, 0), r.render({
+						canvasContext: o,
+						viewport: i
+					});
+					var s = e.children;
+					n - 1 >= s.length ? e.appendChild(a) : e.insertBefore(a, s[n - 1]);
 				});
-			}
-		});
-	}, [
-		r,
-		a,
-		f
-	]), g ? /* @__PURE__ */ l("div", {
+			})(i);
+		}
+	}, [r, c]), m ? /* @__PURE__ */ l("div", {
 		style: {
 			padding: 24,
 			textAlign: "center",
 			color: "var(--muted)",
 			fontSize: 13
 		},
-		children: g
-	}) : m ? /* @__PURE__ */ l("div", {
+		children: m
+	}) : f ? /* @__PURE__ */ l("div", {
 		style: {
 			padding: 32,
 			textAlign: "center",
@@ -114223,60 +114226,15 @@ function PNe({ url: t }) {
 			padding: "8px 0",
 			marginBottom: 8
 		},
-		children: [/* @__PURE__ */ u("div", {
+		children: [/* @__PURE__ */ u("span", {
 			style: {
-				display: "flex",
-				alignItems: "center",
-				gap: 4
+				fontSize: 11,
+				color: "var(--muted)"
 			},
 			children: [
-				/* @__PURE__ */ l("button", {
-					onClick: function() {
-						o(Math.max(1, a - 1));
-					},
-					disabled: a <= 1,
-					style: X9,
-					title: "Previous page",
-					children: /* @__PURE__ */ l("svg", {
-						width: "14",
-						height: "14",
-						viewBox: "0 0 24 24",
-						fill: "none",
-						stroke: "currentColor",
-						strokeWidth: "2",
-						children: /* @__PURE__ */ l("polyline", { points: "15 18 9 12 15 6" })
-					})
-				}),
-				/* @__PURE__ */ u("span", {
-					style: {
-						fontSize: 12,
-						color: "var(--foreground)",
-						minWidth: 60,
-						textAlign: "center"
-					},
-					children: [
-						a,
-						" / ",
-						c
-					]
-				}),
-				/* @__PURE__ */ l("button", {
-					onClick: function() {
-						o(Math.min(c, a + 1));
-					},
-					disabled: a >= c,
-					style: X9,
-					title: "Next page",
-					children: /* @__PURE__ */ l("svg", {
-						width: "14",
-						height: "14",
-						viewBox: "0 0 24 24",
-						fill: "none",
-						stroke: "currentColor",
-						strokeWidth: "2",
-						children: /* @__PURE__ */ l("polyline", { points: "9 18 15 12 9 6" })
-					})
-				})
+				a,
+				" page",
+				a === 1 ? "" : "s"
 			]
 		}), /* @__PURE__ */ u("div", {
 			style: {
@@ -114287,7 +114245,7 @@ function PNe({ url: t }) {
 			children: [
 				/* @__PURE__ */ l("button", {
 					onClick: function() {
-						p(Math.max(.5, f - .2));
+						d(Math.max(.5, c - .2));
 					},
 					style: X9,
 					title: "Zoom out",
@@ -114326,11 +114284,11 @@ function PNe({ url: t }) {
 						minWidth: 36,
 						textAlign: "center"
 					},
-					children: [Math.round(f * 100), "%"]
+					children: [Math.round(c * 100), "%"]
 				}),
 				/* @__PURE__ */ l("button", {
 					onClick: function() {
-						p(Math.min(3, f + .2));
+						d(Math.min(3, c + .2));
 					},
 					style: X9,
 					title: "Zoom in",
@@ -114375,16 +114333,14 @@ function PNe({ url: t }) {
 			border: "1px solid var(--border)",
 			borderRadius: "var(--radius-sm, 6px)",
 			overflow: "auto",
-			maxHeight: 700,
+			maxHeight: 800,
 			background: "#f5f5f5",
 			display: "flex",
-			justifyContent: "center",
+			flexDirection: "column",
+			alignItems: "center",
 			padding: 8
 		},
-		children: /* @__PURE__ */ l("canvas", {
-			ref: n,
-			style: { display: "block" }
-		})
+		children: /* @__PURE__ */ l("div", { ref: n })
 	})] });
 }
 var X9 = {
@@ -114560,38 +114516,23 @@ function FNe({ document: e, relatedDocs: t, onDownload: n, showProgression: r, f
 					padding: "16px 20px"
 				},
 				children: [
-					/* @__PURE__ */ l("div", {
-						style: {
-							fontSize: 11,
-							fontWeight: 600,
-							textTransform: "uppercase",
-							letterSpacing: ".5px",
-							color: "var(--muted)",
-							marginBottom: 14
-						},
-						children: "Document"
-					}),
-					p && /* @__PURE__ */ u("div", {
-						style: { marginBottom: 12 },
-						children: [/* @__PURE__ */ l("div", {
-							style: {
-								fontSize: 12,
-								color: "var(--muted)",
-								marginBottom: 6
-							},
-							children: "Document password (needed to open the PDF):"
-						}), /* @__PURE__ */ l(MNe, { password: e.doc_password })]
-					}),
-					/* @__PURE__ */ l(PNe, { url: c }),
-					/* @__PURE__ */ l("div", {
+					/* @__PURE__ */ u("div", {
 						style: {
 							display: "flex",
 							alignItems: "center",
-							justifyContent: "flex-end",
-							marginTop: 10,
-							gap: 8
+							justifyContent: "space-between",
+							marginBottom: 14
 						},
-						children: p ? /* @__PURE__ */ u("a", {
+						children: [/* @__PURE__ */ l("div", {
+							style: {
+								fontSize: 11,
+								fontWeight: 600,
+								textTransform: "uppercase",
+								letterSpacing: ".5px",
+								color: "var(--muted)"
+							},
+							children: "Document"
+						}), p ? /* @__PURE__ */ u("a", {
 							href: n ? void 0 : c + (c.includes("?") ? "&" : "?") + "download=1",
 							onClick: n ? function(t) {
 								t.preventDefault(), n(e, !0);
@@ -114647,8 +114588,20 @@ function FNe({ document: e, relatedDocs: t, onDownload: n, showProgression: r, f
 									})
 								]
 							}), "Download PDF"]
-						})
-					})
+						})]
+					}),
+					p && /* @__PURE__ */ u("div", {
+						style: { marginBottom: 12 },
+						children: [/* @__PURE__ */ l("div", {
+							style: {
+								fontSize: 12,
+								color: "var(--muted)",
+								marginBottom: 6
+							},
+							children: "Document password (needed to open the PDF):"
+						}), /* @__PURE__ */ l(MNe, { password: e.doc_password })]
+					}),
+					/* @__PURE__ */ l(PNe, { url: c })
 				]
 			}),
 			t && t.length > 0 && /* @__PURE__ */ u("div", {
