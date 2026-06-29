@@ -1031,10 +1031,13 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     return function() { window.removeEventListener('keydown', handler) }
   }, [bugPanelEnabled, portalPickerOpen])
 
-  // Deep link: ?bug=bug_xxx opens the bug panel automatically
+  // Deep link: ?bug=bug_xxx opens the bug panel and focuses that bug
+  var _focusBug = useState<string | null>(null); var focusBugId = _focusBug[0]; var setFocusBugId = _focusBug[1]
   useEffect(function() {
     var params = new URLSearchParams(window.location.search)
-    if (params.get('bug') && bugPanelEnabled) {
+    var bugId = params.get('bug')
+    if (bugId && bugPanelEnabled) {
+      setFocusBugId(bugId)
       setBugPanelOpen(true)
     }
   }, [bugPanelEnabled, location.search])
@@ -1442,11 +1445,12 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         {bugPanelEnabled && (
           <BugPanel
             visible={bugPanelOpen}
-            onClose={function() { setBugPanelOpen(false) }}
+            onClose={function() { setBugPanelOpen(false); setFocusBugId(null) }}
             isAdmin={!!bugPanelAdmin}
             apiBase={notificationApiBase}
             product={bugPanelProduct}
             label={bugPanelLabel}
+            focusBugId={focusBugId}
             session={session ? { contact_id: (session as any).contact_id, display_name: session.name, email: session.email } : null}
           />
         )}

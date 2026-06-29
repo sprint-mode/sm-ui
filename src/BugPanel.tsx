@@ -16,6 +16,7 @@ export interface BugPanelProps {
   offsetFab?: boolean
   onClose?: () => void
   visible?: boolean
+  focusBugId?: string | null
 }
 
 export interface BugPanelHeaderButtonProps {
@@ -566,17 +567,20 @@ export function BugPanel(props: BugPanelProps) {
     setFormAttachments(function(prev) { return prev.filter(function(a) { return a.id !== id }) })
   }
 
-  // Deep link: ?bug=bug_xxx opens panel and expands that bug
+  // Deep link: focusBugId prop or ?bug=bug_xxx in URL
   var deepLinkBugId = useRef<string | null>(null)
   useEffect(function() {
-    var params = new URLSearchParams(window.location.search)
-    var bugId = params.get('bug')
+    var bugId = props.focusBugId || null
+    if (!bugId) {
+      var params = new URLSearchParams(window.location.search)
+      bugId = params.get('bug')
+    }
     if (bugId) {
       setSelfOpen(true)
       setExpanded(bugId)
       deepLinkBugId.current = bugId
     }
-  }, [open])
+  }, [open, props.focusBugId])
 
   // Scroll to deep-linked bug once it's rendered
   useEffect(function() {

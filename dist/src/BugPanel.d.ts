@@ -13,6 +13,7 @@ export interface BugPanelProps {
     offsetFab?: boolean;
     onClose?: () => void;
     visible?: boolean;
+    focusBugId?: string | null;
 }
 export interface BugPanelHeaderButtonProps {
     onClick?: React.MouseEventHandler<HTMLButtonElement>;
