@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Badge } from './components.tsx'
+import { FileViewer } from './FileViewer.jsx'
 
 // ── TermCards extraction logic ──────────────────────────────────────────────
 // Consolidated from sm-studios/Contracts.jsx and sm-admin/ContractDetail.tsx.
@@ -215,136 +216,6 @@ function PasswordWidget({ password }) {
   )
 }
 
-// ── PDF Viewer (PDF.js canvas rendering) ────────────────────────────────────
-
-var PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168'
-var pdfjsLib = null
-
-function loadPdfjs() {
-  if (pdfjsLib) return Promise.resolve(pdfjsLib)
-  return new Promise(function(resolve, reject) {
-    var script = document.createElement('script')
-    script.src = PDFJS_CDN + '/pdf.min.mjs'
-    script.type = 'module'
-    // PDF.js 4.x uses ES modules — use dynamic import instead
-    var importScript = document.createElement('script')
-    importScript.type = 'module'
-    importScript.textContent = 'import * as pdfjsLib from "' + PDFJS_CDN + '/pdf.min.mjs"; window.__pdfjsLib = pdfjsLib; window.__pdfjsLib.GlobalWorkerOptions.workerSrc = "' + PDFJS_CDN + '/pdf.worker.min.mjs"; window.dispatchEvent(new Event("pdfjs-ready"));'
-    document.head.appendChild(importScript)
-    function onReady() {
-      window.removeEventListener('pdfjs-ready', onReady)
-      pdfjsLib = window.__pdfjsLib
-      resolve(pdfjsLib)
-    }
-    window.addEventListener('pdfjs-ready', onReady)
-    setTimeout(function() { reject(new Error('PDF.js load timeout')) }, 10000)
-  })
-}
-
-function PdfViewer({ url }) {
-  var containerRef = React.useRef(null)
-  var [pdfDoc, setPdfDoc] = useState(null)
-  var [numPages, setNumPages] = useState(0)
-  var [scale, setScale] = useState(1.2)
-  var [loading, setLoading] = useState(true)
-  var [error, setError] = useState(null)
-
-  // Load PDF
-  React.useEffect(function() {
-    if (!url) return
-    setLoading(true)
-    setError(null)
-    loadPdfjs().then(function(lib) {
-      return lib.getDocument({ url: url, withCredentials: true }).promise
-    }).then(function(pdf) {
-      setPdfDoc(pdf)
-      setNumPages(pdf.numPages)
-      setLoading(false)
-    }).catch(function(_e) {
-      setError('Unable to load PDF')
-      setLoading(false)
-    })
-  }, [url])
-
-  // Render all pages
-  React.useEffect(function() {
-    if (!pdfDoc || !containerRef.current) return
-    var container = containerRef.current
-    container.innerHTML = ''
-    var dpr = window.devicePixelRatio || 1
-
-    for (var i = 1; i <= pdfDoc.numPages; i++) {
-      (function(pageNum) {
-        pdfDoc.getPage(pageNum).then(function(pg) {
-          var viewport = pg.getViewport({ scale: scale })
-          var canvas = document.createElement('canvas')
-          canvas.width = viewport.width * dpr
-          canvas.height = viewport.height * dpr
-          canvas.style.width = viewport.width + 'px'
-          canvas.style.height = viewport.height + 'px'
-          canvas.style.display = 'block'
-          if (pageNum > 1) canvas.style.marginTop = '8px'
-          var context = canvas.getContext('2d')
-          context.setTransform(dpr, 0, 0, dpr, 0, 0)
-          pg.render({ canvasContext: context, viewport: viewport })
-          // Insert in order
-          var existing = container.children
-          if (pageNum - 1 >= existing.length) {
-            container.appendChild(canvas)
-          } else {
-            container.insertBefore(canvas, existing[pageNum - 1])
-          }
-        })
-      })(i)
-    }
-  }, [pdfDoc, scale])
-
-  if (error) {
-    return (
-      <div style={{ padding: 24, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-        {error}
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div style={{ padding: 32, textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
-        Loading document...
-      </div>
-    )
-  }
-
-  return (
-    <div>
-      {/* Controls — zoom only, no pagination */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 0', marginBottom: 8 }}>
-        <span style={{ fontSize: 11, color: 'var(--muted)' }}>{numPages} page{numPages !== 1 ? 's' : ''}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <button onClick={function() { setScale(Math.max(0.5, scale - 0.2)) }} style={viewerBtnStyle} title="Zoom out">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-          <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 36, textAlign: 'center' }}>{Math.round(scale * 100)}%</span>
-          <button onClick={function() { setScale(Math.min(3, scale + 0.2)) }} style={viewerBtnStyle} title="Zoom in">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          </button>
-        </div>
-      </div>
-
-      {/* All pages — continuous scroll */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 6px)', overflow: 'auto', maxHeight: 800, background: '#f5f5f5', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: 8 }}>
-        <div ref={containerRef} />
-      </div>
-    </div>
-  )
-}
-
-var viewerBtnStyle = {
-  background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm, 6px)',
-  padding: '4px 8px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
-  color: 'var(--foreground)',
-}
-
 // ── DocumentDetail ──────────────────────────────────────────────────────────
 // Universal 5-section document detail component.
 // Used by: sm-studios, sm-investors, sm-admin, File Manager.
@@ -453,7 +324,7 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
               <PasswordWidget password={doc.doc_password} />
             </div>
           )}
-          <PdfViewer url={pdfUrl} />
+          <FileViewer url={pdfUrl} filename={fileNameFromUrl(pdfUrl) || (docName + '.pdf')} />
         </div>
       )}
 
@@ -493,6 +364,16 @@ export function DocumentDetail({ document: doc, relatedDocs, onDownload, showPro
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+function fileNameFromUrl(url) {
+  if (!url) return null
+  try {
+    var path = new URL(url, 'https://x').pathname
+    var last = path.split('/').pop()
+    if (last && last.indexOf('.') > 0) return decodeURIComponent(last)
+  } catch (_e) { /* ignore */ }
+  return null
+}
 
 function fmtDate(d) {
   if (!d) return '\u2014'
