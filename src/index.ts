@@ -72,3 +72,6 @@ export { NotificationPrefs } from './NotificationPrefs.tsx'
 
 // Document detail — universal 5-section document viewer
 export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx'
+
+// Universal file viewer — PDF, images, Excel, Word with CDN-loaded renderers
+export { FileViewer, isViewableFile } from './FileViewer.jsx'

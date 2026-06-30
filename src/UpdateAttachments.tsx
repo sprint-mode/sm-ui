@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { FileViewer, isViewableFile } from './FileViewer.jsx'
 
 export type AttachmentType = 'image' | 'file' | 'drive' | 'link'
 
@@ -129,37 +130,71 @@ function ImageAttachment({ att, signedUrl, loading }: { att: Attachment; signedU
 
 function FileAttachment({ att, signedUrl, loading }: { att: Attachment; signedUrl: string | null; loading: boolean }) {
   var { icon, color } = fileIconFor(att.filename)
+  var [expanded, setExpanded] = useState(false)
+  var viewable = isViewableFile(att.filename)
+
   return (
-    <a
-      href={signedUrl || undefined}
-      target="_blank"
-      rel="noopener noreferrer"
-      download={!signedUrl ? undefined : att.filename}
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8,
-        padding: '8px 12px', borderRadius: 8,
-        border: '1px solid var(--border, #e5e7eb)',
-        background: 'var(--bg-1, #f9fafb)',
-        color: 'var(--foreground, #111)',
-        textDecoration: 'none',
-        opacity: loading ? .5 : 1,
-        cursor: (loading || !signedUrl) ? 'default' : 'pointer',
-        maxWidth: 280,
-      }}
-    >
-      <i className={'ti ' + icon} aria-hidden="true" style={{ fontSize: 20, color, flexShrink: 0 }} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {att.filename}
+    <div style={{ maxWidth: expanded ? '100%' : 280 }}>
+      <div
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '8px 12px', borderRadius: expanded ? '8px 8px 0 0' : 8,
+          border: '1px solid var(--border, #e5e7eb)',
+          borderBottom: expanded ? 'none' : '1px solid var(--border, #e5e7eb)',
+          background: 'var(--bg-1, #f9fafb)',
+          color: 'var(--foreground, #111)',
+          opacity: loading ? .5 : 1,
+          width: '100%',
+        }}
+      >
+        <i className={'ti ' + icon} aria-hidden="true" style={{ fontSize: 20, color, flexShrink: 0 }} />
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontSize: 13, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {att.filename}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--muted, #6b7280)', marginTop: 1 }}>
+            {loading ? 'Loading\u2026' : (formatSize(att.size) || 'Download')}
+          </div>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--muted, #6b7280)', marginTop: 1 }}>
-          {loading ? 'Loading\u2026' : (formatSize(att.size) || 'Download')}
-        </div>
+        {!loading && signedUrl && viewable && (
+          <button
+            onClick={function() { setExpanded(!expanded) }}
+            title={expanded ? 'Collapse preview' : 'Preview'}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+              display: 'flex', alignItems: 'center', color: expanded ? 'var(--accent, #3b82f6)' : 'var(--muted, #6b7280)',
+              flexShrink: 0,
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        )}
+        {!loading && signedUrl && (
+          <a
+            href={signedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={att.filename}
+            onClick={function(e: React.MouseEvent) { e.stopPropagation() }}
+            title="Download"
+            style={{ display: 'flex', alignItems: 'center', color: 'var(--muted, #6b7280)', flexShrink: 0, textDecoration: 'none' }}
+          >
+            <i className="ti ti-download" aria-hidden="true" style={{ fontSize: 14 }} />
+          </a>
+        )}
       </div>
-      {!loading && signedUrl && (
-        <i className="ti ti-download" aria-hidden="true" style={{ fontSize: 14, color: 'var(--muted, #6b7280)', marginLeft: 'auto', flexShrink: 0 }} />
+      {expanded && signedUrl && (
+        <div style={{
+          border: '1px solid var(--border, #e5e7eb)', borderTop: 'none',
+          borderRadius: '0 0 8px 8px', padding: 12,
+          background: 'var(--bg, #fff)',
+        }}>
+          <FileViewer url={signedUrl} filename={att.filename} maxHeight={500} />
+        </div>
       )}
-    </a>
+    </div>
   )
 }
 
