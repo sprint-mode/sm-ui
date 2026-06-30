@@ -113,7 +113,7 @@ function PdfRenderer({ url, maxHeight }) {
     setLoading(true)
     setError(null)
     loadPdfjs().then(function(lib) {
-      return lib.getDocument({ url: url, withCredentials: true }).promise
+      return lib.getDocument({ url: url }).promise
     }).then(function(pdf) {
       setPdfDoc(pdf)
       setNumPages(pdf.numPages)
@@ -188,7 +188,6 @@ function ImageViewer({ url, filename, maxHeight }) {
             <img
               src={url}
               alt={filename || 'Image preview'}
-              crossOrigin="use-credentials"
               onLoad={function() { setLoading(false) }}
               onError={function() { setError(true); setLoading(false) }}
               onClick={function() { setLightbox(true) }}
@@ -255,7 +254,7 @@ function ExcelViewer({ url, filename, maxHeight }) {
 
     Promise.all([
       loadXlsx(),
-      fetch(url, { credentials: 'include' }).then(function(r) {
+      fetch(url).then(function(r) {
         if (!r.ok) throw new Error('Fetch failed: ' + r.status)
         return ext === 'csv' ? r.text() : r.arrayBuffer()
       }),
@@ -381,7 +380,7 @@ function WordViewer({ url, maxHeight }) {
 
     Promise.all([
       loadMammoth(),
-      fetch(url, { credentials: 'include' }).then(function(r) {
+      fetch(url).then(function(r) {
         if (!r.ok) throw new Error('Fetch failed: ' + r.status)
         return r.arrayBuffer()
       }),

@@ -104104,10 +104104,7 @@ function jMe({ url: e, maxHeight: t }) {
 	var n = o(null), [r, a] = s(null), [c, d] = s(0), [f, p] = s(1.2), [m, h] = s(!0), [g, _] = s(null);
 	return i(function() {
 		e && (h(!0), _(null), CMe().then(function(t) {
-			return t.getDocument({
-				url: e,
-				withCredentials: !0
-			}).promise;
+			return t.getDocument({ url: e }).promise;
 		}).then(function(e) {
 			a(e), d(e.numPages), h(!1);
 		}).catch(function() {
@@ -104164,7 +104161,6 @@ function MMe({ url: e, filename: t, maxHeight: n }) {
 			children: d ? /* @__PURE__ */ l(R7, { message: "Unable to load image" }) : /* @__PURE__ */ u(c, { children: [a && /* @__PURE__ */ l(L7, { message: "Loading image..." }), /* @__PURE__ */ l("img", {
 				src: e,
 				alt: t || "Image preview",
-				crossOrigin: "use-credentials",
 				onLoad: function() {
 					o(!1);
 				},
@@ -104241,7 +104237,7 @@ function NMe({ url: e, filename: t, maxHeight: n }) {
 		if (e) {
 			f(!0), m(null);
 			var n = N7(t);
-			Promise.all([wMe(), fetch(e, { credentials: "include" }).then(function(e) {
+			Promise.all([wMe(), fetch(e).then(function(e) {
 				if (!e.ok) throw Error("Fetch failed: " + e.status);
 				return n === "csv" ? e.text() : e.arrayBuffer();
 			})]).then(function(e) {
@@ -104359,7 +104355,7 @@ function NMe({ url: e, filename: t, maxHeight: n }) {
 function PMe({ url: e, maxHeight: t }) {
 	var [n, r] = s(null), [a, o] = s(!0), [c, u] = s(null);
 	return i(function() {
-		e && (o(!0), u(null), Promise.all([TMe(), fetch(e, { credentials: "include" }).then(function(e) {
+		e && (o(!0), u(null), Promise.all([TMe(), fetch(e).then(function(e) {
 			if (!e.ok) throw Error("Fetch failed: " + e.status);
 			return e.arrayBuffer();
 		})]).then(function(e) {
