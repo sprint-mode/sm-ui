@@ -20,6 +20,7 @@ export interface ProfileData {
     hire_date?: string;
     portal_last_login?: string;
     contact_type?: string;
+    role_label?: string;
     slack_profile_url?: string;
     gws_groups?: (string | {
         email?: string;
