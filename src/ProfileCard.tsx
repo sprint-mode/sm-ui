@@ -22,6 +22,7 @@ export interface ProfileData {
   hire_date?: string
   portal_last_login?: string
   contact_type?: string
+  role_label?: string
   slack_profile_url?: string
   gws_groups?: (string | { email?: string; name?: string })[]
   emails?: { email: string; is_primary?: number; email_type?: string }[]
@@ -40,6 +41,11 @@ function fmtMoney(n: number | null | undefined): string {
   return '$' + Number(n).toLocaleString()
 }
 
+// Color + fallback-label source, keyed by role. The authoritative display
+// label now comes from the server (profile.role_label, resolved from
+// role_configs). This map only supplies colors and a fallback label for
+// roles the API hasn't resolved a role_label for (e.g. cached older
+// responses, or a role with no role_configs.display_name set).
 var ROLE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   super_admin:     { bg: 'hsla(0,72%,51%,.12)',   fg: '#dc2626',  label: 'Super Admin' },
   admin:           { bg: 'hsla(215,80%,55%,.12)',  fg: '#2362ea',  label: 'Admin' },
@@ -57,11 +63,12 @@ var ROLE_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
   member:          { bg: 'hsla(0,0%,0%,.07)',      fg: '#555',     label: 'Member' },
 }
 
-function RoleBadge({ role }: { role: string }) {
+function RoleBadge({ role, label }: { role: string; label?: string }) {
   var r = ROLE_BADGE[role] || { bg: 'hsla(0,0%,0%,.07)', fg: '#555', label: role || 'Member' }
+  var displayLabel = label || r.label
   return (
     <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 9px', borderRadius: 99, background: r.bg, color: r.fg }}>
-      {r.label}
+      {displayLabel}
     </span>
   )
 }
@@ -360,7 +367,7 @@ function SelfProfileCard({ apiBase, backHref }: { apiBase?: string; backHref?: s
               <span style={{ fontSize: 17, fontWeight: 800, color: 'var(--foreground, #111)' }}>
                 {p.full_name || '--'}
               </span>
-              <RoleBadge role={role} />
+              <RoleBadge role={role} label={p.role_label} />
               {saveMsg && <span style={{ fontSize: 12, color: 'var(--green, #16a34a)', fontWeight: 600 }}>{'\u2713'} {saveMsg}</span>}
             </div>
             <div style={{ fontSize: 13, color: 'var(--muted, #6b7280)' }}>

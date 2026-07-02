@@ -110433,22 +110433,22 @@ var bNe = {
 		label: "Member"
 	}
 };
-function xNe({ role: e }) {
-	var t = bNe[e] || {
+function xNe({ role: e, label: t }) {
+	var n = bNe[e] || {
 		bg: "hsla(0,0%,0%,.07)",
 		fg: "#555",
 		label: e || "Member"
-	};
+	}, r = t || n.label;
 	return /* @__PURE__ */ l("span", {
 		style: {
 			fontSize: 11,
 			fontWeight: 700,
 			padding: "2px 9px",
 			borderRadius: 99,
-			background: t.bg,
-			color: t.fg
+			background: n.bg,
+			color: n.fg
 		},
-		children: t.label
+		children: r
 	});
 }
 function SNe({ photoUrl: e, initials: t, size: n, editable: r, onSave: i, apiBase: a }) {
@@ -110968,7 +110968,10 @@ function TNe({ apiBase: e, backHref: t }) {
 									},
 									children: S.full_name || "--"
 								}),
-								/* @__PURE__ */ l(xNe, { role: w }),
+								/* @__PURE__ */ l(xNe, {
+									role: w,
+									label: S.role_label
+								}),
 								f && /* @__PURE__ */ u("span", {
 									style: {
 										fontSize: 12,
