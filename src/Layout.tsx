@@ -1126,6 +1126,20 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var effectiveRole = viewAs ? viewAs.role : ((session as any)?.role || null)
   var effectivePerms = viewAs ? parsePerms(viewAs) : parsePerms(session)
 
+  // Listen for 'portal-view-as' events from portal card buttons
+  useEffect(function() {
+    function onPortalViewAs(e: any) {
+      var detail = e.detail || {}
+      // Find matching user in allUsers by company ID or name
+      var match = allUsers.find(function(u: any) {
+        return u.id === detail.companyId || u.company_id === detail.companyId || u.name === detail.companyName || u.company_name === detail.companyName
+      })
+      if (match && match.email) handleViewAs(match.email)
+    }
+    window.addEventListener('portal-view-as', onPortalViewAs)
+    return function() { window.removeEventListener('portal-view-as', onPortalViewAs) }
+  }, [allUsers])
+
   useEffect(function() { setMobileOpen(false) }, [location.pathname])
 
   useEffect(function() {
