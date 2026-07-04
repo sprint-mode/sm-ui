@@ -1123,6 +1123,24 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       })
   }
 
+  // Listen for portal-view-as events from child components (e.g. Dashboard "View as client" button)
+  useEffect(function() {
+    function onViewAs(e: Event) {
+      var detail = (e as CustomEvent).detail
+      if (!detail) return
+      // Find matching user by company_id or company_name
+      var match = allUsers.find(function(u: any) {
+        return (detail.companyId && u.company_id === detail.companyId) ||
+               (detail.companyId && u.id === detail.companyId) ||
+               (detail.companyName && u.company_name === detail.companyName) ||
+               (detail.companyName && u.name === detail.companyName)
+      })
+      if (match && match.email) handleViewAs(match.email)
+    }
+    window.addEventListener('portal-view-as', onViewAs)
+    return function() { window.removeEventListener('portal-view-as', onViewAs) }
+  }, [allUsers])
+
   var effectiveRole = viewAs ? viewAs.role : ((session as any)?.role || null)
   var effectivePerms = viewAs ? parsePerms(viewAs) : parsePerms(session)
 
