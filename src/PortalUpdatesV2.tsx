@@ -70,7 +70,7 @@ interface AdminThreadDetail {
   }
 }
 
-type TabId = 'general' | 'tasks' | 'project' | 'bugs' | 'reports' | 'support'
+type TabId = 'general' | 'tasks' | 'project' | 'bugs' | 'reports' | 'support' | 'sales'
 
 interface TabDef {
   id: TabId
@@ -521,6 +521,72 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commen
               </div>
             </div>
             {notif.action_url && <span style={{
+              display: 'flex', alignItems: 'center', gap: 2,
+              fontSize: 12, color: 'var(--accent, #7c5cbf)', flexShrink: 0, fontWeight: 500,
+            }}>View <i className="ti ti-chevron-right" style={{ fontSize: 14 }} /></span>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Sales tab (team — lead notifications) ────────────────────────────────────
+
+function SalesTab({ items, onNavigate, lastSeenAt, api }: { items: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
+  var seenAt = lastSeenAt || 0
+  var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
+
+  function handleView(item: UpdateItem) {
+    if (api && item.id) {
+      api('/api/notifications/' + item.id + '/read', { method: 'POST' }).catch(function() {})
+    }
+    setReadIds(function(prev) { var next = Object.assign({}, prev); next[item.id] = true; return next })
+    if (item.action_url && onNavigate) onNavigate(item.action_url)
+  }
+
+  if (items.length === 0) {
+    return <EmptyState message="No leads yet" />
+  }
+
+  return (
+    <div>
+      {items.map(function(item) {
+        var isNew = !readIds[item.id] && isItemNew(item.published_at, seenAt)
+        return (
+          <div key={item.id} onClick={function() { handleView(item) }} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
+            borderBottom: '1px solid var(--border, #e5e7eb)',
+            cursor: item.action_url ? 'pointer' : 'default',
+            background: 'transparent',
+            transition: 'background .15s',
+          }}>
+            <span style={{
+              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
+              background: isNew ? '#7c5cbf' : 'transparent',
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <span style={{
+                  fontSize: 13, fontWeight: isNew ? 500 : 400,
+                  color: isNew ? 'var(--text-0, inherit)' : 'var(--text-1, #6b7280)',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{(item.title || '').replace('New lead: ', '')}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 500, padding: '1px 7px', borderRadius: 10, flexShrink: 0,
+                  background: '#E1F5EE', color: '#0F6E56',
+                }}>Lead</span>
+                {isNew && <NewPill label="New" />}
+              </div>
+              {item.body && <div style={{
+                fontSize: 12, color: 'var(--text-2, #9ca3af)',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{item.body}</div>}
+              <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 3 }}>
+                {relativeTime(item.published_at)}
+              </div>
+            </div>
+            {item.action_url && <span style={{
               display: 'flex', alignItems: 'center', gap: 2,
               fontSize: 12, color: 'var(--accent, #7c5cbf)', flexShrink: 0, fontWeight: 500,
             }}>View <i className="ti ti-chevron-right" style={{ fontSize: 14 }} /></span>}
@@ -1125,7 +1191,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
   // Seen-at timestamps per tab (from localStorage)
   var [seenTimestamps, setSeenTimestamps] = useState<Record<string, number>>(function() {
     var ts: Record<string, number> = {}
-    var tabIds: TabId[] = ['general', 'tasks', 'project', 'bugs', 'reports', 'support']
+    var tabIds: TabId[] = ['general', 'tasks', 'project', 'bugs', 'reports', 'support', 'sales']
     tabIds.forEach(function(id) { ts[id] = getTabSeenAt(id) })
     return ts
   })
@@ -1134,6 +1200,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
   var [generalItems, setGeneralItems] = useState<UpdateItem[]>([])
   var [projectItems, setProjectItems] = useState<UpdateItem[]>([])
   var [bugCommentItems, setBugCommentItems] = useState<UpdateItem[]>([])
+  var [salesItems, setSalesItems] = useState<UpdateItem[]>([])
   var [taskItems, setTaskItems] = useState<TaskItem[]>([])
   var [supportThreads, setSupportThreads] = useState<SupportThread[]>([])
 
@@ -1148,24 +1215,28 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
       setAudiences(auds)
       // Separate bug comment notifications from other updates
       var bugComments: UpdateItem[] = []
-      var nonBugItems: UpdateItem[] = []
+      var sales: UpdateItem[] = []
+      var nonSpecialItems: UpdateItem[] = []
       items.forEach(function(item) {
         if (item.comm_type === 'bug_comment' || item.update_type === 'bug_comment') {
           bugComments.push(item)
+        } else if (item.notification_type === 'sales') {
+          sales.push(item)
         } else {
-          nonBugItems.push(item)
+          nonSpecialItems.push(item)
         }
       })
       setBugCommentItems(bugComments)
-      // Team: all non-bug items go to General
+      setSalesItems(sales)
+      // Team: all remaining items go to General
       if (auds.includes('team')) {
-        setGeneralItems(nonBugItems)
+        setGeneralItems(nonSpecialItems)
         return
       }
       // Non-team: split project-type updates into their own tabs
       var general: UpdateItem[] = []
       var project: UpdateItem[] = []
-      nonBugItems.forEach(function(item) {
+      nonSpecialItems.forEach(function(item) {
         if (item.update_type === 'ai_weekly' || item.update_type === 'sprint_report') {
           project.push(item)
         } else {
@@ -1209,6 +1280,8 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     if (audiences.includes('team')) {
       var bugSeenAt = seenTimestamps.bugs || 0
       tabs.push({ id: 'bugs', label: 'Bugs', count: bugCommentItems.filter(function(n) { return isItemNew(n.published_at, bugSeenAt) }).length })
+      var salesSeenAt = seenTimestamps.sales || 0
+      tabs.push({ id: 'sales', label: 'Sales', count: salesItems.filter(function(n) { return isItemNew(n.published_at, salesSeenAt) }).length })
     }
     tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
   }
@@ -1228,6 +1301,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
     if (tabId === 'tasks') return taskItems.some(function(i) { return isItemNew(i.created_at || i.due_date, ts) })
     if (tabId === 'project' || tabId === 'reports') return projectItems.some(function(i) { return isItemNew(i.published_at, ts) })
     if (tabId === 'bugs') return bugCommentItems.some(function(i) { return isItemNew(i.published_at, ts) })
+    if (tabId === 'sales') return salesItems.some(function(i) { return isItemNew(i.published_at, ts) })
     if (tabId === 'support' && isTeam) return supportAdminHasNew
     if (tabId === 'support') return supportThreads.some(function(t) { return isItemNew(t.updated_at || t.created_at, ts) })
     return false
@@ -1311,6 +1385,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
       {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} lastSeenAt={seenTimestamps.general} />}
       {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.tasks} />}
       {effectiveTab === 'bugs' && <BugsTab commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} api={api} />}
+      {effectiveTab === 'sales' && <SalesTab items={salesItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.sales} api={api} />}
       {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.project} />}
       {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.reports} />}
       {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.support} onHasNew={setSupportAdminHasNew} />}
