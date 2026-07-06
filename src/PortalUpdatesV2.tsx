@@ -459,7 +459,7 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
   )
 }
 
-function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
+function BugsTab({ commentNotifications, onNavigate, lastSeenAt: _lastSeenAt, api }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
   var items = commentNotifications || []
   var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
 
@@ -529,7 +529,7 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commen
 
 // ─── Sales tab (team — lead notifications) ────────────────────────────────────
 
-function SalesTab({ items, onNavigate, lastSeenAt, api }: { items: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
+function SalesTab({ items, onNavigate, lastSeenAt: _lastSeenAt, api }: { items: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
   var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
 
   function handleView(item: UpdateItem) {
