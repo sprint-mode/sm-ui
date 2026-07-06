@@ -460,18 +460,14 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
 }
 
 function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
-  var seenAt = lastSeenAt || 0
   var items = commentNotifications || []
   var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
 
   function handleView(notif: UpdateItem) {
-    // Mark as read via API
     if (api && notif.id) {
       api('/api/notifications/' + notif.id + '/read', { method: 'POST' }).catch(function() {})
     }
-    // Mark as read locally immediately
     setReadIds(function(prev) { var next = Object.assign({}, prev); next[notif.id] = true; return next })
-    // Navigate to bug
     if (notif.action_url && onNavigate) onNavigate(notif.action_url)
   }
 
@@ -482,7 +478,7 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commen
   return (
     <div>
       {items.map(function(notif) {
-        var isNew = !readIds[notif.id] && isItemNew(notif.published_at, seenAt)
+        var isNew = !notif.read_at && !readIds[notif.id]
         var isComment = (notif.title || '').startsWith('Comment on:')
         var displayTitle = isComment ? (notif.title || '').replace('Comment on: ', '') : (notif.title || '').replace('New bug: ', '')
         var typeLabel = isComment ? 'Comment' : 'New bug'
@@ -534,7 +530,6 @@ function BugsTab({ commentNotifications, onNavigate, lastSeenAt, api }: { commen
 // ─── Sales tab (team — lead notifications) ────────────────────────────────────
 
 function SalesTab({ items, onNavigate, lastSeenAt, api }: { items: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
-  var seenAt = lastSeenAt || 0
   var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
 
   function handleView(item: UpdateItem) {
@@ -552,7 +547,7 @@ function SalesTab({ items, onNavigate, lastSeenAt, api }: { items: UpdateItem[];
   return (
     <div>
       {items.map(function(item) {
-        var isNew = !readIds[item.id] && isItemNew(item.published_at, seenAt)
+        var isNew = !item.read_at && !readIds[item.id]
         return (
           <div key={item.id} onClick={function() { handleView(item) }} style={{
             display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',

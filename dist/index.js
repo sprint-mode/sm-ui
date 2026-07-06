@@ -112205,18 +112205,18 @@ function BNe({ items: e, api: t, onNavigate: n, lastSeenAt: r }) {
 	})] });
 }
 function VNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n, api: r }) {
-	var i = n || 0, a = e || [], o = s({}), c = o[0], d = o[1];
-	function f(e) {
-		r && e.id && r("/api/notifications/" + e.id + "/read", { method: "POST" }).catch(function() {}), d(function(t) {
+	var i = e || [], a = s({}), o = a[0], c = a[1];
+	function d(e) {
+		r && e.id && r("/api/notifications/" + e.id + "/read", { method: "POST" }).catch(function() {}), c(function(t) {
 			var n = Object.assign({}, t);
 			return n[e.id] = !0, n;
 		}), e.action_url && t && t(e.action_url);
 	}
-	return a.length === 0 ? /* @__PURE__ */ l(B9, { message: "No open items" }) : /* @__PURE__ */ l("div", { children: a.map(function(e) {
-		var t = !c[e.id] && Q(e.published_at, i), n = (e.title || "").startsWith("Comment on:"), r = n ? (e.title || "").replace("Comment on: ", "") : (e.title || "").replace("New bug: ", ""), a = n ? "Comment" : "New bug";
+	return i.length === 0 ? /* @__PURE__ */ l(B9, { message: "No open items" }) : /* @__PURE__ */ l("div", { children: i.map(function(e) {
+		var t = !e.read_at && !o[e.id], n = (e.title || "").startsWith("Comment on:"), r = n ? (e.title || "").replace("Comment on: ", "") : (e.title || "").replace("New bug: ", ""), i = n ? "Comment" : "New bug";
 		return /* @__PURE__ */ u("div", {
 			onClick: function() {
-				f(e);
+				d(e);
 			},
 			style: {
 				display: "flex",
@@ -112271,7 +112271,7 @@ function VNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n, api: r }) 
 										background: n ? "#E6F1FB" : "#EEEDFE",
 										color: n ? "#0C447C" : "#534AB7"
 									},
-									children: a
+									children: i
 								}),
 								t && /* @__PURE__ */ l(L9, { label: "New" })
 							]
@@ -112316,18 +112316,18 @@ function VNe({ commentNotifications: e, onNavigate: t, lastSeenAt: n, api: r }) 
 	}) });
 }
 function HNe({ items: e, onNavigate: t, lastSeenAt: n, api: r }) {
-	var i = n || 0, a = s({}), o = a[0], c = a[1];
-	function d(e) {
-		r && e.id && r("/api/notifications/" + e.id + "/read", { method: "POST" }).catch(function() {}), c(function(t) {
+	var i = s({}), a = i[0], o = i[1];
+	function c(e) {
+		r && e.id && r("/api/notifications/" + e.id + "/read", { method: "POST" }).catch(function() {}), o(function(t) {
 			var n = Object.assign({}, t);
 			return n[e.id] = !0, n;
 		}), e.action_url && t && t(e.action_url);
 	}
 	return e.length === 0 ? /* @__PURE__ */ l(B9, { message: "No leads yet" }) : /* @__PURE__ */ l("div", { children: e.map(function(e) {
-		var t = !o[e.id] && Q(e.published_at, i);
+		var t = !e.read_at && !a[e.id];
 		return /* @__PURE__ */ u("div", {
 			onClick: function() {
-				d(e);
+				c(e);
 			},
 			style: {
 				display: "flex",
