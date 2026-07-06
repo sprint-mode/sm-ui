@@ -108970,6 +108970,16 @@ var uNe = function(t) {
 	}
 	var Fe = Y ? Y.role : W?.role || null, Ie = aNe(Y || W);
 	i(function() {
+		function e(e) {
+			var t = e.detail || {}, n = Me.find(function(e) {
+				return e.id === t.companyId || e.company_id === t.companyId || e.name === t.companyName || e.company_name === t.companyName;
+			});
+			n && n.email && Pe(n.email);
+		}
+		return window.addEventListener("portal-view-as", e), function() {
+			window.removeEventListener("portal-view-as", e);
+		};
+	}, [Me]), i(function() {
 		ce(!1);
 	}, [xe.pathname]), i(function() {
 		function e() {
