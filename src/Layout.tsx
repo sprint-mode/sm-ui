@@ -637,6 +637,7 @@ var _portalFetch: Promise<PortalEntry[]> | null = null
 
 export function PortalSwitcher() {
   var _p = useState<PortalEntry[] | null>(_portalCache); var portals = _p[0]; var setPortals = _p[1]
+  var portalCfg = usePortalConfig()
 
   useEffect(function() {
     var sessionPortals = (typeof window !== 'undefined' && window.__SM_SESSION && window.__SM_SESSION.portals) || null
@@ -679,6 +680,9 @@ export function PortalSwitcher() {
   }, [])
 
   if (!portals || portals.length <= 1) return null
+  // Hide if portal config explicitly disables the switcher (portal_switcher = 0).
+  // Default to shown while config is loading (portalCfg.config null) for backward compat.
+  if (portalCfg.config && (portalCfg.config as any).portal_switcher === 0) return null
 
   var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
   var sorted = portals.slice().sort(function(a, b) {
@@ -1003,8 +1007,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   // Bug panel RBAC: requires both the portal-level flag AND the user's bugs permission.
   // Clients (no permissions object) never see the panel.
+  // Exception: SM team members (super_admin/admin/is_sm_team) see it when the flag is on,
+  // even if their RBAC permissions object has no bugs.view entry (team viewing a client portal).
   var _bugPerms = session && (session as any).permissions && (session as any).permissions.bugs
-  var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0 && !!(_bugPerms && _bugPerms.view)
+  var _isSmTeamUser = session && ((session as any).is_sm_team || (session as any).role === 'super_admin' || (session as any).role === 'admin' || (session as any).portal_role === 'super_admin' || (session as any).portal_role === 'admin')
+  var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0 && (!!(_bugPerms && _bugPerms.view) || !!_isSmTeamUser)
   // Default to shown while config is still loading (backward compat for portals
   // that haven't set this field yet / config fetch hasn't resolved).
   var notificationBellEnabled = portalCfg.config ? (portalCfg.config as any).notification_bell !== 0 : true
