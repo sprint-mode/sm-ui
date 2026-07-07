@@ -977,7 +977,6 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var headerIcon = props.headerIcon
   var onLogout = props.onLogout
   var profilePath = props.profilePath
-  var cmdKEnabled = props.cmdK !== false
   var cmdKPlaceholder = (props.cmdK && typeof props.cmdK === 'object' && props.cmdK.placeholder) || 'Jump to...'
   var cmdKItems = props.cmdKItems
   var cmdKOnSearch = props.onSearch
@@ -990,6 +989,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var headerCta = props.headerCta
   var viewAsAnyRole = props.viewAsAnyRole
   var portalCfg = usePortalConfig()
+  // cmdK prop takes priority (explicit true/false/object). If not passed, fall back to
+  // config.cmdk from Portal Manager. Default to enabled while config is still loading.
+  var cmdKEnabled = props.cmdK !== undefined
+    ? props.cmdK !== false
+    : (portalCfg.config ? (portalCfg.config as any).cmdk !== 0 : true)
   var bugPanelFlag = props.bugPanel !== undefined ? props.bugPanel : (portalCfg.config && (portalCfg.config as any).bug_panel)
   var bugPanelProduct = props.portalSubdomain || 'sm'
   var bugPanelLabel = props.bugPanelLabel
@@ -1001,6 +1005,9 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   // Clients (no permissions object) never see the panel.
   var _bugPerms = session && (session as any).permissions && (session as any).permissions.bugs
   var bugPanelEnabled = !!bugPanelFlag && bugPanelFlag !== 0 && !!(_bugPerms && _bugPerms.view)
+  // Default to shown while config is still loading (backward compat for portals
+  // that haven't set this field yet / config fetch hasn't resolved).
+  var notificationBellEnabled = portalCfg.config ? (portalCfg.config as any).notification_bell !== 0 : true
   var bugPanelAdmin = props.bugPanelAdmin || !!(_bugPerms && _bugPerms.edit)
   var _m = useState(false); var mobileOpen = _m[0]; var setMobileOpen = _m[1]
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
@@ -1288,7 +1295,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       onClick: theme.toggle, 'aria-label': 'Toggle theme',
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
-    React.createElement(NotificationBellNav, { apiBase: notificationApiBase, href: notificationHref, onNavigate: function(href: string) { navigate(href) } }),
+    notificationBellEnabled ? React.createElement(NotificationBellNav, { apiBase: notificationApiBase, href: notificationHref, onNavigate: function(href: string) { navigate(href) } }) : null,
     bugPanelEnabled ? React.createElement(BugPanelHeaderButton, { onClick: function() { setBugPanelOpen(function(v) { return !v }) } }) : null,
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
