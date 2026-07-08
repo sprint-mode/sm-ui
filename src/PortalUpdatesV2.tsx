@@ -20,6 +20,7 @@ interface UpdateItem {
   action_url?: string
   action_label?: string
   attachments?: Attachment[] | string | null
+  thread_id?: string
 }
 
 interface TaskItem {
@@ -325,14 +326,25 @@ function FilterBar({ readFilter, onReadFilterChange, categories, selectedCategor
 
 // ─── Feed section ───────────────────────────────────────────────────────────────
 
-function FeedSection({ items, api, onNavigate }: {
+function FeedSection({ items, api, onNavigate, isTeam, subdomain }: {
   items: UpdateItem[]
   api: PortalUpdatesV2Props['api']
   onNavigate?: (path: string) => void
+  isTeam?: boolean
+  subdomain?: string
 }) {
   var [readFilter, setReadFilter] = useState<'all' | 'unread'>('all')
   var [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   var [expandedId, setExpandedId] = useState<string | null>(null)
+
+  // Support thread inline state
+  var [threadDetail, setThreadDetail] = useState<AdminThreadDetail | null>(null)
+  var [threadLoading, setThreadLoading] = useState(false)
+  var [replyText, setReplyText] = useState('')
+  var [sending, setSending] = useState(false)
+  var [threadAttachments, setThreadAttachments] = useState<Attachment[]>([])
+  var [uploading, setUploading] = useState(false)
+  var fileInputRef = useRef<HTMLInputElement>(null)
 
   // Build category list from items in the feed
   var categoryMap = new Map<string, { unreadCount: number }>()
@@ -364,9 +376,7 @@ function FeedSection({ items, api, onNavigate }: {
 
   // Apply filters
   var filtered = items.filter(function(item) {
-    // Read filter
     if (readFilter === 'unread' && item.read_at) return false
-    // Category filter (if any selected)
     if (selectedCategories.size > 0) {
       var cat = getCategory(item)
       if (!selectedCategories.has(cat)) return false
@@ -382,11 +392,106 @@ function FeedSection({ items, api, onNavigate }: {
     return api('/api/updates/' + updateId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
   }
 
+  function getThreadSignedUrl(_updateId: string, attId: string) {
+    if (!expandedId) return Promise.resolve({} as { url?: string; data?: { url?: string } })
+    var expandedItem = items.find(function(i) { return i.id === expandedId })
+    var tid = expandedItem?.thread_id
+    if (!tid) return Promise.resolve({} as { url?: string; data?: { url?: string } })
+    if (isTeam) {
+      return api('/api/support/threads/' + tid + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
+    }
+    if (subdomain) {
+      return api('/api/portals/' + subdomain + '/support/threads/' + tid + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
+    }
+    return Promise.resolve({} as { url?: string; data?: { url?: string } })
+  }
+
+  function loadSupportThread(threadId: string) {
+    setThreadLoading(true)
+    setThreadDetail(null)
+    var endpoint = isTeam
+      ? '/api/support/threads/' + threadId
+      : subdomain
+        ? '/api/portals/' + subdomain + '/support/threads/' + threadId
+        : null
+    if (!endpoint) { setThreadLoading(false); return }
+    api(endpoint).then(function(res) {
+      if (res.ok) {
+        // Admin endpoint returns { thread, messages, context }
+        // Portal endpoint returns { messages } or similar
+        var data = res.data as AdminThreadDetail | { messages?: SupportMessage[] }
+        if ('thread' in data) {
+          setThreadDetail(data as AdminThreadDetail)
+        } else {
+          // Wrap portal response into AdminThreadDetail shape
+          setThreadDetail({ thread: {} as AdminThreadDetail['thread'], messages: (data as { messages?: SupportMessage[] }).messages || [], context: undefined })
+        }
+      }
+      setThreadLoading(false)
+    }).catch(function() { setThreadLoading(false) })
+  }
+
+  function sendSupportReply(threadId: string) {
+    if (!replyText.trim() || sending) return
+    setSending(true)
+    var endpoint = isTeam
+      ? '/api/support/threads/' + threadId + '/reply'
+      : subdomain
+        ? '/api/portals/' + subdomain + '/support/threads/' + threadId + '/reply'
+        : null
+    if (!endpoint) { setSending(false); return }
+    api(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: replyText.trim(), attachments: threadAttachments.length > 0 ? JSON.stringify(threadAttachments) : undefined }),
+    }).then(function() {
+      setReplyText(''); setThreadAttachments([]); setSending(false)
+      loadSupportThread(threadId)
+    }).catch(function() { setSending(false) })
+  }
+
+  function uploadThreadFile(file: File, threadId: string) {
+    if (uploading) return
+    setUploading(true)
+    var fd = new FormData(); fd.append('file', file)
+    var endpoint = isTeam
+      ? '/api/support/threads/' + threadId + '/attachments'
+      : subdomain
+        ? '/api/portals/' + subdomain + '/support/threads/' + threadId + '/attachments'
+        : null
+    if (!endpoint) { setUploading(false); return }
+    fetch(endpoint, { method: 'POST', credentials: 'include', body: fd })
+      .then(function(r) { return r.json() })
+      .then(function(res: Record<string, unknown>) {
+        if (res.ok && res.data) {
+          var att = (res.data as Record<string, unknown>).attachment as Attachment
+          setThreadAttachments(function(prev) { return prev.concat(att) })
+        }
+        setUploading(false)
+      }).catch(function() { setUploading(false) })
+  }
+
   function handleItemClick(item: UpdateItem) {
     var cat = getCategory(item)
     handleRead(item.id)
+
+    // Support items with thread_id: expand inline with thread detail
+    if (cat === 'support' && item.thread_id) {
+      if (expandedId === item.id) {
+        setExpandedId(null)
+        setThreadDetail(null)
+        setReplyText(''); setThreadAttachments([])
+      } else {
+        setExpandedId(item.id)
+        loadSupportThread(item.thread_id)
+        setReplyText(''); setThreadAttachments([])
+      }
+      return
+    }
+
     if (EXPAND_CATEGORIES.has(cat)) {
       setExpandedId(function(prev) { return prev === item.id ? null : item.id })
+      setThreadDetail(null)
     } else if (item.action_url && onNavigate) {
       onNavigate(item.action_url)
     }
@@ -409,8 +514,119 @@ function FeedSection({ items, api, onNavigate }: {
             var cat = getCategory(item)
             var pill = CATEGORY_PILLS[cat] || CATEGORY_PILLS.general
             var isExpanded = expandedId === item.id
+            var isSupportThread = cat === 'support' && item.thread_id && isExpanded
+
             var expandedContent: React.ReactNode = null
-            if (isExpanded) {
+            if (isExpanded && isSupportThread) {
+              // ── Inline support thread ──────────────────────────────────────
+              expandedContent = (
+                <div>
+                  {threadLoading && !threadDetail ? (
+                    <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--muted, #9ca3af)' }}>Loading thread...</div>
+                  ) : threadDetail ? (
+                    <div>
+                      {/* Context bar (admin only) */}
+                      {threadDetail.context?.company && (
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+                          <span onClick={function() { if (onNavigate) onNavigate('/crm/' + String((threadDetail!.context!.company as Record<string, unknown>).id)) }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-subtle, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--accent, #7c5cbf)', cursor: 'pointer' }}>
+                            {String((threadDetail.context.company as Record<string, unknown>).name || 'Company')}
+                          </span>
+                        </div>
+                      )}
+                      {/* Messages */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                        {(threadDetail.messages || []).map(function(msg) {
+                          var isUser = msg.role === 'user'
+                          var isBot = msg.role === 'assistant'
+                          var isHuman = msg.role === 'human'
+                          if (!isUser && !isBot && !isHuman) {
+                            return <div key={msg.id} style={{ display: 'flex', justifyContent: 'center' }}>
+                              <span style={{ padding: '3px 12px', background: 'var(--bg-subtle, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--muted, #6b7280)' }}>{msg.content}</span>
+                            </div>
+                          }
+                          return (
+                            <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
+                              {!isUser && <div style={{ fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--muted, #9ca3af)', marginBottom: 4 }}>
+                                {isBot ? 'AI · Support' : 'Team'}
+                              </div>}
+                              <div style={{
+                                maxWidth: '85%', padding: '8px 12px', fontSize: 13, lineHeight: 1.5, whiteSpace: 'pre-wrap',
+                                borderRadius: 10,
+                                borderBottomRightRadius: isUser ? 3 : 10,
+                                borderBottomLeftRadius: !isUser ? 3 : 10,
+                                background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, transparent)',
+                                color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--foreground, inherit)',
+                                border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : isUser ? 'none' : '1px solid var(--border, #e5e7eb)',
+                                marginLeft: isUser ? 'auto' : 0, marginRight: isUser ? 0 : 'auto',
+                              }}>{msg.content}</div>
+                              {msg.attachments && (
+                                <div style={{ maxWidth: '85%', marginLeft: isUser ? 'auto' : 0 }}>
+                                  <UpdateAttachments attachments={msg.attachments} updateId={item.thread_id || item.id} getSignedUrl={getThreadSignedUrl} compact />
+                                </div>
+                              )}
+                              <div style={{ fontSize: 10, color: 'var(--muted, #9ca3af)', marginTop: 3, padding: '0 2px' }}>{relativeTime(msg.created_at)}</div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                      {/* Reply bar */}
+                      <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 8 }}
+                        onDragOver={function(e) { e.preventDefault() }}
+                        onDrop={function(e) { e.preventDefault(); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f && item.thread_id) uploadThreadFile(f, item.thread_id) }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                          <button onClick={function() { fileInputRef.current && fileInputRef.current.click() }} disabled={uploading} style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4,
+                            padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: uploading ? 'default' : 'pointer',
+                            border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
+                            color: 'var(--muted, #6b7280)', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1,
+                          }}>{uploading ? 'Uploading...' : 'Attach file'}</button>
+                          <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={function(e) {
+                            var f = e.target.files && e.target.files[0]
+                            if (f && item.thread_id) uploadThreadFile(f, item.thread_id)
+                            if (fileInputRef.current) fileInputRef.current.value = ''
+                          }} accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
+                        </div>
+                        {threadAttachments.length > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+                            {threadAttachments.map(function(att) {
+                              return <span key={att.id} style={{
+                                display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 6, fontSize: 11,
+                                border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-subtle, #f9fafb)', color: 'var(--foreground, #374151)',
+                              }}>
+                                {att.filename || att.id}
+                                <span onClick={function() { setThreadAttachments(function(prev) { return prev.filter(function(a) { return a.id !== att.id }) }) }}
+                                  style={{ cursor: 'pointer', color: 'var(--muted, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
+                              </span>
+                            })}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <input type="text" value={replyText} onChange={function(e) { setReplyText(e.target.value) }}
+                            onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey && item.thread_id) sendSupportReply(item.thread_id) }}
+                            placeholder="Reply to this thread..." disabled={sending}
+                            style={{ flex: 1, fontSize: 13, padding: '8px 10px', border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, background: 'var(--bg-0, transparent)', color: 'var(--foreground, #111)', fontFamily: 'inherit' }}
+                          />
+                          <button onClick={function() { if (item.thread_id) sendSupportReply(item.thread_id) }} disabled={sending || !replyText.trim()} style={{
+                            padding: '6px 14px', borderRadius: 6, border: 'none',
+                            background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
+                            cursor: 'pointer', fontFamily: 'inherit', opacity: sending || !replyText.trim() ? 0.5 : 1,
+                          }}>Send</button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 12, color: 'var(--muted, #9ca3af)', padding: '8px 0' }}>Thread not found</div>
+                  )}
+                  <button onClick={function(e) { e.stopPropagation(); setExpandedId(null); setThreadDetail(null); setReplyText(''); setThreadAttachments([]) }}
+                    style={{ fontSize: 11, color: 'var(--muted, var(--text-3, #9ca3af))', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', fontFamily: 'inherit', marginTop: 4 }}>
+                    Collapse
+                  </button>
+                </div>
+              )
+            } else if (isExpanded) {
+              // ── Standard expand (body + attachments) ───────────────────────
               expandedContent = (
                 <div>
                   {item.body && (
@@ -1115,7 +1331,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
         </div>
       )}
 
-      {effectiveSection === 'feed' && <FeedSection items={feedItems} api={api} onNavigate={effectiveOnNavigate} />}
+      {effectiveSection === 'feed' && <FeedSection items={feedItems} api={api} onNavigate={effectiveOnNavigate} isTeam={isTeam} subdomain={subdomain} />}
       {effectiveSection === 'tasks' && <TasksSection items={taskItems} api={api} onNavigate={effectiveOnNavigate} />}
       {effectiveSection === 'support' && isTeam && <SupportSectionAdmin api={api} onNavigate={effectiveOnNavigate} />}
       {effectiveSection === 'support' && !isTeam && subdomain && <SupportSectionPortal threads={supportThreads} api={api} subdomain={subdomain} />}

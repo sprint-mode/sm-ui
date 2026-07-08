@@ -32,6 +32,7 @@ export interface InboxItem {
   attachments?: unknown
   source_system?: string | null
   priority?: string | null
+  thread_id?: string | null
 }
 
 export interface CategoryPill {
