@@ -1195,6 +1195,118 @@ function SupportSectionAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['a
   )
 }
 
+// ─── Mute settings panel ────────────────────────────────────────────────────
+
+interface MuteCategory {
+  key: string
+  label: string
+  description: string
+  muted: boolean
+}
+
+function MuteSettingsPanel({ api, onClose }: { api: PortalUpdatesV2Props['api']; onClose: () => void }) {
+  var [categories, setCategories] = useState<MuteCategory[]>([])
+  var [loading, setLoading] = useState(true)
+  var [saving, setSaving] = useState(false)
+
+  useEffect(function() {
+    api('/api/notifications/mute-settings').then(function(res) {
+      if (res.ok) {
+        var data = res.data as { categories?: MuteCategory[] }
+        setCategories(data?.categories || [])
+      }
+      setLoading(false)
+    }).catch(function() { setLoading(false) })
+  }, [api])
+
+  function toggleCategory(key: string) {
+    setCategories(function(prev) {
+      return prev.map(function(c) {
+        return c.key === key ? Object.assign({}, c, { muted: !c.muted }) : c
+      })
+    })
+  }
+
+  function save() {
+    setSaving(true)
+    var muted = categories.filter(function(c) { return c.muted }).map(function(c) { return c.key })
+    api('/api/notifications/mute-settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ muted_categories: muted }),
+    }).then(function() {
+      setSaving(false)
+      onClose()
+    }).catch(function() { setSaving(false) })
+  }
+
+  return (
+    <div style={{
+      position: 'absolute', top: '100%', right: 0, marginTop: 4,
+      width: 320, maxHeight: 420, overflow: 'auto',
+      background: 'var(--bg-card, #fff)', border: '1px solid var(--border, #e5e7eb)',
+      borderRadius: 'var(--radius, 8px)', boxShadow: '0 8px 24px rgba(0,0,0,.12)',
+      zIndex: 50, padding: '12px 0',
+    }}>
+      <div style={{ padding: '0 16px 10px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--foreground, inherit)' }}>Notification Settings</span>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--muted, #9ca3af)', lineHeight: 1, padding: '0 2px', fontFamily: 'inherit' }}>&times;</button>
+      </div>
+      <div style={{ padding: '4px 0' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: 24, fontSize: 12, color: 'var(--muted, #9ca3af)' }}>Loading...</div>
+        ) : categories.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: 24, fontSize: 12, color: 'var(--muted, #9ca3af)' }}>No categories available</div>
+        ) : (
+          categories.map(function(cat) {
+            return (
+              <div key={cat.key} onClick={function() { toggleCategory(cat.key) }} style={{
+                display: 'flex', alignItems: 'center', gap: 12, padding: '8px 16px',
+                cursor: 'pointer', transition: 'background .1s',
+              }}
+                onMouseEnter={function(e) { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-subtle, rgba(0,0,0,.03))' }}
+                onMouseLeave={function(e) { (e.currentTarget as HTMLDivElement).style.background = 'transparent' }}
+              >
+                {/* Toggle switch */}
+                <div style={{
+                  width: 36, height: 20, borderRadius: 10, flexShrink: 0,
+                  background: cat.muted ? 'var(--border, #d1d5db)' : 'var(--accent, var(--blue, #2362ea))',
+                  position: 'relative', transition: 'background .15s',
+                }}>
+                  <div style={{
+                    width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                    position: 'absolute', top: 2,
+                    left: cat.muted ? 2 : 18,
+                    transition: 'left .15s',
+                    boxShadow: '0 1px 3px rgba(0,0,0,.2)',
+                  }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 13, fontWeight: 500,
+                    color: cat.muted ? 'var(--muted, #9ca3af)' : 'var(--foreground, inherit)',
+                  }}>{cat.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--muted, #9ca3af)', lineHeight: 1.3 }}>{cat.description}</div>
+                </div>
+              </div>
+            )
+          })
+        )}
+      </div>
+      {!loading && categories.length > 0 && (
+        <div style={{ padding: '10px 16px 4px', borderTop: '1px solid var(--border, #e5e7eb)' }}>
+          <button onClick={save} disabled={saving} style={{
+            width: '100%', padding: '8px 0', borderRadius: 6, border: 'none',
+            background: 'var(--accent, var(--blue, #2362ea))', color: '#fff',
+            fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            opacity: saving ? 0.5 : 1,
+          }}>{saving ? 'Saving...' : 'Save'}</button>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Main component ─────────────────────────────────────────────────────────────
 
 export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, shortcutKey, userContactId: _userContactId, onNavigate }: PortalUpdatesV2Props) {
@@ -1202,6 +1314,7 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
   var [error, setError] = useState<string | null>(null)
   var [audiences, setAudiences] = useState<string[]>([])
   var [activeSection, setActiveSection] = useState<SectionId>('feed')
+  var [showMuteSettings, setShowMuteSettings] = useState(false)
 
   // Data stores
   var [feedItems, setFeedItems] = useState<UpdateItem[]>([])
@@ -1287,13 +1400,28 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
 
   return (
     <div style={{ padding: 0 }}>
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, position: 'relative' }}>
         <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--foreground, var(--text-0, inherit))', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
           {title || 'Inbox'}
           {shortcutKey && <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle, var(--bg))', color: 'var(--muted)', lineHeight: 1.4, fontFamily: 'var(--font-mono,monospace)', fontWeight: 400 }}>
             {typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318' + shortcutKey.toUpperCase() : 'Ctrl+' + shortcutKey.toUpperCase()}
           </kbd>}
+          <button
+            onClick={function() { setShowMuteSettings(function(p) { return !p }) }}
+            title="Notification settings"
+            style={{
+              marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
+              padding: 4, borderRadius: 4, display: 'flex', alignItems: 'center',
+              color: showMuteSettings ? 'var(--accent, var(--blue, #2362ea))' : 'var(--muted, #9ca3af)',
+              transition: 'color .15s',
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
         </h1>
+        {showMuteSettings && <MuteSettingsPanel api={api} onClose={function() { setShowMuteSettings(false); load() }} />}
       </div>
 
       {/* Section tabs — only show if more than one section */}
