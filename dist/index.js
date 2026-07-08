@@ -108465,8 +108465,11 @@ var w9 = {
 function $Me(e) {
 	if (!e || !e.permissions) return null;
 	try {
-		var t = e.permissions;
-		return typeof t == "string" ? JSON.parse(t) : t;
+		var t = e.permissions, n = typeof t == "string" ? JSON.parse(t) : t;
+		return !n || typeof n != "object" ? null : n.sections && typeof n.sections == "object" ? n : {
+			sections: n,
+			products: n.products || void 0
+		};
 	} catch {
 		return null;
 	}
@@ -112188,13 +112191,13 @@ function NNe({ readFilter: e, onReadFilterChange: t, categories: n, selectedCate
 		]
 	});
 }
-function PNe({ items: e, api: t, onNavigate: n }) {
-	var [r, i] = s("all"), [a, o] = s(/* @__PURE__ */ new Set()), [c, d] = s(null), f = /* @__PURE__ */ new Map();
+function PNe({ items: e, api: t, onNavigate: n, isTeam: r, subdomain: i }) {
+	var [a, c] = s("all"), [d, f] = s(/* @__PURE__ */ new Set()), [p, m] = s(null), [h, g] = s(null), [_, v] = s(!1), [y, b] = s(""), [x, S] = s(!1), [C, w] = s([]), [T, E] = s(!1), D = o(null), O = /* @__PURE__ */ new Map();
 	e.forEach(function(e) {
-		var t = L9(e), n = f.get(t);
-		n || (n = { unreadCount: 0 }, f.set(t, n)), e.read_at || n.unreadCount++;
+		var t = L9(e), n = O.get(t);
+		n || (n = { unreadCount: 0 }, O.set(t, n)), e.read_at || n.unreadCount++;
 	});
-	var p = Array.from(f.entries()).map(function(e) {
+	var k = Array.from(O.entries()).map(function(e) {
 		var t = I9[e[0]] || I9.general;
 		return {
 			key: e[0],
@@ -112206,47 +112209,409 @@ function PNe({ items: e, api: t, onNavigate: n }) {
 	}).sort(function(e, t) {
 		return t.unreadCount - e.unreadCount;
 	});
-	function m(e) {
-		o(function(t) {
+	function A(e) {
+		f(function(t) {
 			var n = new Set(t);
 			return n.has(e) ? n.delete(e) : n.add(e), n;
 		});
 	}
-	var h = e.filter(function(e) {
-		if (r === "unread" && e.read_at) return !1;
-		if (a.size > 0) {
+	var j = e.filter(function(e) {
+		if (a === "unread" && e.read_at) return !1;
+		if (d.size > 0) {
 			var t = L9(e);
-			if (!a.has(t)) return !1;
+			if (!d.has(t)) return !1;
 		}
 		return !0;
 	});
-	function g(e) {
+	function M(e) {
 		t("/api/notifications/" + e + "/read", { method: "POST" }).catch(function() {});
 	}
-	function _(e, n) {
+	function N(e, n) {
 		return t("/api/updates/" + e + "/attachments/" + n + "/url");
 	}
-	function v(e) {
+	function P(n, a) {
+		if (!p) return Promise.resolve({});
+		var o = e.find(function(e) {
+			return e.id === p;
+		})?.thread_id;
+		return o ? r ? t("/api/support/threads/" + o + "/attachments/" + a + "/url") : i ? t("/api/portals/" + i + "/support/threads/" + o + "/attachments/" + a + "/url") : Promise.resolve({}) : Promise.resolve({});
+	}
+	function F(e) {
+		v(!0), g(null);
+		var n = r ? "/api/support/threads/" + e : i ? "/api/portals/" + i + "/support/threads/" + e : null;
+		if (!n) {
+			v(!1);
+			return;
+		}
+		t(n).then(function(e) {
+			if (e.ok) {
+				var t = e.data;
+				"thread" in t ? g(t) : g({
+					thread: {},
+					messages: t.messages || [],
+					context: void 0
+				});
+			}
+			v(!1);
+		}).catch(function() {
+			v(!1);
+		});
+	}
+	function I(e) {
+		if (!(!y.trim() || x)) {
+			S(!0);
+			var n = r ? "/api/support/threads/" + e + "/reply" : i ? "/api/portals/" + i + "/support/threads/" + e + "/reply" : null;
+			if (!n) {
+				S(!1);
+				return;
+			}
+			t(n, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					content: y.trim(),
+					attachments: C.length > 0 ? JSON.stringify(C) : void 0
+				})
+			}).then(function() {
+				b(""), w([]), S(!1), F(e);
+			}).catch(function() {
+				S(!1);
+			});
+		}
+	}
+	function L(e, t) {
+		if (!T) {
+			E(!0);
+			var n = new FormData();
+			n.append("file", e);
+			var a = r ? "/api/support/threads/" + t + "/attachments" : i ? "/api/portals/" + i + "/support/threads/" + t + "/attachments" : null;
+			if (!a) {
+				E(!1);
+				return;
+			}
+			fetch(a, {
+				method: "POST",
+				credentials: "include",
+				body: n
+			}).then(function(e) {
+				return e.json();
+			}).then(function(e) {
+				if (e.ok && e.data) {
+					var t = e.data.attachment;
+					w(function(e) {
+						return e.concat(t);
+					});
+				}
+				E(!1);
+			}).catch(function() {
+				E(!1);
+			});
+		}
+	}
+	function R(e) {
 		var t = L9(e);
-		g(e.id), ANe.has(t) ? d(function(t) {
+		if (M(e.id), t === "support" && e.thread_id) {
+			p === e.id ? (m(null), g(null), b(""), w([])) : (m(e.id), F(e.thread_id), b(""), w([]));
+			return;
+		}
+		ANe.has(t) ? (m(function(t) {
 			return t === e.id ? null : e.id;
-		}) : e.action_url && n && n(e.action_url);
+		}), g(null)) : e.action_url && n && n(e.action_url);
 	}
 	return /* @__PURE__ */ u("div", { children: [/* @__PURE__ */ l(NNe, {
-		readFilter: r,
-		onReadFilterChange: i,
-		categories: p,
-		selectedCategories: a,
-		onCategoryToggle: m
-	}), h.length === 0 ? /* @__PURE__ */ l(V9, { message: r === "unread" ? "No unread items" : "No updates yet" }) : /* @__PURE__ */ l("div", {
+		readFilter: a,
+		onReadFilterChange: c,
+		categories: k,
+		selectedCategories: d,
+		onCategoryToggle: A
+	}), j.length === 0 ? /* @__PURE__ */ l(V9, { message: a === "unread" ? "No unread items" : "No updates yet" }) : /* @__PURE__ */ l("div", {
 		style: {
 			border: "1px solid var(--border, #e5e7eb)",
 			borderRadius: "var(--radius, 8px)",
 			overflow: "hidden"
 		},
-		children: h.map(function(e) {
-			var t = I9[L9(e)] || I9.general, n = c === e.id, r = null;
-			return n && (r = /* @__PURE__ */ u("div", { children: [
+		children: j.map(function(e) {
+			var t = L9(e), r = I9[t] || I9.general, i = p === e.id, a = t === "support" && e.thread_id && i, o = null;
+			return i && a ? o = /* @__PURE__ */ u("div", { children: [_ && !h ? /* @__PURE__ */ l("div", {
+				style: {
+					textAlign: "center",
+					padding: 20,
+					fontSize: 12,
+					color: "var(--muted, #9ca3af)"
+				},
+				children: "Loading thread..."
+			}) : h ? /* @__PURE__ */ u("div", { children: [
+				h.context?.company && /* @__PURE__ */ l("div", {
+					style: {
+						display: "flex",
+						gap: 8,
+						flexWrap: "wrap",
+						marginBottom: 10
+					},
+					children: /* @__PURE__ */ l("span", {
+						onClick: function() {
+							n && n("/crm/" + String(h.context.company.id));
+						},
+						style: {
+							display: "inline-flex",
+							alignItems: "center",
+							gap: 4,
+							padding: "3px 8px",
+							background: "var(--bg-subtle, #f3f4f6)",
+							border: "1px solid var(--border, #e5e7eb)",
+							borderRadius: 99,
+							fontSize: 11,
+							color: "var(--accent, #7c5cbf)",
+							cursor: "pointer"
+						},
+						children: String(h.context.company.name || "Company")
+					})
+				}),
+				/* @__PURE__ */ l("div", {
+					style: {
+						display: "flex",
+						flexDirection: "column",
+						gap: 8,
+						marginBottom: 10
+					},
+					children: (h.messages || []).map(function(t) {
+						var n = t.role === "user", r = t.role === "assistant", i = t.role === "human";
+						return !n && !r && !i ? /* @__PURE__ */ l("div", {
+							style: {
+								display: "flex",
+								justifyContent: "center"
+							},
+							children: /* @__PURE__ */ l("span", {
+								style: {
+									padding: "3px 12px",
+									background: "var(--bg-subtle, #f3f4f6)",
+									border: "1px solid var(--border, #e5e7eb)",
+									borderRadius: 99,
+									fontSize: 11,
+									color: "var(--muted, #6b7280)"
+								},
+								children: t.content
+							})
+						}, t.id) : /* @__PURE__ */ u("div", {
+							style: {
+								display: "flex",
+								flexDirection: "column",
+								alignItems: n ? "flex-end" : "flex-start"
+							},
+							children: [
+								!n && /* @__PURE__ */ l("div", {
+									style: {
+										fontSize: 11,
+										color: i ? "var(--accent, #7c5cbf)" : "var(--muted, #9ca3af)",
+										marginBottom: 4
+									},
+									children: r ? "AI · Support" : "Team"
+								}),
+								/* @__PURE__ */ l("div", {
+									style: {
+										maxWidth: "85%",
+										padding: "8px 12px",
+										fontSize: 13,
+										lineHeight: 1.5,
+										whiteSpace: "pre-wrap",
+										borderRadius: 10,
+										borderBottomRightRadius: n ? 3 : 10,
+										borderBottomLeftRadius: n ? 10 : 3,
+										background: n ? "var(--accent, #7c5cbf)" : i ? "var(--accent-soft, #EEEDFE)" : "var(--bg-0, transparent)",
+										color: n ? "#fff" : i ? "var(--accent, #7c5cbf)" : "var(--foreground, inherit)",
+										border: i ? "1px solid hsla(262,60%,55%,.2)" : n ? "none" : "1px solid var(--border, #e5e7eb)",
+										marginLeft: n ? "auto" : 0,
+										marginRight: n ? 0 : "auto"
+									},
+									children: t.content
+								}),
+								t.attachments && /* @__PURE__ */ l("div", {
+									style: {
+										maxWidth: "85%",
+										marginLeft: n ? "auto" : 0
+									},
+									children: /* @__PURE__ */ l(Z7, {
+										attachments: t.attachments,
+										updateId: e.thread_id || e.id,
+										getSignedUrl: P,
+										compact: !0
+									})
+								}),
+								/* @__PURE__ */ l("div", {
+									style: {
+										fontSize: 10,
+										color: "var(--muted, #9ca3af)",
+										marginTop: 3,
+										padding: "0 2px"
+									},
+									children: R9(t.created_at)
+								})
+							]
+						}, t.id);
+					})
+				}),
+				/* @__PURE__ */ u("div", {
+					style: {
+						borderTop: "1px solid var(--border, #e5e7eb)",
+						paddingTop: 8
+					},
+					onDragOver: function(e) {
+						e.preventDefault();
+					},
+					onDrop: function(t) {
+						t.preventDefault();
+						var n = t.dataTransfer.files && t.dataTransfer.files[0];
+						n && e.thread_id && L(n, e.thread_id);
+					},
+					children: [
+						/* @__PURE__ */ u("div", {
+							style: {
+								display: "flex",
+								alignItems: "center",
+								gap: 8,
+								marginBottom: 6
+							},
+							children: [/* @__PURE__ */ l("button", {
+								onClick: function() {
+									D.current && D.current.click();
+								},
+								disabled: T,
+								style: {
+									display: "inline-flex",
+									alignItems: "center",
+									gap: 4,
+									padding: "4px 10px",
+									borderRadius: 6,
+									fontSize: 11,
+									cursor: T ? "default" : "pointer",
+									border: "1px solid var(--border, #e5e7eb)",
+									background: "var(--bg-0, transparent)",
+									color: "var(--muted, #6b7280)",
+									fontFamily: "inherit",
+									opacity: T ? .5 : 1
+								},
+								children: T ? "Uploading..." : "Attach file"
+							}), /* @__PURE__ */ l("input", {
+								ref: D,
+								type: "file",
+								style: { display: "none" },
+								onChange: function(t) {
+									var n = t.target.files && t.target.files[0];
+									n && e.thread_id && L(n, e.thread_id), D.current && (D.current.value = "");
+								},
+								accept: "image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov"
+							})]
+						}),
+						C.length > 0 && /* @__PURE__ */ l("div", {
+							style: {
+								display: "flex",
+								flexWrap: "wrap",
+								gap: 6,
+								marginBottom: 6
+							},
+							children: C.map(function(e) {
+								return /* @__PURE__ */ u("span", {
+									style: {
+										display: "inline-flex",
+										alignItems: "center",
+										gap: 4,
+										padding: "3px 8px",
+										borderRadius: 6,
+										fontSize: 11,
+										border: "1px solid var(--border, #e5e7eb)",
+										background: "var(--bg-subtle, #f9fafb)",
+										color: "var(--foreground, #374151)"
+									},
+									children: [e.filename || e.id, /* @__PURE__ */ l("span", {
+										onClick: function() {
+											w(function(t) {
+												return t.filter(function(t) {
+													return t.id !== e.id;
+												});
+											});
+										},
+										style: {
+											cursor: "pointer",
+											color: "var(--muted, #9ca3af)",
+											fontSize: 13,
+											lineHeight: 1
+										},
+										children: "x"
+									})]
+								}, e.id);
+							})
+						}),
+						/* @__PURE__ */ u("div", {
+							style: {
+								display: "flex",
+								gap: 8
+							},
+							children: [/* @__PURE__ */ l("input", {
+								type: "text",
+								value: y,
+								onChange: function(e) {
+									b(e.target.value);
+								},
+								onKeyDown: function(t) {
+									t.key === "Enter" && !t.shiftKey && e.thread_id && I(e.thread_id);
+								},
+								placeholder: "Reply to this thread...",
+								disabled: x,
+								style: {
+									flex: 1,
+									fontSize: 13,
+									padding: "8px 10px",
+									border: "1px solid var(--border, #e5e7eb)",
+									borderRadius: 6,
+									background: "var(--bg-0, transparent)",
+									color: "var(--foreground, #111)",
+									fontFamily: "inherit"
+								}
+							}), /* @__PURE__ */ l("button", {
+								onClick: function() {
+									e.thread_id && I(e.thread_id);
+								},
+								disabled: x || !y.trim(),
+								style: {
+									padding: "6px 14px",
+									borderRadius: 6,
+									border: "none",
+									background: "var(--accent, #7c5cbf)",
+									color: "#fff",
+									fontSize: 12,
+									fontWeight: 500,
+									cursor: "pointer",
+									fontFamily: "inherit",
+									opacity: x || !y.trim() ? .5 : 1
+								},
+								children: "Send"
+							})]
+						})
+					]
+				})
+			] }) : /* @__PURE__ */ l("div", {
+				style: {
+					fontSize: 12,
+					color: "var(--muted, #9ca3af)",
+					padding: "8px 0"
+				},
+				children: "Thread not found"
+			}), /* @__PURE__ */ l("button", {
+				onClick: function(e) {
+					e.stopPropagation(), m(null), g(null), b(""), w([]);
+				},
+				style: {
+					fontSize: 11,
+					color: "var(--muted, var(--text-3, #9ca3af))",
+					background: "none",
+					border: "none",
+					cursor: "pointer",
+					padding: "4px 0",
+					fontFamily: "inherit",
+					marginTop: 4
+				},
+				children: "Collapse"
+			})] }) : i && (o = /* @__PURE__ */ u("div", { children: [
 				e.body && /* @__PURE__ */ l("div", {
 					style: {
 						fontSize: 13,
@@ -112260,11 +112625,11 @@ function PNe({ items: e, api: t, onNavigate: n }) {
 				/* @__PURE__ */ l(Z7, {
 					attachments: e.attachments,
 					updateId: e.id,
-					getSignedUrl: _
+					getSignedUrl: N
 				}),
 				/* @__PURE__ */ l("button", {
 					onClick: function(e) {
-						e.stopPropagation(), d(null);
+						e.stopPropagation(), m(null);
 					},
 					style: {
 						fontSize: 11,
@@ -112280,12 +112645,12 @@ function PNe({ items: e, api: t, onNavigate: n }) {
 				})
 			] })), /* @__PURE__ */ l(F9, {
 				item: e,
-				category: t,
+				category: r,
 				onClick: function() {
-					v(e);
+					R(e);
 				},
-				expanded: n,
-				expandedContent: r
+				expanded: i,
+				expandedContent: o
 			}, e.id);
 		})
 	})] });
@@ -113380,7 +113745,9 @@ function RNe({ api: e, subdomain: t, title: r, subtitle: a, shortcutKey: o, user
 			A === "feed" && /* @__PURE__ */ l(PNe, {
 				items: b,
 				api: e,
-				onNavigate: D
+				onNavigate: D,
+				isTeam: E,
+				subdomain: t
 			}),
 			A === "tasks" && /* @__PURE__ */ l(FNe, {
 				items: S,
