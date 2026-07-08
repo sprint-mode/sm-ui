@@ -745,7 +745,13 @@ function parsePerms(session: SessionData | ViewAsUser | null): Permissions | nul
   if (!session || !(session as any).permissions) return null
   try {
     var p = (session as any).permissions
-    return typeof p === 'string' ? JSON.parse(p) : p
+    var raw = typeof p === 'string' ? JSON.parse(p) : p
+    if (!raw || typeof raw !== 'object') return null
+    // resolvePermissions returns a flat Record<string, Permission> (e.g. { dashboard: { view: true } }).
+    // If the object already has a .sections key that is an object, assume it's already wrapped.
+    // Otherwise wrap the flat map so canViewSection/canViewProduct can read perms.sections[key].
+    if (raw.sections && typeof raw.sections === 'object') return raw
+    return { sections: raw, products: raw.products || undefined }
   } catch (_e) { return null }
 }
 
