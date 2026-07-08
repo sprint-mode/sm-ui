@@ -114477,26 +114477,17 @@ function tPe(t) {
 	var n = t.apiBase === void 0 ? "" : t.apiBase, r = t.mode || "simple", a = t.title || "Notification Settings", o = t.subtitle || "Manage how you receive notifications", c = s({
 		app_enabled: !0,
 		slack_enabled: !1,
-		email_enabled: !1,
-		event_filters: {}
+		email_enabled: !1
 	}), l = c[0], u = c[1], d = s(!0), f = d[0], p = d[1], m = s(!1), h = m[0], g = m[1], _ = s(!1), v = _[0], y = _[1], b = s(null), x = b[0], S = b[1];
 	i(function() {
 		fetch(n + "/api/notifications/prefs", { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			if (e.ok && e.data) {
-				var t = {};
-				try {
-					t = JSON.parse(e.data.event_filters || "{}");
-				} catch {}
-				u({
-					app_enabled: e.data.app_enabled !== 0,
-					slack_enabled: !!e.data.slack_enabled,
-					email_enabled: !!e.data.email_enabled,
-					event_filters: t
-				});
-			}
-			p(!1);
+			e.ok && e.data && u({
+				app_enabled: e.data.app_enabled !== 0,
+				slack_enabled: !!e.data.slack_enabled,
+				email_enabled: !!e.data.email_enabled
+			}), p(!1);
 		}).catch(function() {
 			p(!1);
 		});
@@ -114509,8 +114500,7 @@ function tPe(t) {
 			body: JSON.stringify({
 				app_enabled: l.app_enabled,
 				slack_enabled: l.slack_enabled,
-				email_enabled: l.email_enabled,
-				event_filters: l.event_filters
+				email_enabled: l.email_enabled
 			})
 		}).then(function(e) {
 			return e.json();

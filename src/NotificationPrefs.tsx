@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 
 // Lightweight notification delivery preferences page for client portals.
-// Shows in-app toggle only (Slack/email not relevant when ENABLE_PORTAL_EMAILS is off).
-// Admin portal uses its own UserSettings page with full channel + event-type matrix.
+// Shows delivery channel toggles (in-app, Slack, email).
+// event_filters retired in INBOX-TRANSITION-1 Phase C — routing is now
+// controlled via portal_notification_config, not per-user event filters.
 
 interface NotificationPrefsProps {
   apiBase?: string
@@ -39,7 +40,7 @@ export function NotificationPrefs(props: NotificationPrefsProps) {
   var title = props.title || 'Notification Settings'
   var subtitle = props.subtitle || 'Manage how you receive notifications'
 
-  var _prefs = useState<Record<string, any>>({ app_enabled: true, slack_enabled: false, email_enabled: false, event_filters: {} })
+  var _prefs = useState<Record<string, any>>({ app_enabled: true, slack_enabled: false, email_enabled: false })
   var prefs = _prefs[0]; var setPrefs = _prefs[1]
   var _loading = useState(true); var loading = _loading[0]; var setLoading = _loading[1]
   var _saving = useState(false); var saving = _saving[0]; var setSaving = _saving[1]
@@ -51,13 +52,10 @@ export function NotificationPrefs(props: NotificationPrefsProps) {
       .then(function(r) { return r.json() })
       .then(function(d: any) {
         if (d.ok && d.data) {
-          var filters: Record<string, any> = {}
-          try { filters = JSON.parse(d.data.event_filters || '{}') } catch (_e) {}
           setPrefs({
             app_enabled: d.data.app_enabled !== 0,
             slack_enabled: !!d.data.slack_enabled,
             email_enabled: !!d.data.email_enabled,
-            event_filters: filters,
           })
         }
         setLoading(false)
@@ -76,7 +74,6 @@ export function NotificationPrefs(props: NotificationPrefsProps) {
         app_enabled: prefs.app_enabled,
         slack_enabled: prefs.slack_enabled,
         email_enabled: prefs.email_enabled,
-        event_filters: prefs.event_filters,
       }),
     })
       .then(function(r) { return r.json() })
