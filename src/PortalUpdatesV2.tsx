@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { UpdateAttachments, Attachment } from './UpdateAttachments.tsx'
+import { InboxRow, CategoryPill } from './InboxRow.tsx'
+import type { InboxItem } from './InboxRow.tsx'
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 
@@ -70,13 +72,7 @@ interface AdminThreadDetail {
   }
 }
 
-type TabId = 'general' | 'tasks' | 'project' | 'bugs' | 'reports' | 'support' | 'sales'
-
-interface TabDef {
-  id: TabId
-  label: string
-  count: number
-}
+type SectionId = 'feed' | 'tasks' | 'support'
 
 export interface PortalUpdatesV2Props {
   api: (path: string, opts?: Record<string, unknown>) => Promise<Record<string, unknown>>
@@ -88,61 +84,77 @@ export interface PortalUpdatesV2Props {
   onNavigate?: (path: string) => void
 }
 
+// ─── Category system ────────────────────────────────────────────────────────────
+
+var CATEGORY_PILLS: Record<string, CategoryPill> = {
+  lead:       { label: 'Lead',      bg: '#E1F5EE', color: '#0F6E56' },
+  contract:   { label: 'Contract',  bg: '#EEEDFE', color: '#3C3489' },
+  screening:  { label: 'Screening', bg: '#E6F1FB', color: '#0C447C' },
+  signal:     { label: 'Signal',    bg: 'hsla(340,55%,47%,.1)', color: 'hsl(340,55%,47%)' },
+  mode:       { label: 'Mode',      bg: 'hsla(160,84%,39%,.1)', color: 'hsl(160,84%,39%)' },
+  support:    { label: 'Support',   bg: '#FAEEDA', color: '#633806' },
+  alert:      { label: 'Alert',     bg: '#FCEBEB', color: '#791F1F' },
+  platform:   { label: 'Platform',  bg: '#E6F1FB', color: '#0C447C' },
+  people:     { label: 'People',    bg: '#EEEDFE', color: '#3C3489' },
+  finance:    { label: 'Finance',   bg: '#FAEEDA', color: '#633806' },
+  bug:        { label: 'Bug',       bg: '#FCEBEB', color: '#791F1F' },
+  update:     { label: 'Update',    bg: '#EAF3DE', color: '#27500A' },
+  ai_weekly:  { label: 'AI Weekly', bg: '#EEEDFE', color: '#3C3489' },
+  sprint:     { label: 'Sprint',    bg: '#EEEDFE', color: '#3C3489' },
+  milestone:  { label: 'Milestone', bg: '#EAF3DE', color: '#27500A' },
+  announce:   { label: 'Announce',  bg: '#E6F1FB', color: '#0C447C' },
+  flash:      { label: 'Flash',     bg: '#FCEBEB', color: '#791F1F' },
+  board:      { label: 'Board',     bg: '#E6F1FB', color: '#0C447C' },
+  policy:     { label: 'Policy',    bg: '#FAEEDA', color: '#633806' },
+  culture:    { label: 'Culture',   bg: '#E1F5EE', color: '#085041' },
+  task:       { label: 'Task',      bg: '#E6F1FB', color: '#0C447C' },
+  test:       { label: 'Test',      bg: '#f3f4f6', color: '#6b7280' },
+  general:    { label: 'General',   bg: '#f3f4f6', color: '#6b7280' },
+}
+
+function getCategory(item: UpdateItem): string {
+  var nt = item.notification_type || ''
+  var ct = item.comm_type || ''
+  var ut = item.update_type || ''
+
+  // notification_type overrides
+  if (nt === 'sales' || nt === 'lead_submitted' || nt === 'lead_reply' || nt === 'lead_interested') return 'lead'
+  if (nt === 'contract_sent' || nt === 'contract_signed' || nt === 'contract_declined') return 'contract'
+  if (nt === 'screening_scheduled') return 'screening'
+  if (nt === 'signal_anomaly') return 'signal'
+  if (nt === 'mode_scan_complete') return 'mode'
+  if (nt === 'chat_escalated' || nt === 'support_reply') return 'support'
+  if (nt === 'guardrail_flag') return 'alert'
+  if (nt.indexOf('portal_') === 0) return 'platform'
+  if (nt.indexOf('deel_') === 0) return 'people'
+  if (nt === 'payment_failed' || nt === 'invoice_overdue') return 'finance'
+  if (nt === 'action_item_assigned') return 'task'
+  if (nt === 'team_update_published') return 'update'
+  if (nt === 'push_test') return 'test'
+
+  // comm_type fallback
+  if (ct === 'bug_comment') return 'bug'
+
+  // update_type fallback for content updates
+  if (ut === 'ai_weekly') return 'ai_weekly'
+  if (ut === 'sprint_report') return 'sprint'
+  if (ut === 'milestone') return 'milestone'
+  if (ut === 'announcement') return 'announce'
+  if (ut === 'flash_update') return 'flash'
+  if (ut === 'board_update') return 'board'
+  if (ut === 'policy') return 'policy'
+  if (ut === 'culture') return 'culture'
+
+  return 'general'
+}
+
+// Navigate-type categories: clicking the row navigates away
+var _NAVIGATE_CATEGORIES = new Set(['lead', 'contract', 'screening', 'signal', 'mode', 'bug', 'alert', 'platform', 'people', 'finance', 'task'])
+
+// Expand-type categories: clicking the row expands body + attachments inline
+var EXPAND_CATEGORIES = new Set(['support', 'update', 'ai_weekly', 'sprint', 'milestone', 'announce', 'flash', 'board', 'policy', 'culture', 'general', 'test'])
+
 // ─── Helpers ────────────────────────────────────────────────────────────────────
-
-var TYPE_LABELS: Record<string, string> = {
-  ai_weekly: 'AI weekly', sprint_report: 'Sprint report', milestone: 'Milestone',
-  announcement: 'Announcement', policy: 'Policy', culture: 'Culture',
-  flash_update: 'Flash update', board_update: 'Board update', general: 'General',
-  system_event: 'Notification', support_reply: 'Support reply',
-  follow_up: 'Follow-up', call: 'Call', email: 'Email',
-}
-
-var TYPE_COLORS: Record<string, { bg: string; color: string }> = {
-  ai_weekly: { bg: '#EEEDFE', color: '#3C3489' },
-  sprint_report: { bg: '#EEEDFE', color: '#3C3489' },
-  milestone: { bg: '#EAF3DE', color: '#27500A' },
-  announcement: { bg: '#E6F1FB', color: '#0C447C' },
-  policy: { bg: '#FAEEDA', color: '#633806' },
-  culture: { bg: '#E1F5EE', color: '#085041' },
-  flash_update: { bg: '#FCEBEB', color: '#791F1F' },
-  board_update: { bg: '#E6F1FB', color: '#0C447C' },
-  general: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
-  system_event: { bg: '#FAEEDA', color: '#633806' },
-  support_reply: { bg: '#FAEEDA', color: '#633806' },
-  bug: { bg: '#FCEBEB', color: '#791F1F' },
-  task: { bg: '#E6F1FB', color: '#0C447C' },
-  action_item: { bg: '#E1F5EE', color: '#085041' },
-  open_item: { bg: '#EEEDFE', color: '#3C3489' },
-  feature: { bg: '#EAF3DE', color: '#27500A' },
-  tech_debt: { bg: '#FAEEDA', color: '#633806' },
-  gap: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
-  fix: { bg: '#E1F5EE', color: '#085041' },
-}
-
-var PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
-  critical: { bg: '#FCEBEB', color: '#791F1F' },
-  high: { bg: '#FCEBEB', color: '#791F1F' },
-  normal: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
-  low: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-3, #9ca3af)' },
-}
-
-var STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  open: { bg: '#E6F1FB', color: '#0C447C' },
-  completed: { bg: '#EAF3DE', color: '#27500A' },
-  active: { bg: '#EAF3DE', color: '#27500A' },
-  resolved: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
-  closed: { bg: 'var(--bg-2, #f3f4f6)', color: 'var(--text-2, #6b7280)' },
-  escalated: { bg: '#FCEBEB', color: '#791F1F' },
-}
-
-var _PRODUCT_COLORS: Record<string, { bg: string; color: string }> = {
-  studios: { bg: 'var(--violet-soft, #EEEDFE)', color: 'var(--violet, #534AB7)' },
-  signal: { bg: 'hsla(340,55%,47%,.1)', color: 'hsl(340,55%,47%)' },
-  mode: { bg: 'hsla(160,84%,39%,.1)', color: 'hsl(160,84%,39%)' },
-  privacyai: { bg: 'hsla(190,84%,39%,.1)', color: 'hsl(190,84%,39%)' },
-  investor: { bg: 'var(--accent-soft, #E6F1FB)', color: 'var(--accent, #534AB7)' },
-}
 
 function relativeTime(iso: string | undefined): string {
   if (!iso) return ''
@@ -162,45 +174,6 @@ function formatDate(iso: string | undefined): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function initials(name: string | undefined): string {
-  return (name || 'A').split(' ').map(function(w) { return w[0] }).join('').slice(0, 2).toUpperCase()
-}
-
-// ─── Seen tracking helpers ─────────────────────────────────────────────────────
-
-var SEEN_KEY_PREFIX = 'sm_inbox_seen_'
-
-function getTabSeenAt(tabId: string): number {
-  try {
-    var val = localStorage.getItem(SEEN_KEY_PREFIX + tabId)
-    return val ? parseInt(val, 10) : 0
-  } catch { return 0 }
-}
-
-function setTabSeenAt(tabId: string): void {
-  try { localStorage.setItem(SEEN_KEY_PREFIX + tabId, String(Date.now())) } catch {}
-}
-
-function isItemNew(dateStr: string | undefined, seenAt: number): boolean {
-  if (!dateStr || !seenAt) return !seenAt && !!dateStr
-  return new Date(dateStr).getTime() > seenAt
-}
-
-function NewDot() {
-  return <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c5cbf', flexShrink: 0 }} />
-}
-
-function SeenDotPlaceholder() {
-  return <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'transparent', flexShrink: 0 }} />
-}
-
-function NewPill({ label }: { label?: string }) {
-  return <span style={{
-    fontSize: 10, fontWeight: 500, padding: '2px 7px', borderRadius: 10,
-    background: '#EEEDFE', color: '#534AB7', whiteSpace: 'nowrap', flexShrink: 0,
-  }}>{label || 'New'}</span>
-}
-
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 
 function Pill({ label, bg, color }: { label: string; bg: string; color: string }) {
@@ -212,20 +185,27 @@ function Pill({ label, bg, color }: { label: string; bg: string; color: string }
   )
 }
 
-function TypePill({ type }: { type: string | undefined }) {
-  var t = type || 'general'
-  var c = TYPE_COLORS[t] || TYPE_COLORS.general
-  var label = TYPE_LABELS[t] || t.replace(/_/g, ' ')
-  return <Pill label={label} bg={c.bg} color={c.color} />
-}
-
 function PriorityPill({ priority }: { priority: string | undefined }) {
+  var PRIORITY_COLORS: Record<string, { bg: string; color: string }> = {
+    critical: { bg: '#FCEBEB', color: '#791F1F' },
+    high: { bg: '#FCEBEB', color: '#791F1F' },
+    normal: { bg: '#f3f4f6', color: '#6b7280' },
+    low: { bg: '#f3f4f6', color: '#9ca3af' },
+  }
   var p = priority || 'normal'
   var c = PRIORITY_COLORS[p] || PRIORITY_COLORS.normal
   return <Pill label={p} bg={c.bg} color={c.color} />
 }
 
 function StatusPill({ status }: { status: string | undefined }) {
+  var STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+    open: { bg: '#E6F1FB', color: '#0C447C' },
+    completed: { bg: '#EAF3DE', color: '#27500A' },
+    active: { bg: '#EAF3DE', color: '#27500A' },
+    resolved: { bg: '#f3f4f6', color: '#6b7280' },
+    closed: { bg: '#f3f4f6', color: '#6b7280' },
+    escalated: { bg: '#FCEBEB', color: '#791F1F' },
+  }
   var s = status || 'open'
   var c = STATUS_COLORS[s] || STATUS_COLORS.open
   return <Pill label={s} bg={c.bg} color={c.color} />
@@ -236,7 +216,7 @@ function EmptyState({ message }: { message: string }) {
     <div style={{
       textAlign: 'center', padding: '48px 24px',
       border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius, 8px)',
-      color: 'var(--text-3, #9ca3af)',
+      color: 'var(--muted, var(--text-3, #9ca3af))',
     }}>
       <div style={{ fontSize: 13 }}>{message}</div>
     </div>
@@ -247,7 +227,7 @@ function FilterRow({ children, count, countLabel }: { children: React.ReactNode;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
       {children}
-      <span style={{ fontSize: 12, color: 'var(--text-3, #9ca3af)', marginLeft: 'auto' }}>
+      <span style={{ fontSize: 12, color: 'var(--muted, var(--text-3, #9ca3af))', marginLeft: 'auto' }}>
         {count} {countLabel}{count !== 1 ? 's' : ''}
       </span>
     </div>
@@ -271,93 +251,201 @@ function SelectFilter({ value, onChange, options }: { value: string; onChange: (
   )
 }
 
-// ─── Tab content renderers ──────────────────────────────────────────────────────
+// ─── Filter bar ─────────────────────────────────────────────────────────────────
 
-function GeneralTab({ items, api, lastSeenAt }: { items: UpdateItem[]; api: PortalUpdatesV2Props['api']; lastSeenAt?: number }) {
-  var [filter, setFilter] = useState('all')
+interface FilterBarProps {
+  readFilter: 'all' | 'unread'
+  onReadFilterChange: (v: 'all' | 'unread') => void
+  categories: { key: string; label: string; unreadCount: number; bg: string; color: string }[]
+  selectedCategories: Set<string>
+  onCategoryToggle: (key: string) => void
+}
+
+function FilterBar({ readFilter, onReadFilterChange, categories, selectedCategories, onCategoryToggle }: FilterBarProps) {
+  var pillBase: React.CSSProperties = {
+    fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+    cursor: 'pointer', border: 'none', fontFamily: 'inherit',
+    textTransform: 'uppercase', letterSpacing: '.3px',
+    transition: 'background .12s, color .12s, box-shadow .12s',
+    display: 'inline-flex', alignItems: 'center', gap: 5,
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+      {/* Section 1: All / Unread — mutually exclusive */}
+      <button
+        onClick={function() { onReadFilterChange('all') }}
+        style={Object.assign({}, pillBase, {
+          background: readFilter === 'all' ? 'var(--accent, var(--blue, #2362ea))' : 'var(--bg-subtle, #f3f4f6)',
+          color: readFilter === 'all' ? '#fff' : 'var(--muted, #6b7280)',
+        })}
+      >All</button>
+      <button
+        onClick={function() { onReadFilterChange('unread') }}
+        style={Object.assign({}, pillBase, {
+          background: readFilter === 'unread' ? 'var(--accent, var(--blue, #2362ea))' : 'var(--bg-subtle, #f3f4f6)',
+          color: readFilter === 'unread' ? '#fff' : 'var(--muted, #6b7280)',
+        })}
+      >Unread</button>
+
+      {/* Divider */}
+      {categories.length > 0 && (
+        <span style={{ width: 1, height: 16, background: 'var(--border, #e5e7eb)', flexShrink: 0 }} />
+      )}
+
+      {/* Section 2: Category chips — multi-select */}
+      {categories.map(function(cat) {
+        var isSelected = selectedCategories.has(cat.key)
+        return (
+          <button
+            key={cat.key}
+            onClick={function() { onCategoryToggle(cat.key) }}
+            style={Object.assign({}, pillBase, {
+              background: isSelected ? cat.bg : 'var(--bg-subtle, #f3f4f6)',
+              color: isSelected ? cat.color : 'var(--muted, #6b7280)',
+              boxShadow: isSelected ? 'inset 0 0 0 1px ' + cat.color + '33' : 'none',
+            })}
+          >
+            {cat.label}
+            {cat.unreadCount > 0 && (
+              <span style={{
+                fontSize: 9, fontWeight: 700,
+                minWidth: 14, height: 14, borderRadius: 7,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                background: isSelected ? cat.color : 'var(--muted, #9ca3af)',
+                color: '#fff', padding: '0 4px',
+              }}>{cat.unreadCount}</span>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// ─── Feed section ───────────────────────────────────────────────────────────────
+
+function FeedSection({ items, api, onNavigate }: {
+  items: UpdateItem[]
+  api: PortalUpdatesV2Props['api']
+  onNavigate?: (path: string) => void
+}) {
+  var [readFilter, setReadFilter] = useState<'all' | 'unread'>('all')
+  var [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set())
   var [expandedId, setExpandedId] = useState<string | null>(null)
-  var seenAt = lastSeenAt || 0
-  var filtered = items.filter(function(i) {
-    if (filter === 'unread') return !i.read_at
-    if (filter === 'read') return !!i.read_at
+
+  // Build category list from items in the feed
+  var categoryMap = new Map<string, { unreadCount: number }>()
+  items.forEach(function(item) {
+    var cat = getCategory(item)
+    var entry = categoryMap.get(cat)
+    if (!entry) {
+      entry = { unreadCount: 0 }
+      categoryMap.set(cat, entry)
+    }
+    if (!item.read_at) entry.unreadCount++
+  })
+
+  var categoryChips = Array.from(categoryMap.entries())
+    .map(function(e) {
+      var pill = CATEGORY_PILLS[e[0]] || CATEGORY_PILLS.general
+      return { key: e[0], label: pill.label, bg: pill.bg, color: pill.color, unreadCount: e[1].unreadCount }
+    })
+    .sort(function(a, b) { return b.unreadCount - a.unreadCount })
+
+  function toggleCategory(key: string) {
+    setSelectedCategories(function(prev) {
+      var next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
+
+  // Apply filters
+  var filtered = items.filter(function(item) {
+    // Read filter
+    if (readFilter === 'unread' && item.read_at) return false
+    // Category filter (if any selected)
+    if (selectedCategories.size > 0) {
+      var cat = getCategory(item)
+      if (!selectedCategories.has(cat)) return false
+    }
     return true
   })
+
+  function handleRead(id: string) {
+    api('/api/notifications/' + id + '/read', { method: 'POST' }).catch(function() {})
+  }
 
   function getSignedUrl(updateId: string, attId: string) {
     return api('/api/updates/' + updateId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
   }
 
+  function handleItemClick(item: UpdateItem) {
+    var cat = getCategory(item)
+    handleRead(item.id)
+    if (EXPAND_CATEGORIES.has(cat)) {
+      setExpandedId(function(prev) { return prev === item.id ? null : item.id })
+    } else if (item.action_url && onNavigate) {
+      onNavigate(item.action_url)
+    }
+  }
+
   return (
     <div>
-      <FilterRow count={filtered.length} countLabel="update">
-        <SelectFilter value={filter} onChange={setFilter} options={[
-          { value: 'all', label: 'All' },
-          { value: 'unread', label: 'Unread' },
-          { value: 'read', label: 'Read' },
-        ]} />
-      </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No updates yet" /> : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <FilterBar
+        readFilter={readFilter}
+        onReadFilterChange={setReadFilter}
+        categories={categoryChips}
+        selectedCategories={selectedCategories}
+        onCategoryToggle={toggleCategory}
+      />
+      {filtered.length === 0 ? (
+        <EmptyState message={readFilter === 'unread' ? 'No unread items' : 'No updates yet'} />
+      ) : (
+        <div style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius, 8px)', overflow: 'hidden' }}>
           {filtered.map(function(item) {
-            var isRead = !!item.read_at
-            var itemIsNew = isItemNew(item.published_at, seenAt)
+            var cat = getCategory(item)
+            var pill = CATEGORY_PILLS[cat] || CATEGORY_PILLS.general
             var isExpanded = expandedId === item.id
-            return (
-              <div key={item.id} style={{
-                background: 'var(--bg-card, inherit)', border: '1px solid var(--border, #e5e7eb)',
-                borderRadius: 'var(--radius, 8px)', overflow: 'hidden', cursor: 'pointer',
-                transition: 'border-color .12s',
-              }} onClick={function() { setExpandedId(isExpanded ? null : item.id) }}>
-                <div style={{ padding: '14px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                    {itemIsNew ? <NewDot /> : (!isRead ? <span style={{
-                      width: 6, height: 6, borderRadius: '50%', background: '#378ADD',
-                      flexShrink: 0, marginTop: 6,
-                    }} /> : <SeenDotPlaceholder />)}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                        <span style={{
-                          fontSize: 14, fontWeight: itemIsNew ? 500 : (isRead ? 400 : 600),
-                          color: itemIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)',
-                        }}>{item.title}</span>
-                        {itemIsNew && <NewPill />}
-                        <TypePill type={item.update_type || item.comm_type} />
-                      </div>
-                      <div style={{ fontSize: 12, color: 'var(--text-3, #9ca3af)' }}>
-                        {relativeTime(item.published_at)}
-                        {item.author_name ? ' · ' + item.author_name : ''}
-                      </div>
-                      {item.body && (
-                        <div style={{
-                          fontSize: 13, lineHeight: 1.6,
-                          color: isExpanded ? 'var(--text-1, #374151)' : 'var(--text-3, #9ca3af)',
-                          whiteSpace: isExpanded ? 'pre-wrap' : undefined,
-                          marginTop: 8,
-                          maxHeight: isExpanded ? undefined : 52,
-                          overflow: isExpanded ? undefined : 'hidden',
-                        }}>{item.body}</div>
-                      )}
-                      {isExpanded && (
-                        <UpdateAttachments
-                          attachments={item.attachments}
-                          updateId={item.id}
-                          getSignedUrl={getSignedUrl}
-                        />
-                      )}
-                      {!isExpanded && item.body && (
-                        <div style={{ fontSize: 11, color: 'var(--accent, #7c5cbf)', marginTop: 6 }}>
-                          Show full update{item.attachments && JSON.parse(typeof item.attachments === 'string' ? item.attachments : '[]').length > 0 ? ' + attachments' : ''}
-                        </div>
-                      )}
-                      {isExpanded && (
-                        <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 6 }}>
-                          Collapse
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            var expandedContent: React.ReactNode = null
+            if (isExpanded) {
+              expandedContent = (
+                <div>
+                  {item.body && (
+                    <div style={{
+                      fontSize: 13, lineHeight: 1.6,
+                      color: 'var(--foreground, var(--text-1, #374151))',
+                      whiteSpace: 'pre-wrap', marginBottom: 8,
+                    }}>{item.body}</div>
+                  )}
+                  <UpdateAttachments
+                    attachments={item.attachments}
+                    updateId={item.id}
+                    getSignedUrl={getSignedUrl}
+                  />
+                  <button
+                    onClick={function(e) { e.stopPropagation(); setExpandedId(null) }}
+                    style={{
+                      fontSize: 11, color: 'var(--muted, var(--text-3, #9ca3af))',
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: '4px 0', fontFamily: 'inherit', marginTop: 4,
+                    }}
+                  >Collapse</button>
                 </div>
-              </div>
+              )
+            }
+
+            return (
+              <InboxRow
+                key={item.id}
+                item={item as InboxItem}
+                category={pill}
+                onClick={function() { handleItemClick(item) }}
+                expanded={isExpanded}
+                expandedContent={expandedContent}
+              />
             )
           })}
         </div>
@@ -366,11 +454,12 @@ function GeneralTab({ items, api, lastSeenAt }: { items: UpdateItem[]; api: Port
   )
 }
 
-function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void; lastSeenAt?: number }) {
+// ─── Tasks section (preserved from original) ───────────────────────────────────
+
+function TasksSection({ items, api, onNavigate }: { items: TaskItem[]; api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
   var [statusFilter, setStatusFilter] = useState('all')
   var [completing, setCompleting] = useState<string | null>(null)
   var [localItems, setLocalItems] = useState(items)
-  var seenAt = lastSeenAt || 0
 
   useEffect(function() { setLocalItems(items) }, [items])
 
@@ -414,7 +503,6 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
           {filtered.map(function(item) {
             var isDone = item.status === 'completed'
             var isCompleting = completing === item.id
-            var itemIsNew = isItemNew(item.created_at || item.due_date, seenAt)
             return (
               <div key={item.id} onClick={function() { handleRowClick(item) }} style={{
                 display: 'flex', alignItems: 'center', gap: 12,
@@ -422,7 +510,6 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
                 cursor: onNavigate ? 'pointer' : 'default',
                 transition: 'background .1s',
               }}>
-                {itemIsNew ? <NewDot /> : <SeenDotPlaceholder />}
                 <div onClick={function(e) { if (!isDone && !isCompleting) markComplete(e, item.id) }} style={{
                   width: 18, height: 18, borderRadius: 4, flexShrink: 0,
                   border: isDone ? '1.5px solid #639922' : '1.5px solid var(--border-2, #d1d5db)',
@@ -436,13 +523,12 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <span style={{
-                      fontSize: 13, fontWeight: itemIsNew ? 500 : 400,
-                      color: isDone ? 'var(--text-3, #9ca3af)' : (itemIsNew ? 'var(--text-0, inherit)' : 'var(--text-0, inherit)'),
+                      fontSize: 13, fontWeight: 400,
+                      color: isDone ? 'var(--muted, var(--text-3, #9ca3af))' : 'var(--foreground, var(--text-0, inherit))',
                       textDecoration: isDone ? 'line-through' : 'none',
                     }}>{item.title}</span>
-                    {itemIsNew && !isDone && <NewPill />}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--muted, var(--text-3, #9ca3af))' }}>
                     {item.company_name ? item.company_name + ' · ' : ''}
                     {(item.task_type || '').replace(/_/g, ' ')}
                     {item.due_date ? ' · Due ' + formatDate(item.due_date) : ''}
@@ -459,142 +545,9 @@ function TasksTab({ items, api, onNavigate, lastSeenAt }: { items: TaskItem[]; a
   )
 }
 
-function BugsTab({ commentNotifications, onNavigate, lastSeenAt: _lastSeenAt, api }: { commentNotifications?: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
-  var items = commentNotifications || []
-  var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
+// ─── Portal support section (client/investor — preserved from original) ──────
 
-  function handleView(notif: UpdateItem) {
-    if (api && notif.id) {
-      api('/api/notifications/' + notif.id + '/read', { method: 'POST' }).catch(function() {})
-    }
-    setReadIds(function(prev) { var next = Object.assign({}, prev); next[notif.id] = true; return next })
-    if (notif.action_url && onNavigate) onNavigate(notif.action_url)
-  }
-
-  if (items.length === 0) {
-    return <EmptyState message="No open items" />
-  }
-
-  return (
-    <div>
-      {items.map(function(notif) {
-        var isNew = !notif.read_at && !readIds[notif.id]
-        var isComment = (notif.title || '').startsWith('Comment on:')
-        var displayTitle = isComment ? (notif.title || '').replace('Comment on: ', '') : (notif.title || '').replace('New bug: ', '')
-        var typeLabel = isComment ? 'Comment' : 'New bug'
-        return (
-          <div key={notif.id} onClick={function() { handleView(notif) }} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-            borderBottom: '1px solid var(--border, #e5e7eb)',
-            cursor: notif.action_url ? 'pointer' : 'default',
-            background: 'transparent',
-            transition: 'background .15s',
-          }}>
-            <span style={{
-              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-              background: isNew ? '#7c5cbf' : 'transparent',
-            }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <span style={{
-                  fontSize: 13, fontWeight: isNew ? 500 : 400,
-                  color: isNew ? 'var(--text-0, inherit)' : 'var(--text-1, #6b7280)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{displayTitle}</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 500, padding: '1px 7px', borderRadius: 10, flexShrink: 0,
-                  background: isComment ? '#E6F1FB' : '#EEEDFE',
-                  color: isComment ? '#0C447C' : '#534AB7',
-                }}>{typeLabel}</span>
-                {isNew && <NewPill label="New" />}
-              </div>
-              {notif.body && <div style={{
-                fontSize: 12, color: 'var(--text-2, #9ca3af)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{notif.body}</div>}
-              <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 3 }}>
-                {notif.author_name ? notif.author_name + ' \u00b7 ' : ''}{relativeTime(notif.published_at)}
-              </div>
-            </div>
-            {notif.action_url && <span style={{
-              display: 'flex', alignItems: 'center', gap: 2,
-              fontSize: 12, color: 'var(--accent, #7c5cbf)', flexShrink: 0, fontWeight: 500,
-            }}>View <i className="ti ti-chevron-right" style={{ fontSize: 14 }} /></span>}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Sales tab (team — lead notifications) ────────────────────────────────────
-
-function SalesTab({ items, onNavigate, lastSeenAt: _lastSeenAt, api }: { items: UpdateItem[]; onNavigate?: (path: string) => void; lastSeenAt?: number; api?: PortalUpdatesV2Props['api'] }) {
-  var _readIds = useState<Record<string, boolean>>({}); var readIds = _readIds[0]; var setReadIds = _readIds[1]
-
-  function handleView(item: UpdateItem) {
-    if (api && item.id) {
-      api('/api/notifications/' + item.id + '/read', { method: 'POST' }).catch(function() {})
-    }
-    setReadIds(function(prev) { var next = Object.assign({}, prev); next[item.id] = true; return next })
-    if (item.action_url && onNavigate) onNavigate(item.action_url)
-  }
-
-  if (items.length === 0) {
-    return <EmptyState message="No leads yet" />
-  }
-
-  return (
-    <div>
-      {items.map(function(item) {
-        var isNew = !item.read_at && !readIds[item.id]
-        return (
-          <div key={item.id} onClick={function() { handleView(item) }} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px',
-            borderBottom: '1px solid var(--border, #e5e7eb)',
-            cursor: item.action_url ? 'pointer' : 'default',
-            background: 'transparent',
-            transition: 'background .15s',
-          }}>
-            <span style={{
-              width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-              background: isNew ? '#7c5cbf' : 'transparent',
-            }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <span style={{
-                  fontSize: 13, fontWeight: isNew ? 500 : 400,
-                  color: isNew ? 'var(--text-0, inherit)' : 'var(--text-1, #6b7280)',
-                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>{(item.title || '').replace('New lead: ', '')}</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 500, padding: '1px 7px', borderRadius: 10, flexShrink: 0,
-                  background: '#E1F5EE', color: '#0F6E56',
-                }}>Lead</span>
-                {isNew && <NewPill label="New" />}
-              </div>
-              {item.body && <div style={{
-                fontSize: 12, color: 'var(--text-2, #9ca3af)',
-                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              }}>{item.body}</div>}
-              <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)', marginTop: 3 }}>
-                {relativeTime(item.published_at)}
-              </div>
-            </div>
-            {item.action_url && <span style={{
-              display: 'flex', alignItems: 'center', gap: 2,
-              fontSize: 12, color: 'var(--accent, #7c5cbf)', flexShrink: 0, fontWeight: 500,
-            }}>View <i className="ti ti-chevron-right" style={{ fontSize: 14 }} /></span>}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-// ─── Portal support tab (client/investor) ────────────────────────────────────
-
-function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: SupportThread[]; api: PortalUpdatesV2Props['api']; subdomain: string; lastSeenAt?: number }) {
+function SupportSectionPortal({ threads, api, subdomain }: { threads: SupportThread[]; api: PortalUpdatesV2Props['api']; subdomain: string }) {
   var [statusFilter, setStatusFilter] = useState('all')
   var [expandedId, setExpandedId] = useState<string | null>(null)
   var [messages, setMessages] = useState<SupportMessage[]>([])
@@ -604,7 +557,6 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
   var [queuedAttachments, setQueuedAttachments] = useState<Attachment[]>([])
   var [uploading, setUploading] = useState(false)
   var fileInputRef = useRef<HTMLInputElement>(null)
-  var seenAt = lastSeenAt || 0
 
   var filtered = threads.filter(function(t) {
     if (statusFilter === 'active') return t.status === 'active' || t.status === 'escalated'
@@ -622,14 +574,9 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
   }
 
   function toggleThread(threadId: string) {
-    if (expandedId === threadId) {
-      setExpandedId(null)
-      setMessages([])
-    } else {
-      setExpandedId(threadId)
-      loadThread(threadId)
-    }
-    setReplyText('')
+    if (expandedId === threadId) { setExpandedId(null); setMessages([]) }
+    else { setExpandedId(threadId); loadThread(threadId) }
+    setReplyText(''); setQueuedAttachments([])
   }
 
   function sendReply() {
@@ -640,9 +587,7 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: replyText.trim(), attachments: queuedAttachments.length > 0 ? JSON.stringify(queuedAttachments) : undefined }),
     }).then(function() {
-      setReplyText('')
-      setQueuedAttachments([])
-      setSending(false)
+      setReplyText(''); setQueuedAttachments([]); setSending(false)
       loadThread(expandedId!)
     }).catch(function() { setSending(false) })
   }
@@ -650,8 +595,7 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
   function uploadFile(file: File) {
     if (!expandedId || uploading) return
     setUploading(true)
-    var fd = new FormData()
-    fd.append('file', file)
+    var fd = new FormData(); fd.append('file', file)
     fetch('/api/portals/' + subdomain + '/support/threads/' + expandedId + '/attachments', {
       method: 'POST', credentials: 'include', body: fd,
     }).then(function(r) { return r.json() }).then(function(res: Record<string, unknown>) {
@@ -661,22 +605,6 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
       }
       setUploading(false)
     }).catch(function() { setUploading(false) })
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    var file = e.target.files && e.target.files[0]
-    if (file) uploadFile(file)
-    if (fileInputRef.current) fileInputRef.current.value = ''
-  }
-
-  function handleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    var file = e.dataTransfer.files && e.dataTransfer.files[0]
-    if (file) uploadFile(file)
-  }
-
-  function removeAttachment(attId: string) {
-    setQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== attId }) })
   }
 
   function getSignedUrl(_updateId: string, attId: string) {
@@ -693,7 +621,7 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
           { value: 'resolved', label: 'Resolved' },
         ]} />
       </FilterRow>
-      {filtered.length === 0 ? <EmptyState message="No support threads - everything's good" /> : (
+      {filtered.length === 0 ? <EmptyState message="No support threads" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
           {filtered.map(function(t) {
             var isExpanded = expandedId === t.id
@@ -704,34 +632,28 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
                   padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
                   cursor: 'pointer',
                 }}>
-                  {(function() {
-                    var threadIsNew = isItemNew(t.updated_at || t.created_at, seenAt)
-                    var isNewThread = isItemNew(t.created_at, seenAt)
-                    return React.createElement(React.Fragment, null,
-                      threadIsNew ? React.createElement(NewDot, null) : React.createElement(SeenDotPlaceholder, null),
-                      React.createElement('div', { style: { flex: 1, minWidth: 0 } },
-                        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 } },
-                          React.createElement('span', { style: { fontSize: 13, fontWeight: threadIsNew ? 500 : 400, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)' } }, t.subject || 'Support thread'),
-                          threadIsNew ? React.createElement(NewPill, { label: isNewThread ? 'New' : 'New reply' }) : null
-                        ),
-                        React.createElement('div', { style: { fontSize: 11, color: 'var(--text-3, #9ca3af)' } },
-                          (t.message_count ? t.message_count + ' messages \u00b7 ' : '') +
-                          (t.updated_at ? relativeTime(t.updated_at) : '') +
-                          (t.last_role ? ' \u00b7 ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : '')
-                        )
-                      ),
-                      React.createElement(StatusPill, { status: t.status === 'active' || t.status === 'escalated' ? 'active' : 'resolved' })
-                    )
-                  })()}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                      <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--foreground, var(--text-0, inherit))' }}>
+                        {t.subject || 'Support thread'}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--muted, var(--text-3, #9ca3af))' }}>
+                      {(t.message_count ? t.message_count + ' messages · ' : '') +
+                       (t.updated_at ? relativeTime(t.updated_at) : '') +
+                       (t.last_role ? ' · ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : '')}
+                    </div>
+                  </div>
+                  <StatusPill status={t.status === 'active' || t.status === 'escalated' ? 'active' : 'resolved'} />
                 </div>
                 {isExpanded && (
                   <div style={{
-                    background: 'var(--bg-2, #f9fafb)', border: '1px solid var(--border, #e5e7eb)',
+                    background: 'var(--bg-subtle, var(--bg-2, #f9fafb))', border: '1px solid var(--border, #e5e7eb)',
                     borderRadius: 'var(--radius, 8px)', margin: '4px 0 12px', padding: 14,
                     display: 'flex', flexDirection: 'column', gap: 10,
                   }}>
                     {loadingMessages ? (
-                      <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--text-3, #9ca3af)' }}>Loading...</div>
+                      <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--muted, #9ca3af)' }}>Loading...</div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {messages.map(function(msg) {
@@ -740,7 +662,7 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
                           return (
                             <div key={msg.id}>
                               {!isUser && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4, fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--muted, #9ca3af)' }}>
                                   {msg.role === 'assistant' ? <span>AI · Support</span> : <span>Team</span>}
                                 </div>
                               )}
@@ -751,19 +673,14 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
                                 borderBottomRightRadius: isUser ? 3 : 10,
                                 borderBottomLeftRadius: !isUser ? 3 : 10,
                                 background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, transparent)',
-                                color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, inherit)',
+                                color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--foreground, inherit)',
                                 border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : isUser ? 'none' : '1px solid var(--border, #e5e7eb)',
                                 marginLeft: isUser ? 'auto' : 0,
                                 marginRight: isUser ? 0 : 'auto',
                               }}>{msg.content}</div>
                               {msg.attachments && (
                                 <div style={{ marginLeft: isUser ? 'auto' : 0, maxWidth: '85%' }}>
-                                  <UpdateAttachments
-                                    attachments={msg.attachments}
-                                    updateId={t.id}
-                                    getSignedUrl={getSignedUrl}
-                                    compact
-                                  />
+                                  <UpdateAttachments attachments={msg.attachments} updateId={t.id} getSignedUrl={getSignedUrl} compact />
                                 </div>
                               )}
                             </div>
@@ -774,17 +691,17 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
                     {(t.status === 'active' || t.status === 'escalated') && (
                       <div style={{ borderTop: '1px solid var(--border, #e5e7eb)', paddingTop: 8 }}
                         onDragOver={function(e) { e.preventDefault() }}
-                        onDrop={handleDrop}
+                        onDrop={function(e) { e.preventDefault(); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) uploadFile(f) }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                           <button onClick={function() { fileInputRef.current && fileInputRef.current.click() }} disabled={uploading} style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4,
                             padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: uploading ? 'default' : 'pointer',
                             border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
-                            color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1,
+                            color: 'var(--muted, #6b7280)', fontFamily: 'inherit', opacity: uploading ? 0.5 : 1,
                           }}>{uploading ? 'Uploading...' : 'Attach file'}</button>
-                          <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
-                          <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChange}
+                          <span style={{ fontSize: 11, color: 'var(--muted, #9ca3af)' }}>or drag and drop</span>
+                          <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={function(e) { var f = e.target.files && e.target.files[0]; if (f) uploadFile(f); if (fileInputRef.current) fileInputRef.current.value = '' }}
                             accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
                         </div>
                         {queuedAttachments.length > 0 && (
@@ -793,40 +710,31 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
                               return <span key={att.id} style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 4,
                                 padding: '3px 8px', borderRadius: 6, fontSize: 11,
-                                border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-2, #f9fafb)',
-                                color: 'var(--text-1, #374151)',
+                                border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-subtle, #f9fafb)',
+                                color: 'var(--foreground, #374151)',
                               }}>
                                 {att.filename || att.id}
-                                <span onClick={function() { removeAttachment(att.id) }} style={{ cursor: 'pointer', color: 'var(--text-3, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
+                                <span onClick={function() { setQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== att.id }) }) }} style={{ cursor: 'pointer', color: 'var(--muted, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
                               </span>
                             })}
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input
-                            type="text"
-                            value={replyText}
-                            onChange={function(e) { setReplyText(e.target.value) }}
+                          <input type="text" value={replyText} onChange={function(e) { setReplyText(e.target.value) }}
                             onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey) sendReply() }}
-                            placeholder="Reply to this thread..."
-                            disabled={sending}
+                            placeholder="Reply to this thread..." disabled={sending}
                             style={{
                               flex: 1, fontSize: 13, padding: '8px 10px',
                               border: '1px solid var(--border, #e5e7eb)', borderRadius: 6,
-                              background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)',
-                              fontFamily: 'inherit',
+                              background: 'var(--bg-0, transparent)', color: 'var(--foreground, #111)', fontFamily: 'inherit',
                             }}
                           />
-                          <button
-                            onClick={sendReply}
-                            disabled={sending || !replyText.trim()}
-                            style={{
-                              padding: '6px 14px', borderRadius: 6, border: 'none',
-                              background: 'var(--accent, #7c5cbf)', color: '#fff',
-                              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                              opacity: sending || !replyText.trim() ? 0.5 : 1,
-                            }}
-                          >Send</button>
+                          <button onClick={sendReply} disabled={sending || !replyText.trim()} style={{
+                            padding: '6px 14px', borderRadius: 6, border: 'none',
+                            background: 'var(--accent, #7c5cbf)', color: '#fff',
+                            fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                            opacity: sending || !replyText.trim() ? 0.5 : 1,
+                          }}>Send</button>
                         </div>
                       </div>
                     )}
@@ -841,9 +749,9 @@ function SupportTabPortal({ threads, api, subdomain, lastSeenAt }: { threads: Su
   )
 }
 
-// ─── Admin support tab (flat-list layout) ────────────────────────────────────
+// ─── Admin support section (team — preserved from original) ─────────────────
 
-function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void; lastSeenAt?: number; onHasNew?: (hasNew: boolean) => void }) {
+function SupportSectionAdmin({ api, onNavigate }: { api: PortalUpdatesV2Props['api']; onNavigate?: (path: string) => void }) {
   var [threads, setThreads] = useState<SupportThread[]>([])
   var [loading, setLoading] = useState(true)
   var [statusFilter, setStatusFilter] = useState('all')
@@ -856,7 +764,6 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
   var [adminQueuedAttachments, setAdminQueuedAttachments] = useState<Attachment[]>([])
   var [adminUploading, setAdminUploading] = useState(false)
   var adminFileInputRef = useRef<HTMLInputElement>(null)
-  var seenAt = lastSeenAt || 0
 
   var loadList = useCallback(function() {
     setLoading(true)
@@ -864,16 +771,9 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
     if (statusFilter !== 'all') qs += '&status=' + statusFilter
     if (productFilter !== 'all') qs += '&product=' + productFilter
     api('/api/support/threads?' + qs.replace(/^&/, '')).then(function(res) {
-      if (res.ok) {
-        var loadedThreads = (res.data as { threads?: SupportThread[] })?.threads || []
-        setThreads(loadedThreads)
-        if (onHasNew) {
-          var hasAnyNew = loadedThreads.some(function(t) { return isItemNew(t.updated_at || t.created_at, seenAt) })
-          onHasNew(hasAnyNew)
-        }
-      }
+      if (res.ok) setThreads((res.data as { threads?: SupportThread[] })?.threads || [])
     }).catch(function() {}).finally(function() { setLoading(false) })
-  }, [api, statusFilter, productFilter, onHasNew, seenAt])
+  }, [api, statusFilter, productFilter])
 
   useEffect(function() { loadList() }, [loadList])
 
@@ -887,14 +787,9 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
   }, [expandedId, api])
 
   function toggleThread(threadId: string) {
-    if (expandedId === threadId) {
-      setExpandedId(null)
-      setDetail(null)
-    } else {
-      setExpandedId(threadId)
-    }
-    setReplyText('')
-    setAdminQueuedAttachments([])
+    if (expandedId === threadId) { setExpandedId(null); setDetail(null) }
+    else { setExpandedId(threadId) }
+    setReplyText(''); setAdminQueuedAttachments([])
   }
 
   function sendReply() {
@@ -905,20 +800,15 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: replyText.trim(), attachments: adminQueuedAttachments.length > 0 ? JSON.stringify(adminQueuedAttachments) : undefined }),
     }).then(function() {
-      setReplyText('')
-      setAdminQueuedAttachments([])
-      setSending(false)
-      api('/api/support/threads/' + expandedId).then(function(res) {
-        if (res.ok) setDetail(res.data as AdminThreadDetail)
-      })
+      setReplyText(''); setAdminQueuedAttachments([]); setSending(false)
+      api('/api/support/threads/' + expandedId).then(function(res) { if (res.ok) setDetail(res.data as AdminThreadDetail) })
     }).catch(function() { setSending(false) })
   }
 
   function adminUploadFile(file: File) {
     if (!expandedId || adminUploading) return
     setAdminUploading(true)
-    var fd = new FormData()
-    fd.append('file', file)
+    var fd = new FormData(); fd.append('file', file)
     fetch('/api/support/threads/' + expandedId + '/attachments', {
       method: 'POST', credentials: 'include', body: fd,
     }).then(function(r) { return r.json() }).then(function(res: Record<string, unknown>) {
@@ -930,144 +820,69 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
     }).catch(function() { setAdminUploading(false) })
   }
 
-  function adminHandleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    var file = e.target.files && e.target.files[0]
-    if (file) adminUploadFile(file)
-    if (adminFileInputRef.current) adminFileInputRef.current.value = ''
-  }
-
-  function adminHandleDrop(e: React.DragEvent) {
-    e.preventDefault()
-    var file = e.dataTransfer.files && e.dataTransfer.files[0]
-    if (file) adminUploadFile(file)
-  }
-
-  function adminRemoveAttachment(attId: string) {
-    setAdminQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== attId }) })
-  }
-
-  function closeThread(threadId: string) {
-    api('/api/support/threads/' + threadId + '/close', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reason: 'resolved' }),
-    }).then(function() { setExpandedId(null); setDetail(null); loadList() }).catch(function() {})
-  }
-
   function getSignedUrl(_updateId: string, attId: string) {
     if (!expandedId) return Promise.resolve({} as { url?: string; data?: { url?: string } })
     return api('/api/support/threads/' + expandedId + '/attachments/' + attId + '/url') as Promise<{ url?: string; data?: { url?: string } }>
   }
 
-  var filtered = threads.filter(function(t) {
-    if (statusFilter !== 'all' && t.status !== statusFilter) return false
-    if (productFilter !== 'all' && t.product !== productFilter) return false
-    return true
-  })
+  if (loading) return <div style={{ textAlign: 'center', padding: 40, fontSize: 12, color: 'var(--muted, #9ca3af)' }}>Loading support threads...</div>
 
   return (
     <div>
-      <FilterRow count={filtered.length} countLabel="thread">
-        <SelectFilter value={statusFilter} onChange={function(v) { setStatusFilter(v); setExpandedId(null) }} options={[
+      <FilterRow count={threads.length} countLabel="thread">
+        <SelectFilter value={statusFilter} onChange={setStatusFilter} options={[
           { value: 'all', label: 'All statuses' },
-          { value: 'open', label: 'Open' },
-          { value: 'escalated', label: 'Escalated' },
-          { value: 'closed', label: 'Closed' },
+          { value: 'active', label: 'Open' },
+          { value: 'resolved', label: 'Resolved' },
         ]} />
-        <SelectFilter value={productFilter} onChange={function(v) { setProductFilter(v); setExpandedId(null) }} options={[
-          { value: 'all', label: 'All products' },
+        <SelectFilter value={productFilter} onChange={setProductFilter} options={[
+          { value: 'all', label: 'All portals' },
           { value: 'studios', label: 'Studios' },
           { value: 'signal', label: 'Signal' },
           { value: 'mode', label: 'Mode' },
-          { value: 'privacyai', label: 'PrivacyAI' },
+          { value: 'investors', label: 'Investors' },
         ]} />
       </FilterRow>
-      {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px 0' }}>
-          <div style={{ width: 20, height: 20, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
-          <style>{`@keyframes pu2-spin { to { transform: rotate(360deg) } }`}</style>
-        </div>
-      ) : filtered.length === 0 ? (
-        <EmptyState message="No support threads" />
-      ) : (
+      {threads.length === 0 ? <EmptyState message="No support threads" /> : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-          {filtered.map(function(t) {
+          {threads.map(function(t) {
             var isExpanded = expandedId === t.id
-            var name = t.contact_name || t.contact_email || 'Anonymous'
             var threadDetail = isExpanded ? detail : null
-            var contact = threadDetail?.context?.contact as Record<string, unknown> | undefined
-            var company = threadDetail?.context?.company as Record<string, unknown> | undefined
-            var engagement = threadDetail?.context?.engagement as Record<string, unknown> | undefined
-            var threadIsNew = isItemNew(t.updated_at || t.created_at, seenAt)
-            var isNewThread = isItemNew(t.created_at, seenAt)
             return (
               <div key={t.id}>
-                {/* Row */}
                 <div onClick={function() { toggleThread(t.id) }} style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '14px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
+                  display: 'flex', alignItems: 'flex-start', gap: 12,
+                  padding: '12px 0', borderBottom: isExpanded ? 'none' : '1px solid var(--border, #e5e7eb)',
                   cursor: 'pointer',
                 }}>
-                  {threadIsNew ? <NewDot /> : <SeenDotPlaceholder />}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                      <span style={{ fontSize: 13, fontWeight: threadIsNew ? 500 : 400, color: threadIsNew ? 'var(--text-0, inherit)' : 'var(--text-1, #374151)' }}>
-                        {t.subject || name}
-                      </span>
-                      {threadIsNew && <NewPill label={isNewThread ? 'New' : 'New reply'} />}
+                      <span style={{ fontSize: 13, fontWeight: 400, color: 'var(--foreground, inherit)' }}>{t.subject || 'Support thread'}</span>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>
-                      {t.message_count ? t.message_count + ' messages' : ''}{t.message_count && t.updated_at ? ' \u00b7 ' : ''}{t.updated_at ? relativeTime(t.updated_at) : ''}{t.last_role ? ' \u00b7 ' + (t.last_role === 'user' ? 'Awaiting reply' : 'Replied') : ''}
+                    <div style={{ fontSize: 11, color: 'var(--muted, #9ca3af)' }}>
+                      {t.contact_name || t.contact_email || ''}{t.product ? ' · ' + t.product : ''}{' · '}{relativeTime(t.updated_at || t.created_at)}
                     </div>
                   </div>
-                  <StatusPill status={t.status} />
+                  <StatusPill status={t.status === 'active' || t.status === 'escalated' ? 'active' : 'resolved'} />
                 </div>
-                {/* Expanded detail */}
                 {isExpanded && (
                   <div style={{
-                    background: 'var(--bg-2, #f9fafb)', border: '1px solid var(--border, #e5e7eb)',
-                    borderRadius: 'var(--radius, 8px)', margin: '4px 0 12px',
-                    display: 'flex', flexDirection: 'column', gap: 0, overflow: 'hidden',
+                    border: '1px solid var(--border, #e5e7eb)', borderRadius: 'var(--radius, 8px)',
+                    margin: '4px 0 12px', overflow: 'hidden', background: 'var(--bg-card, #fff)',
                   }}>
-                    {detailLoading ? (
-                      <div style={{ display: 'flex', justifyContent: 'center', padding: 32 }}>
-                        <div style={{ width: 18, height: 18, border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--accent, #7c5cbf)', borderRadius: '50%', animation: 'pu2-spin 0.7s linear infinite' }} />
-                      </div>
+                    {detailLoading && !threadDetail ? (
+                      <div style={{ textAlign: 'center', padding: 20, fontSize: 12, color: 'var(--muted, #9ca3af)' }}>Loading...</div>
                     ) : threadDetail ? (
                       <>
-                        {/* Contact header */}
-                        <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--accent-soft, #EEEDFE)', color: 'var(--accent, #7c5cbf)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
-                              {initials(contact?.name as string || contact?.email as string || name)}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-0, inherit)' }}>
-                                {contact?.name as string || contact?.email as string || name}
-                              </div>
-                              <div style={{ fontSize: 11, color: 'var(--text-2, #6b7280)' }}>
-                                {[company?.name as string, t.product ? t.product.charAt(0).toUpperCase() + t.product.slice(1) : ''].filter(Boolean).join(' · ')}
-                              </div>
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            {onNavigate && <button onClick={function(e) { e.stopPropagation(); onNavigate('/crm') }} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>CRM</button>}
-                            {t.status !== 'closed' && <button onClick={function(e) { e.stopPropagation(); closeThread(t.id) }} style={{ padding: '4px 10px', borderRadius: 5, border: '1px solid var(--border, #e5e7eb)', background: 'transparent', fontSize: 11, cursor: 'pointer', color: 'var(--text-2, #6b7280)', fontFamily: 'inherit' }}>Close</button>}
-                          </div>
-                        </div>
-                        {/* Context chips */}
-                        {(engagement || (contact && Boolean((contact as Record<string, unknown>).last_login_at))) && (
-                          <div style={{ padding: '6px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {engagement && (function() {
-                              var engTitle = String(engagement.title || '')
-                              var sprintStr = engagement.current_sprint ? ' · Sprint ' + String(engagement.current_sprint) + '/' + String(engagement.total_sprints) : ''
-                              return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
-                                {engTitle}{sprintStr}
+                        {/* Context bar */}
+                        {threadDetail.context && (
+                          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                            {threadDetail.context.company && (
+                              <span onClick={function() { if (onNavigate) onNavigate('/crm/' + (threadDetail!.context!.company as Record<string, unknown>).id) }}
+                                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-subtle, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--accent, #7c5cbf)', cursor: 'pointer' }}>
+                                {String((threadDetail.context.company as Record<string, unknown>).name || 'Company')}
                               </span>
-                            })()}
-                            {contact && Boolean((contact as Record<string, unknown>).last_login_at) && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 8px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-1, #374151)' }}>
-                              Last login {relativeTime((contact as Record<string, unknown>).last_login_at as string)}
-                            </span>}
+                            )}
                           </div>
                         )}
                         {/* Messages */}
@@ -1078,12 +893,12 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
                             var isHuman = msg.role === 'human'
                             if (!isUser && !isBot && !isHuman) {
                               return <div key={msg.id} style={{ display: 'flex', justifyContent: 'center' }}>
-                                <span style={{ padding: '3px 12px', background: 'var(--bg-2, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--text-2, #6b7280)' }}>{msg.content}</span>
+                                <span style={{ padding: '3px 12px', background: 'var(--bg-subtle, #f3f4f6)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 99, fontSize: 11, color: 'var(--muted, #6b7280)' }}>{msg.content}</span>
                               </div>
                             }
                             return (
                               <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: isUser ? 'flex-end' : 'flex-start' }}>
-                                {!isUser && <div style={{ fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)', marginBottom: 4 }}>
+                                {!isUser && <div style={{ fontSize: 11, color: isHuman ? 'var(--accent, #7c5cbf)' : 'var(--muted, #9ca3af)', marginBottom: 4 }}>
                                   {isBot ? 'AI · Support' : 'Team'}
                                 </div>}
                                 <div style={{
@@ -1092,7 +907,7 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
                                   borderBottomRightRadius: isUser ? 3 : 10,
                                   borderBottomLeftRadius: !isUser ? 3 : 10,
                                   background: isUser ? 'var(--accent, #7c5cbf)' : isHuman ? 'var(--accent-soft, #EEEDFE)' : 'var(--bg-0, transparent)',
-                                  color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--text-0, inherit)',
+                                  color: isUser ? '#fff' : isHuman ? 'var(--accent, #7c5cbf)' : 'var(--foreground, inherit)',
                                   border: isHuman ? '1px solid hsla(262,60%,55%,.2)' : isUser ? 'none' : '1px solid var(--border, #e5e7eb)',
                                 }}>{msg.content}</div>
                                 {msg.attachments && (
@@ -1100,26 +915,25 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
                                     <UpdateAttachments attachments={msg.attachments} updateId={t.id} getSignedUrl={getSignedUrl} compact />
                                   </div>
                                 )}
-                                <div style={{ fontSize: 10, color: 'var(--text-3, #9ca3af)', marginTop: 3, padding: '0 2px' }}>{relativeTime(msg.created_at)}</div>
+                                <div style={{ fontSize: 10, color: 'var(--muted, #9ca3af)', marginTop: 3, padding: '0 2px' }}>{relativeTime(msg.created_at)}</div>
                               </div>
                             )
                           })}
                         </div>
                         {/* Reply bar */}
                         {t.status !== 'closed' && (
-                          <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-2, #f9fafb)' }}
+                          <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border, #e5e7eb)', display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--bg-subtle, #f9fafb)' }}
                             onDragOver={function(e) { e.preventDefault() }}
-                            onDrop={adminHandleDrop}
+                            onDrop={function(e) { e.preventDefault(); var f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) adminUploadFile(f) }}
                           >
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <button onClick={function() { adminFileInputRef.current && adminFileInputRef.current.click() }} disabled={adminUploading} style={{
                                 display: 'inline-flex', alignItems: 'center', gap: 4,
                                 padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: adminUploading ? 'default' : 'pointer',
                                 border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-0, transparent)',
-                                color: 'var(--text-2, #6b7280)', fontFamily: 'inherit', opacity: adminUploading ? 0.5 : 1,
+                                color: 'var(--muted, #6b7280)', fontFamily: 'inherit', opacity: adminUploading ? 0.5 : 1,
                               }}>{adminUploading ? 'Uploading...' : 'Attach file'}</button>
-                              <span style={{ fontSize: 11, color: 'var(--text-3, #9ca3af)' }}>or drag and drop</span>
-                              <input ref={adminFileInputRef} type="file" style={{ display: 'none' }} onChange={adminHandleFileChange}
+                              <input ref={adminFileInputRef} type="file" style={{ display: 'none' }} onChange={function(e) { var f = e.target.files && e.target.files[0]; if (f) adminUploadFile(f); if (adminFileInputRef.current) adminFileInputRef.current.value = '' }}
                                 accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.zip,.mp4,.mov" />
                             </div>
                             {adminQueuedAttachments.length > 0 && (
@@ -1128,35 +942,26 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
                                   return <span key={att.id} style={{
                                     display: 'inline-flex', alignItems: 'center', gap: 4,
                                     padding: '3px 8px', borderRadius: 6, fontSize: 11,
-                                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-2, #f9fafb)',
-                                    color: 'var(--text-1, #374151)',
+                                    border: '1px solid var(--border, #e5e7eb)', background: 'var(--bg-subtle, #f9fafb)',
+                                    color: 'var(--foreground, #374151)',
                                   }}>
                                     {att.filename || att.id}
-                                    <span onClick={function() { adminRemoveAttachment(att.id) }} style={{ cursor: 'pointer', color: 'var(--text-3, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
+                                    <span onClick={function() { setAdminQueuedAttachments(function(prev) { return prev.filter(function(a) { return a.id !== att.id }) }) }}
+                                      style={{ cursor: 'pointer', color: 'var(--muted, #9ca3af)', fontSize: 13, lineHeight: 1 }}>x</span>
                                   </span>
                                 })}
                               </div>
                             )}
                             <div style={{ display: 'flex', gap: 8 }}>
-                              <input
-                                type="text"
-                                value={replyText}
-                                onChange={function(e) { setReplyText(e.target.value) }}
+                              <input type="text" value={replyText} onChange={function(e) { setReplyText(e.target.value) }}
                                 onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey) sendReply() }}
-                                placeholder="Reply to this thread..."
-                                disabled={sending}
-                                style={{
-                                  flex: 1, fontSize: 13, padding: '8px 10px',
-                                  border: '1px solid var(--border, #e5e7eb)', borderRadius: 6,
-                                  background: 'var(--bg-0, transparent)', color: 'var(--text-1, #111)',
-                                  fontFamily: 'inherit',
-                                }}
+                                placeholder="Reply to this thread..." disabled={sending}
+                                style={{ flex: 1, fontSize: 13, padding: '8px 10px', border: '1px solid var(--border, #e5e7eb)', borderRadius: 6, background: 'var(--bg-0, transparent)', color: 'var(--foreground, #111)', fontFamily: 'inherit' }}
                               />
                               <button onClick={sendReply} disabled={!replyText.trim() || sending} style={{
                                 padding: '6px 14px', borderRadius: 6, border: 'none',
                                 background: 'var(--accent, #7c5cbf)', color: '#fff', fontSize: 12, fontWeight: 500,
-                                cursor: 'pointer', fontFamily: 'inherit',
-                                opacity: !replyText.trim() || sending ? 0.5 : 1,
+                                cursor: 'pointer', fontFamily: 'inherit', opacity: !replyText.trim() || sending ? 0.5 : 1,
                               }}>Send</button>
                             </div>
                           </div>
@@ -1176,70 +981,31 @@ function SupportTabAdmin({ api, onNavigate, lastSeenAt, onHasNew }: { api: Porta
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, shortcutKey, userContactId, onNavigate }: PortalUpdatesV2Props) {
+export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, shortcutKey, userContactId: _userContactId, onNavigate }: PortalUpdatesV2Props) {
   var [loading, setLoading] = useState(true)
   var [error, setError] = useState<string | null>(null)
   var [audiences, setAudiences] = useState<string[]>([])
-  var [activeTab, setActiveTab] = useState<TabId | null>(null)
-  var [supportAdminHasNew, setSupportAdminHasNew] = useState(false)
-
-  // Seen-at timestamps per tab (from localStorage)
-  var [seenTimestamps, setSeenTimestamps] = useState<Record<string, number>>(function() {
-    var ts: Record<string, number> = {}
-    var tabIds: TabId[] = ['general', 'tasks', 'project', 'bugs', 'reports', 'support', 'sales']
-    tabIds.forEach(function(id) { ts[id] = getTabSeenAt(id) })
-    return ts
-  })
+  var [activeSection, setActiveSection] = useState<SectionId>('feed')
 
   // Data stores
-  var [generalItems, setGeneralItems] = useState<UpdateItem[]>([])
-  var [projectItems, setProjectItems] = useState<UpdateItem[]>([])
-  var [bugCommentItems, setBugCommentItems] = useState<UpdateItem[]>([])
-  var [salesItems, setSalesItems] = useState<UpdateItem[]>([])
+  var [feedItems, setFeedItems] = useState<UpdateItem[]>([])
   var [taskItems, setTaskItems] = useState<TaskItem[]>([])
   var [supportThreads, setSupportThreads] = useState<SupportThread[]>([])
+
+  var isTeam = audiences.includes('team')
+  var effectiveOnNavigate = onNavigate || (isTeam ? function(path: string) { window.open('https://admin.sprintmode.ai' + path, '_blank') } : undefined)
 
   var load = useCallback(function() {
     setLoading(true)
     setError(null)
 
-    var generalPromise = api('/api/portal/updates').then(function(res: Record<string, unknown>) {
+    var updatesPromise = api('/api/portal/updates').then(function(res: Record<string, unknown>) {
       var d = res.data as { items?: UpdateItem[]; audiences?: string[] } | undefined
       var items = d?.items || []
       var auds = d?.audiences || ['clients']
       setAudiences(auds)
-      // Separate bug comment notifications from other updates
-      var bugComments: UpdateItem[] = []
-      var sales: UpdateItem[] = []
-      var nonSpecialItems: UpdateItem[] = []
-      items.forEach(function(item) {
-        if (item.comm_type === 'bug_comment' || item.update_type === 'bug_comment') {
-          bugComments.push(item)
-        } else if (item.notification_type === 'sales') {
-          sales.push(item)
-        } else {
-          nonSpecialItems.push(item)
-        }
-      })
-      setBugCommentItems(bugComments)
-      setSalesItems(sales)
-      // Team: all remaining items go to General
-      if (auds.includes('team')) {
-        setGeneralItems(nonSpecialItems)
-        return
-      }
-      // Non-team: split project-type updates into their own tabs
-      var general: UpdateItem[] = []
-      var project: UpdateItem[] = []
-      nonSpecialItems.forEach(function(item) {
-        if (item.update_type === 'ai_weekly' || item.update_type === 'sprint_report') {
-          project.push(item)
-        } else {
-          general.push(item)
-        }
-      })
-      setGeneralItems(general)
-      setProjectItems(project)
+      // All items go into the unified feed — no client-side splitting
+      setFeedItems(items)
     })
 
     var tasksPromise = api('/api/portal/tasks').then(function(res: Record<string, unknown>) {
@@ -1247,7 +1013,6 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
       setTaskItems(d?.items || [])
     }).catch(function() { setTaskItems([]) })
 
-    // Portal support: fetch threads for the portal's subdomain
     var supportPromise = subdomain
       ? api('/api/portals/' + subdomain + '/support/threads').then(function(res: Record<string, unknown>) {
           var d = res.data as SupportThread[] | undefined
@@ -1255,61 +1020,28 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
         }).catch(function() { setSupportThreads([]) })
       : Promise.resolve()
 
-    Promise.all([generalPromise, tasksPromise, supportPromise])
+    Promise.all([updatesPromise, tasksPromise, supportPromise])
       .then(function() { setLoading(false) })
-      .catch(function(e: Error) {
-        setError(e.message || 'Failed to load')
-        setLoading(false)
-      })
-  }, [api, subdomain, userContactId])
+      .catch(function(e: Error) { setError(e.message || 'Failed to load'); setLoading(false) })
+  }, [api, subdomain])
 
   useEffect(function() { load() }, [load])
 
-  // Build tabs — driven by the person's audiences from the API
-  var tabs: TabDef[] = []
-  if (audiences.length > 0) {
-    tabs.push({ id: 'general', label: 'General', count: generalItems.length })
-    tabs.push({ id: 'tasks', label: 'Tasks', count: taskItems.length })
-    if (audiences.includes('clients')) tabs.push({ id: 'project', label: 'Project', count: projectItems.length })
-    if (audiences.includes('investors')) tabs.push({ id: 'reports', label: 'Reports', count: projectItems.length })
-    if (audiences.includes('team')) {
-      var bugSeenAt = seenTimestamps.bugs || 0
-      tabs.push({ id: 'bugs', label: 'Bugs', count: bugCommentItems.filter(function(n) { return isItemNew(n.published_at, bugSeenAt) }).length })
-      var salesSeenAt = seenTimestamps.sales || 0
-      tabs.push({ id: 'sales', label: 'Sales', count: salesItems.filter(function(n) { return isItemNew(n.published_at, salesSeenAt) }).length })
-    }
-    tabs.push({ id: 'support', label: 'Support', count: audiences.includes('team') ? 0 : supportThreads.length })
+  // Section tabs: Feed is always shown. Tasks shown if items exist.
+  // Support: team sees admin view, non-team sees portal threads.
+  var sections: { id: SectionId; label: string; count: number }[] = [
+    { id: 'feed', label: 'Feed', count: feedItems.filter(function(i) { return !i.read_at }).length },
+  ]
+  if (taskItems.length > 0) {
+    sections.push({ id: 'tasks', label: 'Tasks', count: taskItems.filter(function(i) { return i.status !== 'completed' }).length })
   }
-  var isTeam = audiences.includes('team')
-  // Team users on non-admin portals: CRM links open admin in new tab
-  var effectiveOnNavigate = onNavigate || (isTeam ? function(path: string) { window.open('https://admin.sprintmode.ai' + path, '_blank') } : undefined)
-
-  var effectiveTab = activeTab
-  if (!effectiveTab || !tabs.find(function(t) { return t.id === effectiveTab })) {
-    effectiveTab = tabs.length > 0 ? tabs[0].id : null
+  if (isTeam || supportThreads.length > 0) {
+    sections.push({ id: 'support', label: 'Support', count: isTeam ? 0 : supportThreads.filter(function(t) { return t.status === 'active' || t.status === 'escalated' }).length })
   }
 
-  // Compute per-tab hasNew for tab dots
-  function tabHasNew(tabId: TabId): boolean {
-    var ts = seenTimestamps[tabId] || 0
-    if (tabId === 'general') return generalItems.some(function(i) { return isItemNew(i.published_at, ts) })
-    if (tabId === 'tasks') return taskItems.some(function(i) { return isItemNew(i.created_at || i.due_date, ts) })
-    if (tabId === 'project' || tabId === 'reports') return projectItems.some(function(i) { return isItemNew(i.published_at, ts) })
-    if (tabId === 'bugs') return bugCommentItems.some(function(i) { return isItemNew(i.published_at, ts) })
-    if (tabId === 'sales') return salesItems.some(function(i) { return isItemNew(i.published_at, ts) })
-    if (tabId === 'support' && isTeam) return supportAdminHasNew
-    if (tabId === 'support') return supportThreads.some(function(t) { return isItemNew(t.updated_at || t.created_at, ts) })
-    return false
-  }
-
-  function handleTabClick(tabId: TabId) {
-    setActiveTab(tabId)
-    setTabSeenAt(tabId)
-    setSeenTimestamps(function(prev) {
-      var next = Object.assign({}, prev)
-      next[tabId] = Date.now()
-      return next
-    })
+  var effectiveSection = activeSection
+  if (!sections.find(function(s) { return s.id === effectiveSection })) {
+    effectiveSection = 'feed'
   }
 
   if (loading) {
@@ -1340,51 +1072,53 @@ export function PortalUpdatesV2({ api, subdomain, title, subtitle: _subtitle, sh
   return (
     <div style={{ padding: 0 }}>
       <div style={{ marginBottom: 16 }}>
-        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--text-0, inherit)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>{title || 'Inbox'}{shortcutKey && <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4, fontFamily: 'var(--font-mono,monospace)', fontWeight: 400 }}>{typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318' + shortcutKey.toUpperCase() : 'Ctrl+' + shortcutKey.toUpperCase()}</kbd>}</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--foreground, var(--text-0, inherit))', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+          {title || 'Inbox'}
+          {shortcutKey && <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle, var(--bg))', color: 'var(--muted)', lineHeight: 1.4, fontFamily: 'var(--font-mono,monospace)', fontWeight: 400 }}>
+            {typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318' + shortcutKey.toUpperCase() : 'Ctrl+' + shortcutKey.toUpperCase()}
+          </kbd>}
+        </h1>
       </div>
 
-      {tabs.length > 1 && (
+      {/* Section tabs — only show if more than one section */}
+      {sections.length > 1 && (
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: 16 }}>
-          {tabs.map(function(tab) {
-            var isActive = tab.id === effectiveTab
-            var hasNew = tabHasNew(tab.id)
+          {sections.map(function(sec) {
+            var isActive = sec.id === effectiveSection
             return (
               <button
-                key={tab.id}
-                onClick={function() { handleTabClick(tab.id) }}
+                key={sec.id}
+                onClick={function() { setActiveSection(sec.id) }}
                 style={{
                   fontSize: 13, padding: '8px 16px', cursor: 'pointer',
-                  border: 'none', background: 'none',
+                  border: 'none', background: 'none', fontFamily: 'inherit',
                   borderBottom: isActive ? '2px solid var(--accent, #7c5cbf)' : '2px solid transparent',
-                  color: isActive ? 'var(--text-0, inherit)' : 'var(--text-3, #9ca3af)',
+                  color: isActive ? 'var(--foreground, var(--text-0, inherit))' : 'var(--muted, var(--text-3, #9ca3af))',
                   fontWeight: isActive ? 600 : 400,
                   transition: 'color .15s, border-color .15s',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
-                {tab.label}
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  minWidth: 18, height: 18, borderRadius: 99,
-                  fontSize: 10, fontWeight: 500, padding: '0 5px',
-                  background: isActive ? 'var(--accent-bg, #EEEDFE)' : 'var(--bg-2, #f3f4f6)',
-                  color: isActive ? 'var(--accent, #7c5cbf)' : 'var(--text-3, #9ca3af)',
-                }}>{tab.count}</span>
-                {hasNew && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#7c5cbf', flexShrink: 0 }} />}
+                {sec.label}
+                {sec.count > 0 && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    minWidth: 18, height: 18, borderRadius: 99,
+                    fontSize: 10, fontWeight: 500, padding: '0 5px',
+                    background: isActive ? 'var(--accent-soft, var(--accent-bg, #EEEDFE))' : 'var(--bg-subtle, var(--bg-2, #f3f4f6))',
+                    color: isActive ? 'var(--accent, #7c5cbf)' : 'var(--muted, var(--text-3, #9ca3af))',
+                  }}>{sec.count}</span>
+                )}
               </button>
             )
           })}
         </div>
       )}
 
-      {effectiveTab === 'general' && <GeneralTab items={generalItems} api={api} lastSeenAt={seenTimestamps.general} />}
-      {effectiveTab === 'tasks' && <TasksTab items={taskItems} api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.tasks} />}
-      {effectiveTab === 'bugs' && <BugsTab commentNotifications={bugCommentItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.bugs} api={api} />}
-      {effectiveTab === 'sales' && <SalesTab items={salesItems} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.sales} api={api} />}
-      {effectiveTab === 'project' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.project} />}
-      {effectiveTab === 'reports' && <GeneralTab items={projectItems} api={api} lastSeenAt={seenTimestamps.reports} />}
-      {effectiveTab === 'support' && isTeam && <SupportTabAdmin api={api} onNavigate={effectiveOnNavigate} lastSeenAt={seenTimestamps.support} onHasNew={setSupportAdminHasNew} />}
-      {effectiveTab === 'support' && !isTeam && subdomain && <SupportTabPortal threads={supportThreads} api={api} subdomain={subdomain} lastSeenAt={seenTimestamps.support} />}
+      {effectiveSection === 'feed' && <FeedSection items={feedItems} api={api} onNavigate={effectiveOnNavigate} />}
+      {effectiveSection === 'tasks' && <TasksSection items={taskItems} api={api} onNavigate={effectiveOnNavigate} />}
+      {effectiveSection === 'support' && isTeam && <SupportSectionAdmin api={api} onNavigate={effectiveOnNavigate} />}
+      {effectiveSection === 'support' && !isTeam && subdomain && <SupportSectionPortal threads={supportThreads} api={api} subdomain={subdomain} />}
     </div>
   )
 }

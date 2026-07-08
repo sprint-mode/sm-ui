@@ -17,6 +17,6 @@ export { AvatarUpload } from './AvatarUpload.js';
 export { PortalSupportWidget } from './PortalSupportWidget.js';
 export { NotificationPrefs } from './NotificationPrefs.js';
 export { InboxRow } from './InboxRow.js';
-export type { InboxItem } from './InboxRow.js';
+export type { InboxItem, CategoryPill } from './InboxRow.js';
 export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx';
 export { FileViewer, isViewableFile } from './FileViewer.jsx';
