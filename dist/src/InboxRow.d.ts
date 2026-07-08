@@ -14,11 +14,23 @@ export interface InboxItem {
     read_at?: string | null;
     dismissed_at?: string | null;
     author_name?: string | null;
+    attachments?: unknown;
+    source_system?: string | null;
+    priority?: string | null;
+}
+export interface CategoryPill {
+    label: string;
+    bg: string;
+    color: string;
 }
 interface InboxRowProps {
     item: InboxItem;
     onRead?: (id: string) => void;
     onNavigate?: (url: string) => void;
+    onClick?: () => void;
+    category?: CategoryPill;
+    expanded?: boolean;
+    expandedContent?: React.ReactNode;
 }
-export declare function InboxRow({ item, onRead, onNavigate }: InboxRowProps): React.JSX.Element;
+export declare function InboxRow({ item, onRead, onNavigate, onClick, category, expanded, expandedContent }: InboxRowProps): React.JSX.Element;
 export default InboxRow;

@@ -71,7 +71,7 @@ export { PortalSupportWidget } from './PortalSupportWidget.tsx'
 export { NotificationPrefs } from './NotificationPrefs.tsx'
 
 export { InboxRow } from './InboxRow.tsx'
-export type { InboxItem } from './InboxRow.tsx'
+export type { InboxItem, CategoryPill } from './InboxRow.tsx'
 
 // Document detail — universal 5-section document viewer
 export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx'
