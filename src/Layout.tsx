@@ -3,6 +3,7 @@ import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
 import { getSession, SessionData } from './api.js'
 import { IconSearch, IconMoon, IconSun } from './Icons.jsx'
 import { NotificationBellNav } from './NotificationBellNav.tsx'
+import { AccountSwitcher } from './AccountSwitcher.tsx'
 import { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
 import { usePortalConfig } from './usePortalConfig.jsx'
 
@@ -462,6 +463,7 @@ function HeaderUserMenu(props: {
         'Notification Settings'
       ),
       userMenuExtra || null,
+      React.createElement(AccountSwitcher, null),
       React.createElement('a', { href: logoutHref, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Sign out')
     ) : null
   )
