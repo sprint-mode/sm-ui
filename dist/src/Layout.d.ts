@@ -135,6 +135,8 @@ interface ViewAsUser {
 }
 export declare var ViewAsContext: React.Context<ViewAsUser | null>;
 export declare function useViewAs(): ViewAsUser | null;
+export declare var ViewAsTeamContext: React.Context<ViewAsUser | null>;
+export declare function useViewAsTeam(): ViewAsUser | null;
 export declare function useTheme(): {
     isDark: boolean;
     toggle: () => void;
