@@ -37,7 +37,7 @@ function PlusIcon() {
 }
 
 export function AccountSwitcher(props: AccountSwitcherProps) {
-  var apiBase = props.apiBase || ''
+  var apiBase = props.apiBase || 'https://api.sprintmode.ai'
   var ssoProvider = props.ssoProvider || 'google'
 
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]

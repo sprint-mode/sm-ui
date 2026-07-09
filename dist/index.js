@@ -104048,7 +104048,7 @@ function uMe() {
 	}));
 }
 function R7(t) {
-	var r = t.apiBase || "", a = t.ssoProvider || "google", o = s([]), c = o[0], l = o[1], u = s(!1), d = u[0], f = u[1], p = s(null), m = p[0], h = p[1], g = n(function() {
+	var r = t.apiBase || "https://api.sprintmode.ai", a = t.ssoProvider || "google", o = s([]), c = o[0], l = o[1], u = s(!1), d = u[0], f = u[1], p = s(null), m = p[0], h = p[1], g = n(function() {
 		fetch(r + "/api/auth/linked-accounts", { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
