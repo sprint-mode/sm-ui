@@ -73,6 +73,10 @@ export { NotificationPrefs } from './NotificationPrefs.tsx'
 export { InboxRow } from './InboxRow.tsx'
 export type { InboxItem, CategoryPill } from './InboxRow.tsx'
 
+// Account Switcher — pass as userMenuExtra to Layout
+export { AccountSwitcher } from './AccountSwitcher.tsx'
+export type { AccountSwitcherProps } from './AccountSwitcher.tsx'
+
 // Document detail — universal 5-section document viewer
 export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx'
 

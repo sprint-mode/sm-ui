@@ -18,5 +18,7 @@ export { PortalSupportWidget } from './PortalSupportWidget.js';
 export { NotificationPrefs } from './NotificationPrefs.js';
 export { InboxRow } from './InboxRow.js';
 export type { InboxItem, CategoryPill } from './InboxRow.js';
+export { AccountSwitcher } from './AccountSwitcher.js';
+export type { AccountSwitcherProps } from './AccountSwitcher.js';
 export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx';
 export { FileViewer, isViewableFile } from './FileViewer.jsx';
