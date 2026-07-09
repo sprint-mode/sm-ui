@@ -22,7 +22,7 @@ export interface SessionData {
   }
   portals?: Record<string, {
     access: boolean
-    view_as?: boolean
+    view_as?: string | false
     name?: string
     portal_type?: string
     brand_color?: string | null

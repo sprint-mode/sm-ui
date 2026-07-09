@@ -134,6 +134,7 @@ interface ViewAsUser {
   company_name?: string
   portal_role?: string
   role?: string
+  role_type?: string
   products?: string[]
   id?: string
   permissions?: string | Record<string, unknown>
@@ -1088,7 +1089,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   var portalSubdomain = props.portalSubdomain
   var canViewAsFromSession = portalSubdomain && session && (session as any).portals && (session as any).portals[portalSubdomain]
-    ? (session as any).portals[portalSubdomain].view_as as boolean | null
+    ? (session as any).portals[portalSubdomain].view_as as string | false | null
     : null
   var isSuperAdmin = session && ((session as any).role === 'super_admin' || (session as any).portal_role === 'super_admin' || (session as any).role === 'admin' || (session as any).portal_role === 'admin' || (session as any).is_sm_team)
   var showViewAs = canViewAsFromSession !== null
@@ -1126,6 +1127,32 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       })
       .catch(function() {})
   }, [showViewAs, viewAsApi])
+
+  // Restore View As selection from sessionStorage after allUsers loads
+  var _ssRestored = useState(false); var ssRestored = _ssRestored[0]; var setSsRestored = _ssRestored[1]
+  useEffect(function() {
+    if (ssRestored || !portalSubdomain || allUsers.length === 0 || viewAs) return
+    try {
+      var stored = sessionStorage.getItem('sm-view-as-' + portalSubdomain)
+      if (stored) {
+        var match = allUsers.find(function(u) { return u.email === stored })
+        if (match) setViewAs(match)
+      }
+    } catch (_e) {}
+    setSsRestored(true)
+  }, [allUsers, portalSubdomain])
+
+  // Persist View As selection to sessionStorage
+  useEffect(function() {
+    if (!portalSubdomain) return
+    try {
+      if (viewAs) {
+        sessionStorage.setItem('sm-view-as-' + portalSubdomain, viewAs.email)
+      } else if (ssRestored) {
+        sessionStorage.removeItem('sm-view-as-' + portalSubdomain)
+      }
+    } catch (_e) {}
+  }, [viewAs, portalSubdomain, ssRestored])
 
   function handleViewAs(email: string) {
     if (!email) { setViewAs(null); return }
@@ -1274,22 +1301,54 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   var logoutHref = onLogout || ('/api/auth/logout?redirect=' + encodeURIComponent((typeof window !== 'undefined' ? window.location.origin : '') + '/auth/login'))
 
+  // Determine view_as filter mode from session portal config ('team'|'customers'|'both'|string|false)
+  var viewAsMode = canViewAsFromSession && typeof canViewAsFromSession === 'string' ? canViewAsFromSession : null
+  var viewAsSelectUsers = allUsers.filter(function(u) {
+    if (u.email === (session && session.email)) return false
+    if (!viewAsMode || viewAsMode === 'both') return true
+    // If role_type is present on user, filter by it; otherwise show all (backward compat)
+    if (!u.role_type) return true
+    if (viewAsMode === 'team') return u.role_type === 'team'
+    if (viewAsMode === 'customers') return u.role_type === 'customer'
+    return true
+  })
+  var viewAsSelectOptions: React.ReactNode[]
+  if (viewAsMode === 'both') {
+    var teamUsers = viewAsSelectUsers.filter(function(u) { return u.role_type === 'team' })
+    var customerUsers = viewAsSelectUsers.filter(function(u) { return u.role_type !== 'team' })
+    var noType = viewAsSelectUsers.filter(function(u) { return !u.role_type })
+    var makeOpt = function(u: ViewAsUser) {
+      var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
+      return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
+    }
+    viewAsSelectOptions = [
+      teamUsers.length > 0 ? React.createElement('optgroup', { key: 'grp-team', label: 'Team' },
+        ...teamUsers.map(makeOpt)
+      ) : null,
+      customerUsers.length > 0 ? React.createElement('optgroup', { key: 'grp-customers', label: 'Customers' },
+        ...customerUsers.map(makeOpt)
+      ) : null,
+      noType.length > 0 ? React.createElement('optgroup', { key: 'grp-other', label: 'Other' },
+        ...noType.map(makeOpt)
+      ) : null,
+    ].filter(Boolean) as React.ReactNode[]
+  } else {
+    viewAsSelectOptions = viewAsSelectUsers.map(function(u) {
+      var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
+      return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
+    })
+  }
   var viewAsSelect = showViewAs ? React.createElement(React.Fragment, null,
     React.createElement('select', {
       value: viewAs ? viewAs.email : '',
       onChange: function(e: React.ChangeEvent<HTMLSelectElement>) { handleViewAs(e.target.value) },
-      disabled: allUsers.length === 0,
-      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: allUsers.length === 0 ? 'var(--muted)' : 'var(--foreground)', fontSize: 13, cursor: allUsers.length === 0 ? 'default' : 'pointer', maxWidth: 200 }
+      disabled: viewAsSelectUsers.length === 0,
+      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: viewAsSelectUsers.length === 0 ? 'var(--muted)' : 'var(--foreground)', fontSize: 13, cursor: viewAsSelectUsers.length === 0 ? 'default' : 'pointer', maxWidth: 200 }
     },
-      allUsers.length === 0
+      viewAsSelectUsers.length === 0
         ? React.createElement('option', { value: '' }, 'No users')
         : React.createElement('option', { value: '' }, 'View as...'),
-      allUsers.filter(function(u) {
-        return u.email !== (session && session.email)
-      }).map(function(u) {
-        var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
-        return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
-      })
+      ...viewAsSelectOptions
     ),
     viewAs ? React.createElement('button', {
       onClick: function() { setViewAs(null) },
