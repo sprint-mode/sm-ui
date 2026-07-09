@@ -1395,6 +1395,24 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     }, '\u2715') : null
   ) : null
 
+  // Group customer users by company for the dropdown
+  var customerByCompany: Record<string, { company_name: string, users: ViewAsUser[] }> = {}
+  customerDropUsers.filter(function(u) { return u.email !== (session && session.email) }).forEach(function(u) {
+    var key = u.company_id || u.company_name || 'Other'
+    if (!customerByCompany[key]) customerByCompany[key] = { company_name: u.company_name || key, users: [] }
+    customerByCompany[key].users.push(u)
+  })
+  var customerOptGroups = Object.keys(customerByCompany).map(function(key) {
+    var grp = customerByCompany[key]
+    return React.createElement('optgroup', { key: key, label: grp.company_name },
+      ...grp.users.map(function(u) {
+        var roleLabel = u.role ? ' — ' + u.role : ''
+        var label = (u.name || u.email) + roleLabel
+        return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
+      })
+    )
+  })
+
   var customerSelect = showCustomerDropdown ? React.createElement(React.Fragment, null,
     React.createElement('select', {
       value: viewAsCustomer ? viewAsCustomer.email : '',
@@ -1402,7 +1420,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', maxWidth: 180 }
     },
       React.createElement('option', { value: '' }, 'View as client…'),
-      ...customerDropUsers.filter(function(u) { return u.email !== (session && session.email) }).map(makeUserOpt)
+      ...customerOptGroups
     ),
     viewAsCustomer ? React.createElement('button', {
       onClick: function() { setViewAsCustomer(null) },
