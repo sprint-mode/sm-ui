@@ -128,6 +128,7 @@ interface ViewAsUser {
     company_name?: string;
     portal_role?: string;
     role?: string;
+    role_type?: string;
     products?: string[];
     id?: string;
     permissions?: string | Record<string, unknown>;
