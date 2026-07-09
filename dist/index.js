@@ -107680,7 +107680,7 @@ function b9(t) {
 		d && v9(d, e), r(), c ? c(e.to) : e.to && (window.location.href = e.to);
 	}
 	function I(t, n, r) {
-		var i = t.meta || {}, a = g9[i.badgeColor || ""] || g9.gray, o = t.subsection ? t.section + " > " + t.subsection : "";
+		var i = t.meta || {}, a = g9[i.badgeColor || ""] || g9.gray, o = t.subsection ? t.section + " > " + t.subsection : "", s = i.breadcrumbs && i.breadcrumbs.length > 0;
 		return e.createElement("a", {
 			key: t.to || t.label || n,
 			href: t.to || "#",
@@ -107705,6 +107705,12 @@ function b9(t) {
 		}, e.createElement("div", { style: {
 			flex: 1,
 			display: "flex",
+			flexDirection: s || i.snippet ? "column" : "row",
+			gap: s || i.snippet ? 1 : 8,
+			minWidth: 0,
+			justifyContent: s || i.snippet ? "center" : void 0
+		} }, e.createElement("div", { style: {
+			display: "flex",
 			alignItems: "center",
 			gap: 8,
 			minWidth: 0
@@ -107725,10 +107731,30 @@ function b9(t) {
 			overflow: "hidden",
 			textOverflow: "ellipsis",
 			whiteSpace: "nowrap"
-		} }, o ? e.createElement(e.Fragment, null, e.createElement("span", { style: {
+		} }, o && !s ? e.createElement(e.Fragment, null, e.createElement("span", { style: {
 			color: "var(--muted)",
 			fontSize: 11
-		} }, o + " > "), y9(t.label, p)) : y9(t.label, p))), i.badge || i.detail ? e.createElement("div", { style: {
+		} }, o + " > "), y9(t.label, p)) : y9(t.label, p))), s ? e.createElement("div", { style: {
+			display: "flex",
+			alignItems: "center",
+			gap: 4,
+			fontSize: 11,
+			color: "var(--muted)",
+			paddingLeft: t.step != null || t.Icon ? 30 : 0
+		} }, i.breadcrumbs.map(function(t, n) {
+			return e.createElement(e.Fragment, { key: n }, n > 0 ? e.createElement("span", { style: {
+				fontSize: 9,
+				opacity: .5
+			} }, "›") : null, e.createElement("span", null, t));
+		})) : null, i.snippet ? e.createElement("div", { style: {
+			fontSize: 11,
+			color: "var(--muted)",
+			overflow: "hidden",
+			textOverflow: "ellipsis",
+			whiteSpace: "nowrap",
+			paddingLeft: t.step != null || t.Icon ? 30 : 0,
+			maxWidth: 400
+		} }, i.snippet) : null), i.badge || i.detail && !i.snippet ? e.createElement("div", { style: {
 			display: "flex",
 			alignItems: "center",
 			gap: 6,
@@ -107742,7 +107768,7 @@ function b9(t) {
 			background: a.bg,
 			color: a.color,
 			whiteSpace: "nowrap"
-		} }, i.badge) : null, i.detail ? e.createElement("span", { style: {
+		} }, i.badge) : null, i.detail && !i.snippet ? e.createElement("span", { style: {
 			color: "var(--muted)",
 			whiteSpace: "nowrap",
 			maxWidth: 120,
@@ -109073,15 +109099,19 @@ var iNe = function(t) {
 	typeof document < "u" && document.documentElement.getAttribute("data-theme") === "dark" && qe.indexOf(".png") !== -1 && (Je = qe.replace(".png", "-dark.png"));
 	var Ye = !!(v || y), Xe = [];
 	O || (X.forEach(function(e) {
-		e.nav && e.nav.items.forEach(function(t) {
-			t.to && !t.disabled && !t.external && Xe.push({
-				label: t.label,
-				to: t.to,
-				section: e.nav.label,
-				step: t.step,
-				Icon: t.Icon || void 0
+		if (e.nav) {
+			var t = e.nav.label;
+			e.nav.items.forEach(function(e) {
+				e.to && !e.disabled && !e.external && Xe.push({
+					label: e.label,
+					to: e.to,
+					section: t,
+					step: e.step,
+					Icon: e.Icon || void 0,
+					meta: { breadcrumbs: [t, e.label] }
+				});
 			});
-		});
+		}
 	}), a && a.forEach(function(e) {
 		e.to && Xe.push({
 			label: e.label,

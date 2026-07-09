@@ -21,6 +21,8 @@ export interface CmdKItemMeta {
     badge?: string;
     badgeColor?: string;
     detail?: string;
+    breadcrumbs?: string[];
+    snippet?: string;
 }
 export interface CmdKItem {
     label: string;

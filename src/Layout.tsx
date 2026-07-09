@@ -30,6 +30,8 @@ export interface CmdKItemMeta {
   badge?: string
   badgeColor?: string
   detail?: string
+  breadcrumbs?: string[]
+  snippet?: string
 }
 
 export interface CmdKItem {
@@ -289,6 +291,7 @@ export function CmdK(props: CmdKProps) {
     var meta = item.meta || {}
     var bc = BADGE_COLORS[meta.badgeColor || ''] || BADGE_COLORS.gray
     var sectionLabel = item.subsection ? (item.section + ' > ' + item.subsection) : ''
+    var hasBreadcrumbs = meta.breadcrumbs && meta.breadcrumbs.length > 0
 
     return React.createElement('a', {
       key: item.to || item.label || idx,
@@ -297,27 +300,42 @@ export function CmdK(props: CmdKProps) {
       onMouseEnter: function() { setHi(idx) },
       style: { display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8, textDecoration: 'none', color: 'var(--foreground)', fontSize: 13, background: isHi ? 'var(--bg-subtle)' : 'transparent', minHeight: 36 }
     },
-      React.createElement('div', { style: { flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
-        item.step != null
-          ? React.createElement('span', { style: { width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, border: '1.5px solid var(--accent)', color: 'var(--accent)', background: 'var(--accent-10)', flexShrink: 0 } }, item.step)
-          : item.Icon
-            ? React.createElement(item.Icon, null)
-            : null,
-        React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
-          sectionLabel
-            ? React.createElement(React.Fragment, null,
-                React.createElement('span', { style: { color: 'var(--muted)', fontSize: 11 } }, sectionLabel + ' > '),
-                highlightMatch(item.label, q)
-              )
-            : highlightMatch(item.label, q)
-        )
+      React.createElement('div', { style: { flex: 1, display: 'flex', flexDirection: (hasBreadcrumbs || meta.snippet) ? 'column' as const : 'row' as const, gap: (hasBreadcrumbs || meta.snippet) ? 1 : 8, minWidth: 0, justifyContent: (hasBreadcrumbs || meta.snippet) ? 'center' : undefined } },
+        React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 } },
+          item.step != null
+            ? React.createElement('span', { style: { width: 22, height: 22, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700, border: '1.5px solid var(--accent)', color: 'var(--accent)', background: 'var(--accent-10)', flexShrink: 0 } }, item.step)
+            : item.Icon
+              ? React.createElement(item.Icon, null)
+              : null,
+          React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } },
+            sectionLabel && !hasBreadcrumbs
+              ? React.createElement(React.Fragment, null,
+                  React.createElement('span', { style: { color: 'var(--muted)', fontSize: 11 } }, sectionLabel + ' > '),
+                  highlightMatch(item.label, q)
+                )
+              : highlightMatch(item.label, q)
+          )
+        ),
+        hasBreadcrumbs
+          ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--muted)', paddingLeft: item.step != null || item.Icon ? 30 : 0 } },
+              meta.breadcrumbs!.map(function(crumb, i) {
+                return React.createElement(React.Fragment, { key: i },
+                  i > 0 ? React.createElement('span', { style: { fontSize: 9, opacity: 0.5 } }, '\u203A') : null,
+                  React.createElement('span', null, crumb)
+                )
+              })
+            )
+          : null,
+        meta.snippet
+          ? React.createElement('div', { style: { fontSize: 11, color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingLeft: item.step != null || item.Icon ? 30 : 0, maxWidth: 400 } }, meta.snippet)
+          : null
       ),
-      (meta.badge || meta.detail)
+      (meta.badge || (meta.detail && !meta.snippet))
         ? React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, fontSize: 11 } },
             meta.badge
               ? React.createElement('span', { style: { padding: '1px 7px', borderRadius: 9, fontSize: 10, fontWeight: 600, background: bc.bg, color: bc.color, whiteSpace: 'nowrap' } }, meta.badge)
               : null,
-            meta.detail
+            meta.detail && !meta.snippet
               ? React.createElement('span', { style: { color: 'var(--muted)', whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis' } }, meta.detail)
               : null
           )
@@ -1258,9 +1276,10 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   if (!cmdKItems) {
     sections.forEach(function(section) {
       if (!section.nav) return
+      var sectionLabel = section.nav.label
       section.nav.items.forEach(function(item) {
         if (item.to && !item.disabled && !item.external) {
-          autoCmdKItems.push({ label: item.label, to: item.to, section: section.nav!.label, step: item.step, Icon: item.Icon || undefined })
+          autoCmdKItems.push({ label: item.label, to: item.to, section: sectionLabel, step: item.step, Icon: item.Icon || undefined, meta: { breadcrumbs: [sectionLabel, item.label] } })
         }
       })
     })
