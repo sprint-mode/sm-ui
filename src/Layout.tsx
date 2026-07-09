@@ -146,6 +146,10 @@ interface ViewAsUser {
 export var ViewAsContext = createContext<ViewAsUser | null>(null)
 export function useViewAs() { return useContext(ViewAsContext) }
 
+// ViewAsTeamContext — carries the selected team member (role/perms context only, no company scoping)
+export var ViewAsTeamContext = createContext<ViewAsUser | null>(null)
+export function useViewAsTeam() { return useContext(ViewAsTeamContext) }
+
 // ─── Theme ─────────────────────────────────────────────────────────────────
 
 function getStoredTheme() {
@@ -1115,8 +1119,16 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var showViewAs = canViewAsFromSession !== null
     ? (viewAsEnabled !== false && canViewAsFromSession)
     : (viewAsEnabled && (viewAsAnyRole ? !!session : isSuperAdmin))
-  var _va = useState<ViewAsUser | null>(null); var viewAs = _va[0]; var setViewAs = _va[1]
-  var _au = useState<ViewAsUser[]>([]); var allUsers = _au[0]; var setAllUsers = _au[1]
+  // Two independent view-as selections
+  var _vat = useState<ViewAsUser | null>(null); var viewAsTeam = _vat[0]; var setViewAsTeam = _vat[1]
+  var _vac = useState<ViewAsUser | null>(null); var viewAsCustomer = _vac[0]; var setViewAsCustomer = _vac[1]
+  // Legacy single viewAs alias: customer takes precedence for company_id scoping
+  var viewAs = viewAsCustomer || viewAsTeam
+  var setViewAs = setViewAsCustomer
+  // Separate user lists per dropdown
+  var _at = useState<ViewAsUser[]>([]); var teamDropUsers = _at[0]; var setTeamDropUsers = _at[1]
+  var _ac = useState<ViewAsUser[]>([]); var customerDropUsers = _ac[0]; var setCustomerDropUsers = _ac[1]
+  var allUsers = teamDropUsers.concat(customerDropUsers)
 
   useEffect(function() {
     if (!session || !(session as any).viewing_as || viewAs) return
@@ -1135,47 +1147,77 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   useEffect(function() {
     if (!showViewAs) return
     fetch(viewAsApi, { credentials: 'include' })
-      .then(function(r) { return r.ok ? r.json() : [] })
+      .then(function(r) { return r.ok ? r.json() : {} })
       .then(function(data: any) {
-        if (Array.isArray(data)) return setAllUsers(data)
-        if (data && data.ok && data.data) {
-          var d = data.data
-          setAllUsers(d.contacts || (Array.isArray(d) ? d : []))
+        // Detect split { team: [...], customers: [...] } shape for both mode
+        var d = (data && data.ok && data.data) ? data.data : data
+        if (d && Array.isArray(d.team) && Array.isArray(d.customers)) {
+          setTeamDropUsers(d.team.map(function(u: any) { return Object.assign({}, u, { role_type: 'team' }) }))
+          setCustomerDropUsers(d.customers.map(function(u: any) { return Object.assign({}, u, { role_type: 'customer' }) }))
         } else {
-          setAllUsers(Array.isArray(data) ? data : [])
+          // Legacy flat array or contacts array — single list
+          var list: ViewAsUser[] = Array.isArray(d) ? d : (d && Array.isArray(d.contacts) ? d.contacts : [])
+          var hasTeam = list.some(function(u) { return u.role_type === 'team' })
+          var hasCust = list.some(function(u) { return u.role_type === 'customer' })
+          if (hasTeam && hasCust) {
+            setTeamDropUsers(list.filter(function(u) { return u.role_type === 'team' }))
+            setCustomerDropUsers(list.filter(function(u) { return u.role_type !== 'team' }))
+          } else if (hasTeam) {
+            setTeamDropUsers(list); setCustomerDropUsers([])
+          } else {
+            setTeamDropUsers([]); setCustomerDropUsers(list)
+          }
         }
       })
       .catch(function() {})
   }, [showViewAs, viewAsApi])
 
-  // Restore View As selection from sessionStorage after allUsers loads
+  // Restore and persist two independent View As selections from sessionStorage
   var _ssRestored = useState(false); var ssRestored = _ssRestored[0]; var setSsRestored = _ssRestored[1]
   useEffect(function() {
-    if (ssRestored || !portalSubdomain || allUsers.length === 0 || viewAs) return
+    if (ssRestored || !portalSubdomain) return
+    if (teamDropUsers.length === 0 && customerDropUsers.length === 0) return
     try {
-      var stored = sessionStorage.getItem('sm-view-as-' + portalSubdomain)
-      if (stored) {
-        var match = allUsers.find(function(u) { return u.email === stored })
-        if (match) setViewAs(match)
+      var storedTeam = sessionStorage.getItem('sm-view-as-team-' + portalSubdomain)
+      if (storedTeam && !viewAsTeam) {
+        var matchT = teamDropUsers.find(function(u) { return u.email === storedTeam })
+        if (matchT) setViewAsTeam(matchT)
+      }
+      var storedCust = sessionStorage.getItem('sm-view-as-customer-' + portalSubdomain)
+      if (storedCust && !viewAsCustomer) {
+        var matchC = customerDropUsers.find(function(u) { return u.email === storedCust })
+        if (matchC) setViewAsCustomer(matchC)
       }
     } catch (_e) {}
     setSsRestored(true)
-  }, [allUsers, portalSubdomain])
+  }, [teamDropUsers, customerDropUsers, portalSubdomain])
 
-  // Persist View As selection to sessionStorage
+  // Persist team selection
   useEffect(function() {
     if (!portalSubdomain) return
     try {
-      if (viewAs) {
-        sessionStorage.setItem('sm-view-as-' + portalSubdomain, viewAs.email)
+      if (viewAsTeam) {
+        sessionStorage.setItem('sm-view-as-team-' + portalSubdomain, viewAsTeam.email)
       } else if (ssRestored) {
-        sessionStorage.removeItem('sm-view-as-' + portalSubdomain)
+        sessionStorage.removeItem('sm-view-as-team-' + portalSubdomain)
       }
     } catch (_e) {}
-  }, [viewAs, portalSubdomain, ssRestored])
+  }, [viewAsTeam, portalSubdomain, ssRestored])
 
-  function handleViewAs(email: string) {
-    if (!email) { setViewAs(null); return }
+  // Persist customer selection
+  useEffect(function() {
+    if (!portalSubdomain) return
+    try {
+      if (viewAsCustomer) {
+        sessionStorage.setItem('sm-view-as-customer-' + portalSubdomain, viewAsCustomer.email)
+      } else if (ssRestored) {
+        sessionStorage.removeItem('sm-view-as-customer-' + portalSubdomain)
+      }
+    } catch (_e) {}
+  }, [viewAsCustomer, portalSubdomain, ssRestored])
+
+  function fetchViewAsDetail(email: string, fallbackList: ViewAsUser[], setter: (u: ViewAsUser | null) => void) {
+    if (!email) { setter(null); return }
     var detailUrl = viewAsDetailApi
       ? viewAsDetailApi.replace('{email}', encodeURIComponent(email))
       : viewAsApi + '/' + encodeURIComponent(email)
@@ -1184,16 +1226,22 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       .then(function(data: any) {
         var user = data
         if (data && data.ok && data.data) user = data.data
-        if (user) setViewAs(user)
+        if (user) setter(user)
       })
       .catch(function() {
-        var target = allUsers.find(function(u) { return u.email === email })
-        if (target) setViewAs(target)
+        var target = fallbackList.find(function(u) { return u.email === email })
+        if (target) setter(target)
       })
   }
 
-  var effectiveRole = viewAs ? viewAs.role : ((session as any)?.role || null)
-  var effectivePerms = viewAs ? parsePerms(viewAs) : parsePerms(session)
+  function handleViewAsTeam(email: string) { fetchViewAsDetail(email, teamDropUsers, setViewAsTeam) }
+  function handleViewAsCustomer(email: string) { fetchViewAsDetail(email, customerDropUsers, setViewAsCustomer) }
+  // Legacy handler — used by portal-view-as event (always customer/company context)
+  function handleViewAs(email: string) { fetchViewAsDetail(email, customerDropUsers, setViewAsCustomer) }
+
+  // effectiveRole/Perms: team selection gates nav sections; customer selection scopes data only
+  var effectiveRole = viewAsTeam ? viewAsTeam.role : ((session as any)?.role || null)
+  var effectivePerms = viewAsTeam ? parsePerms(viewAsTeam) : parsePerms(session)
 
   // Listen for 'portal-view-as' events from portal card buttons
   useEffect(function() {
@@ -1324,58 +1372,46 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   // Determine view_as filter mode from session portal config ('team'|'customers'|'both'|string|false)
   var viewAsMode = canViewAsFromSession && typeof canViewAsFromSession === 'string' ? canViewAsFromSession : null
-  var viewAsSelectUsers = allUsers.filter(function(u) {
-    if (u.email === (session && session.email)) return false
-    if (!viewAsMode || viewAsMode === 'both') return true
-    // If role_type is present on user, filter by it; otherwise show all (backward compat)
-    if (!u.role_type) return true
-    if (viewAsMode === 'team') return u.role_type === 'team'
-    if (viewAsMode === 'customers') return u.role_type === 'customer'
-    return true
-  })
-  var viewAsSelectOptions: React.ReactNode[]
-  if (viewAsMode === 'both') {
-    var teamUsers = viewAsSelectUsers.filter(function(u) { return u.role_type === 'team' })
-    var customerUsers = viewAsSelectUsers.filter(function(u) { return u.role_type !== 'team' })
-    var noType = viewAsSelectUsers.filter(function(u) { return !u.role_type })
-    var makeOpt = function(u: ViewAsUser) {
-      var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
-      return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
-    }
-    viewAsSelectOptions = [
-      teamUsers.length > 0 ? React.createElement('optgroup', { key: 'grp-team', label: 'Team' },
-        ...teamUsers.map(makeOpt)
-      ) : null,
-      customerUsers.length > 0 ? React.createElement('optgroup', { key: 'grp-customers', label: 'Customers' },
-        ...customerUsers.map(makeOpt)
-      ) : null,
-      noType.length > 0 ? React.createElement('optgroup', { key: 'grp-other', label: 'Other' },
-        ...noType.map(makeOpt)
-      ) : null,
-    ].filter(Boolean) as React.ReactNode[]
-  } else {
-    viewAsSelectOptions = viewAsSelectUsers.map(function(u) {
-      var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
-      return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
-    })
+  var showTeamDropdown = showViewAs && (viewAsMode === 'team' || viewAsMode === 'both') && teamDropUsers.length > 0
+  var showCustomerDropdown = showViewAs && (viewAsMode === 'customers' || viewAsMode === 'both' || (!viewAsMode && customerDropUsers.length > 0))
+
+  function makeUserOpt(u: ViewAsUser) {
+    var label = u.name || u.company_name || (u.email ? u.email.split('@')[0] : u.id || '?')
+    return React.createElement('option', { key: u.email || u.id, value: u.email }, label)
   }
-  var viewAsSelect = showViewAs ? React.createElement(React.Fragment, null,
+
+  var teamSelect = showTeamDropdown ? React.createElement(React.Fragment, null,
     React.createElement('select', {
-      value: viewAs ? viewAs.email : '',
-      onChange: function(e: React.ChangeEvent<HTMLSelectElement>) { handleViewAs(e.target.value) },
-      disabled: viewAsSelectUsers.length === 0,
-      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: viewAsSelectUsers.length === 0 ? 'var(--muted)' : 'var(--foreground)', fontSize: 13, cursor: viewAsSelectUsers.length === 0 ? 'default' : 'pointer', maxWidth: 200 }
+      value: viewAsTeam ? viewAsTeam.email : '',
+      onChange: function(e: React.ChangeEvent<HTMLSelectElement>) { handleViewAsTeam(e.target.value) },
+      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', maxWidth: 180 }
     },
-      viewAsSelectUsers.length === 0
-        ? React.createElement('option', { value: '' }, 'No users')
-        : React.createElement('option', { value: '' }, 'View as...'),
-      ...viewAsSelectOptions
+      React.createElement('option', { value: '' }, 'View as team…'),
+      ...teamDropUsers.filter(function(u) { return u.email !== (session && session.email) }).map(makeUserOpt)
     ),
-    viewAs ? React.createElement('button', {
-      onClick: function() { setViewAs(null) },
-      style: { padding: '5px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--accent-10)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }
-    }, '\u2715 Exit') : null
+    viewAsTeam ? React.createElement('button', {
+      onClick: function() { setViewAsTeam(null) },
+      style: { padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--accent-10)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }
+    }, '\u2715') : null
   ) : null
+
+  var customerSelect = showCustomerDropdown ? React.createElement(React.Fragment, null,
+    React.createElement('select', {
+      value: viewAsCustomer ? viewAsCustomer.email : '',
+      onChange: function(e: React.ChangeEvent<HTMLSelectElement>) { handleViewAsCustomer(e.target.value) },
+      style: { padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--foreground)', fontSize: 13, cursor: 'pointer', maxWidth: 180 }
+    },
+      React.createElement('option', { value: '' }, 'View as client…'),
+      ...customerDropUsers.filter(function(u) { return u.email !== (session && session.email) }).map(makeUserOpt)
+    ),
+    viewAsCustomer ? React.createElement('button', {
+      onClick: function() { setViewAsCustomer(null) },
+      style: { padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--accent-10)', color: 'var(--accent)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }
+    }, '\u2715') : null
+  ) : null
+
+  // Legacy single viewAsSelect alias used by render tree
+  var viewAsSelect = (teamSelect || customerSelect) ? React.createElement(React.Fragment, null, teamSelect, customerSelect) : null
 
   var standardHeaderRight = hasHeader && session ? React.createElement(React.Fragment, null,
     cmdKEnabled ? React.createElement('button', {
@@ -1397,7 +1433,8 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   return (
     <SessionContext.Provider value={session}>
-    <ViewAsContext.Provider value={viewAs}>
+    <ViewAsTeamContext.Provider value={viewAsTeam}>
+    <ViewAsContext.Provider value={viewAsCustomer}>
       <div className={'shell' + (hasHeader ? ' shell-with-header' : '')}>
 
         {hasHeader && (
@@ -1531,17 +1568,24 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         {mobileOpen && <div className="portal-sidebar-overlay open" onClick={function() { setMobileOpen(false) }} />}
 
         <main className="portal-main">
-          {viewAs && (
+          {(viewAsTeam || viewAsCustomer) && (
             <div className="shell-viewas-banner">
               <span>
-                <strong>Viewing as:</strong>{' '}
-                {viewAs.name || viewAs.email} ({viewAs.role})
+                {viewAsTeam && (
+                  <><strong>Team:</strong>{' '}{viewAsTeam.name || viewAsTeam.email}{viewAsCustomer ? ' · ' : ''}</>
+                )}
+                {viewAsCustomer && (
+                  <><strong>Client:</strong>{' '}{viewAsCustomer.name || viewAsCustomer.company_name || viewAsCustomer.email}</>
+                )}
                 <span className="shell-viewas-hint"> — sidebar shows what they see</span>
               </span>
-              <button className="shell-viewas-exit" onClick={function() { setViewAs(null) }}>Exit</button>
+              <span style={{ display: 'flex', gap: 6 }}>
+                {viewAsTeam && <button className="shell-viewas-exit" onClick={function() { setViewAsTeam(null) }}>Exit team</button>}
+                {viewAsCustomer && <button className="shell-viewas-exit" onClick={function() { setViewAsCustomer(null) }}>Exit client</button>}
+              </span>
             </div>
           )}
-          <div key={viewAs ? viewAs.id || viewAs.email : '__self__'}>{children || <Outlet />}</div>
+          <div key={(viewAsTeam ? viewAsTeam.email : '') + '|' + (viewAsCustomer ? viewAsCustomer.id || viewAsCustomer.email : '__self__')}>{children || <Outlet />}</div>
         </main>
 
         </div>
@@ -1574,6 +1618,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         <PortalPicker open={portalPickerOpen} onClose={function() { setPortalPickerOpen(false) }} />
       </div>
     </ViewAsContext.Provider>
+    </ViewAsTeamContext.Provider>
     </SessionContext.Provider>
   )
 }
