@@ -43,17 +43,32 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
   var _loaded = useState(false); var loaded = _loaded[0]; var setLoaded = _loaded[1]
   var _switching = useState<string | null>(null); var switching = _switching[0]; var setSwitching = _switching[1]
+  var _meUserId = useState(''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
 
   var fetchAccounts = useCallback(function() {
-    fetch(apiBase + '/api/auth/linked-accounts', { credentials: 'include' })
+    // Fetch linked accounts and current user ID in parallel
+    var linkedP = fetch(apiBase + '/api/auth/linked-accounts', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean; data?: { accounts: LinkedAccount[] } }) {
         if (data.ok && data.data) {
           setAccounts(data.data.accounts)
+          var cur = data.data.accounts.find(function(a) { return a.is_current })
+          if (cur) setMeUserId(cur.user_id)
         }
-        setLoaded(true)
       })
-      .catch(function() { setLoaded(true) })
+      .catch(function() {})
+
+    // Also fetch /auth/me to get current user_id even when not linked
+    var meP = fetch(apiBase + '/api/auth/me', { credentials: 'include' })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean; user?: { id: string } }) {
+        if (data.ok && data.user) {
+          setMeUserId(function(prev: string) { return prev || data.user!.id })
+        }
+      })
+      .catch(function() {})
+
+    Promise.all([linkedP, meP]).then(function() { setLoaded(true) })
   }, [apiBase])
 
   useEffect(function() {
@@ -81,17 +96,14 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   // Build the "Add Account" SSO link
   var currentUrl = typeof window !== 'undefined' ? window.location.href : '/'
-  var currentUser = accounts.find(function(a) { return a.is_current })
-  var currentUserId = currentUser ? currentUser.user_id : ''
-  var addAccountHref = apiBase + '/auth/sso/' + ssoProvider + '?link_to=' + encodeURIComponent(currentUserId) + '&redirect=' + encodeURIComponent(currentUrl)
+  var addAccountHref = meUserId
+    ? apiBase + '/auth/sso/' + ssoProvider + '?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(currentUrl)
+    : ''
 
   // Don't render anything until loaded
   if (!loaded) return null
 
   var otherAccounts = accounts.filter(function(a) { return !a.is_current })
-
-  // If no linked accounts and no current user (shouldn't happen), skip
-  if (accounts.length === 0) return null
 
   return React.createElement(React.Fragment, null,
     // Divider

@@ -104048,19 +104048,32 @@ function uMe() {
 	}));
 }
 function R7(t) {
-	var r = t.apiBase || "https://api.sprintmode.ai", a = t.ssoProvider || "google", o = s([]), c = o[0], l = o[1], u = s(!1), d = u[0], f = u[1], p = s(null), m = p[0], h = p[1], g = n(function() {
-		fetch(r + "/api/auth/linked-accounts", { credentials: "include" }).then(function(e) {
+	var r = t.apiBase || "https://api.sprintmode.ai", a = t.ssoProvider || "google", o = s([]), c = o[0], l = o[1], u = s(!1), d = u[0], f = u[1], p = s(null), m = p[0], h = p[1], g = s(""), _ = g[0], v = g[1], y = n(function() {
+		var e = fetch(r + "/api/auth/linked-accounts", { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			e.ok && e.data && l(e.data.accounts), f(!0);
-		}).catch(function() {
+			if (e.ok && e.data) {
+				l(e.data.accounts);
+				var t = e.data.accounts.find(function(e) {
+					return e.is_current;
+				});
+				t && v(t.user_id);
+			}
+		}).catch(function() {}), t = fetch(r + "/api/auth/me", { credentials: "include" }).then(function(e) {
+			return e.json();
+		}).then(function(e) {
+			e.ok && e.user && v(function(t) {
+				return t || e.user.id;
+			});
+		}).catch(function() {});
+		Promise.all([e, t]).then(function() {
 			f(!0);
 		});
 	}, [r]);
 	i(function() {
-		g();
-	}, [g]);
-	var _ = n(function(e) {
+		y();
+	}, [y]);
+	var b = n(function(e) {
 		h(e), fetch(r + "/api/auth/switch-account", {
 			method: "POST",
 			credentials: "include",
@@ -104073,32 +104086,30 @@ function R7(t) {
 		}).catch(function() {
 			h(null);
 		});
-	}, [r]), v = typeof window < "u" ? window.location.href : "/", y = c.find(function(e) {
-		return e.is_current;
-	}), b = y ? y.user_id : "", x = r + "/auth/sso/" + a + "?link_to=" + encodeURIComponent(b) + "&redirect=" + encodeURIComponent(v);
+	}, [r]), x = typeof window < "u" ? window.location.href : "/", S = _ ? r + "/auth/sso/" + a + "?link_to=" + encodeURIComponent(_) + "&redirect=" + encodeURIComponent(x) : "";
 	if (!d) return null;
-	var S = c.filter(function(e) {
+	var C = c.filter(function(e) {
 		return !e.is_current;
 	});
-	return c.length === 0 ? null : e.createElement(e.Fragment, null, e.createElement("div", { style: {
+	return e.createElement(e.Fragment, null, e.createElement("div", { style: {
 		height: 1,
 		background: "var(--border)",
 		margin: "4px 0"
-	} }), S.length > 0 ? e.createElement("div", { style: {
+	} }), C.length > 0 ? e.createElement("div", { style: {
 		padding: "6px 10px 2px",
 		fontSize: 10,
 		fontWeight: 700,
 		color: "var(--muted)",
 		textTransform: "uppercase",
 		letterSpacing: "0.5px"
-	} }, "Switch Account") : null, S.map(function(t) {
+	} }, "Switch Account") : null, C.map(function(t) {
 		var n = (t.display_name || t.email || "?").split(" ").map(function(e) {
 			return e[0] || "";
 		}).join("").slice(0, 2).toUpperCase(), r = m === t.user_id;
 		return e.createElement("button", {
 			key: t.user_id,
 			onClick: function() {
-				m || _(t.user_id);
+				m || b(t.user_id);
 			},
 			disabled: !!m,
 			style: {
@@ -104171,7 +104182,7 @@ function R7(t) {
 			flexShrink: 0
 		} }) : null);
 	}), e.createElement("a", {
-		href: x,
+		href: S,
 		style: {
 			display: "flex",
 			alignItems: "center",
