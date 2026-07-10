@@ -109411,8 +109411,12 @@ var $Me = function(t) {
 							className: "shell-header",
 							children: /* @__PURE__ */ u("div", {
 								className: "shell-header-inner",
-								children: [
-									/* @__PURE__ */ l("a", {
+								children: [/* @__PURE__ */ u("div", {
+									style: {
+										display: "flex",
+										alignItems: "center"
+									},
+									children: [/* @__PURE__ */ l("a", {
 										href: "/",
 										className: "shell-header-logo",
 										children: v ? /* @__PURE__ */ u(c, { children: [
@@ -109449,8 +109453,7 @@ var $Me = function(t) {
 												width: "auto"
 											}
 										})
-									}),
-									Ce > 1 ? e.createElement("kbd", {
+									}), Ce > 1 ? e.createElement("kbd", {
 										onClick: function(e) {
 											e.preventDefault(), K(!0);
 										},
@@ -109474,38 +109477,37 @@ var $Me = function(t) {
 										onMouseLeave: function(e) {
 											e.currentTarget.style.borderColor = "", e.currentTarget.style.color = "var(--muted)";
 										}
-									}, typeof navigator < "u" && navigator.platform && navigator.platform.indexOf("Mac") !== -1 ? "⌘C" : "Ctrl+C") : null,
-									(Ct || L || y || wt) && /* @__PURE__ */ u("div", {
-										className: "shell-header-right",
-										children: [
-											Ct,
-											L && e.createElement("button", {
-												onClick: L.onClick,
-												style: {
-													padding: "6px 14px",
-													borderRadius: 8,
-													background: L.variant === "outline" ? "transparent" : "var(--accent)",
-													color: L.variant === "outline" ? "var(--accent)" : "#fff",
-													border: L.variant === "outline" ? "1px solid var(--accent)" : "none",
-													fontSize: 13,
-													fontWeight: 600,
-													cursor: "pointer",
-													fontFamily: "var(--font)",
-													transition: "opacity .15s",
-													flexShrink: 0
-												},
-												onMouseOver: function(e) {
-													e.currentTarget.style.opacity = "0.85";
-												},
-												onMouseOut: function(e) {
-													e.currentTarget.style.opacity = "1";
-												}
-											}, L.label),
-											y,
-											wt
-										]
-									})
-								]
+									}, typeof navigator < "u" && navigator.platform && navigator.platform.indexOf("Mac") !== -1 ? "⌘C" : "Ctrl+C") : null]
+								}), (Ct || L || y || wt) && /* @__PURE__ */ u("div", {
+									className: "shell-header-right",
+									children: [
+										Ct,
+										L && e.createElement("button", {
+											onClick: L.onClick,
+											style: {
+												padding: "6px 14px",
+												borderRadius: 8,
+												background: L.variant === "outline" ? "transparent" : "var(--accent)",
+												color: L.variant === "outline" ? "var(--accent)" : "#fff",
+												border: L.variant === "outline" ? "1px solid var(--accent)" : "none",
+												fontSize: 13,
+												fontWeight: 600,
+												cursor: "pointer",
+												fontFamily: "var(--font)",
+												transition: "opacity .15s",
+												flexShrink: 0
+											},
+											onMouseOver: function(e) {
+												e.currentTarget.style.opacity = "0.85";
+											},
+											onMouseOut: function(e) {
+												e.currentTarget.style.opacity = "1";
+											}
+										}, L.label),
+										y,
+										wt
+									]
+								})]
 							})
 						}),
 						/* @__PURE__ */ u("div", {
