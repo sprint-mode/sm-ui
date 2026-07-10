@@ -56,7 +56,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       .catch(function() {})
 
     // Also fetch /auth/me to get current user_id even when not linked
-    var meP = fetch(apiBase + '/api/auth/me', { credentials: 'include' })
+    var meP = fetch(apiBase + '/auth/me', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean; user?: { id: string } }) {
         if (data.ok && data.user) {
@@ -91,10 +91,11 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       .catch(function() { setSwitching(null) })
   }, [apiBase])
 
-  // Build the "Add Account" SSO link
+  // Build the "Add Account" link — points to the portal's own /auth/link-account
+  // page, which renders the sm-ui Login component in link mode.
   var currentUrl = typeof window !== 'undefined' ? window.location.href : '/'
   var addAccountHref = meUserId
-    ? apiBase + '/auth/link-account?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(currentUrl)
+    ? '/auth/link-account?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(currentUrl)
     : ''
 
   // Don't render anything until loaded

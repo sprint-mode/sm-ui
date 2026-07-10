@@ -18,6 +18,13 @@ export interface LoginProps {
    *  'optional' — shown but can be left blank; user can add company later.
    *  'hidden' — not rendered; no company record created on signup. */
   companyField?: 'required' | 'optional' | 'hidden'
+  /** When set, the Login component operates in "Link Account" mode.
+   *  The value is the current user_id to link to. SSO URLs and magic link
+   *  requests will include link_to={linkTo}. Heading changes to
+   *  "Link Another Account". Signup toggle is hidden. */
+  linkTo?: string
+  /** Optional cancel URL shown in link mode. Defaults to '/'. */
+  cancelHref?: string
 }
 
 function GoogleIcon() {
@@ -51,7 +58,7 @@ function MailIcon() {
   )
 }
 
-const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams, companyField }: LoginProps) {
+const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls, authBase, icon, title, byLine, iconBg, iconColor, signupParams, companyField, linkTo, cancelHref }: LoginProps) {
   var _showEmail = useState(false)
   var showEmail = _showEmail[0]; var setShowEmail = _showEmail[1]
   var _email = useState('')
@@ -79,8 +86,9 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
 
   var displayTitle = title || productName || 'Sprint Mode'
   var badgeBg = iconBg || 'var(--accent-10)'
-  var isSignup = signupParams && mode === 'signup'
+  var isSignup = signupParams && mode === 'signup' && !linkTo
   var showCompanyField = cfMode !== 'hidden'
+  var isLinkMode = !!linkTo
 
   function buildSignupQuery() {
     if (!signupParams) return ''
@@ -99,6 +107,7 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
       return
     }
     var url = base + '/auth/sso/google?redirect=' + encodeURIComponent(redirect)
+    if (linkTo) url += '&link_to=' + encodeURIComponent(linkTo)
     if (isSignup) url += buildSignupQuery()
     window.location.href = url
   }
@@ -109,6 +118,7 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
       return
     }
     var url = base + '/auth/sso/microsoft?redirect=' + encodeURIComponent(redirect)
+    if (linkTo) url += '&link_to=' + encodeURIComponent(linkTo)
     if (isSignup) url += buildSignupQuery()
     window.location.href = url
   }
@@ -130,6 +140,7 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
     setLoading(true)
     setError(null)
     var bodyObj: Record<string, string> = { email: email, redirect: redirect }
+    if (linkTo) bodyObj.link_to = linkTo
     if (isSignup && signupParams) {
       var sp = new URLSearchParams(signupParams)
       sp.forEach(function(val, key) { bodyObj[key] = val })
@@ -199,9 +210,15 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
         </div>
 
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '32px 28px' }}>
-          <h2 style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', margin: '0 0 24px', color: 'var(--foreground)' }}>
-            {isSignup ? 'Create an account' : 'Sign in'}
+          <h2 style={{ fontSize: 20, fontWeight: 700, textAlign: 'center', margin: '0 0 4px', color: 'var(--foreground)' }}>
+            {isLinkMode ? 'Link Another Account' : isSignup ? 'Create an account' : 'Sign in'}
           </h2>
+          {isLinkMode && (
+            <p style={{ fontSize: 13, color: 'var(--muted)', textAlign: 'center', margin: '0 0 24px', lineHeight: 1.5 }}>
+              Sign in with a different account to link it to your current identity.
+            </p>
+          )}
+          {!isLinkMode && <div style={{ marginBottom: 20 }} />}
 
           {error && (
             <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: '10px 14px', borderRadius: 'var(--radius-sm)', fontSize: 13, marginBottom: 16 }}>
@@ -324,7 +341,7 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
             </div>
           )}
 
-          {signupParams && (
+          {signupParams && !isLinkMode && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 20, paddingTop: 16, textAlign: 'center' }}>
               {mode === 'signin' ? (
                 <span style={{ fontSize: 13, color: 'var(--muted)' }}>
@@ -341,6 +358,14 @@ const Login: React.FC<LoginProps> = function Login({ productName, _logoSrc: _ls,
                   </a>
                 </span>
               )}
+            </div>
+          )}
+
+          {isLinkMode && (
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <a href={cancelHref || redirect || '/'} style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+                Cancel
+              </a>
             </div>
           )}
         </div>
