@@ -104048,33 +104048,33 @@ function uMe() {
 	}));
 }
 function R7(t) {
-	var r = t.apiBase || "https://api.sprintmode.ai", a = t.ssoProvider || "google", o = s([]), c = o[0], l = o[1], u = s(!1), d = u[0], f = u[1], p = s(null), m = p[0], h = p[1], g = s(""), _ = g[0], v = g[1], y = n(function() {
+	var r = t.apiBase || "https://api.sprintmode.ai", a = s([]), o = a[0], c = a[1], l = s(!1), u = l[0], d = l[1], f = s(null), p = f[0], m = f[1], h = s(""), g = h[0], _ = h[1], v = n(function() {
 		var e = fetch(r + "/api/auth/linked-accounts", { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
 			if (e.ok && e.data) {
-				l(e.data.accounts);
+				c(e.data.accounts);
 				var t = e.data.accounts.find(function(e) {
 					return e.is_current;
 				});
-				t && v(t.user_id);
+				t && _(t.user_id);
 			}
 		}).catch(function() {}), t = fetch(r + "/api/auth/me", { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			e.ok && e.user && v(function(t) {
+			e.ok && e.user && _(function(t) {
 				return t || e.user.id;
 			});
 		}).catch(function() {});
 		Promise.all([e, t]).then(function() {
-			f(!0);
+			d(!0);
 		});
 	}, [r]);
 	i(function() {
-		y();
-	}, [y]);
-	var b = n(function(e) {
-		h(e), fetch(r + "/api/auth/switch-account", {
+		v();
+	}, [v]);
+	var y = n(function(e) {
+		m(e), fetch(r + "/api/auth/switch-account", {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json" },
@@ -104082,36 +104082,36 @@ function R7(t) {
 		}).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			e.ok ? window.location.reload() : h(null);
+			e.ok ? window.location.reload() : m(null);
 		}).catch(function() {
-			h(null);
+			m(null);
 		});
-	}, [r]), x = typeof window < "u" ? window.location.href : "/", S = _ ? r + "/auth/sso/" + a + "?link_to=" + encodeURIComponent(_) + "&redirect=" + encodeURIComponent(x) : "";
-	if (!d) return null;
-	var C = c.filter(function(e) {
+	}, [r]), b = typeof window < "u" ? window.location.href : "/", x = g ? r + "/auth/link-account?link_to=" + encodeURIComponent(g) + "&redirect=" + encodeURIComponent(b) : "";
+	if (!u) return null;
+	var S = o.filter(function(e) {
 		return !e.is_current;
 	});
 	return e.createElement(e.Fragment, null, e.createElement("div", { style: {
 		height: 1,
 		background: "var(--border)",
 		margin: "4px 0"
-	} }), C.length > 0 ? e.createElement("div", { style: {
+	} }), S.length > 0 ? e.createElement("div", { style: {
 		padding: "6px 10px 2px",
 		fontSize: 10,
 		fontWeight: 700,
 		color: "var(--muted)",
 		textTransform: "uppercase",
 		letterSpacing: "0.5px"
-	} }, "Switch Account") : null, C.map(function(t) {
+	} }, "Switch Account") : null, S.map(function(t) {
 		var n = (t.display_name || t.email || "?").split(" ").map(function(e) {
 			return e[0] || "";
-		}).join("").slice(0, 2).toUpperCase(), r = m === t.user_id;
+		}).join("").slice(0, 2).toUpperCase(), r = p === t.user_id;
 		return e.createElement("button", {
 			key: t.user_id,
 			onClick: function() {
-				m || b(t.user_id);
+				p || y(t.user_id);
 			},
-			disabled: !!m,
+			disabled: !!p,
 			style: {
 				display: "flex",
 				alignItems: "center",
@@ -104120,7 +104120,7 @@ function R7(t) {
 				borderRadius: 6,
 				border: "none",
 				background: "transparent",
-				cursor: m ? "wait" : "pointer",
+				cursor: p ? "wait" : "pointer",
 				width: "100%",
 				textAlign: "left",
 				fontSize: 13,
@@ -104129,7 +104129,7 @@ function R7(t) {
 				transition: "background .15s"
 			},
 			onMouseEnter: function(e) {
-				m || (e.currentTarget.style.background = "var(--bg-subtle)");
+				p || (e.currentTarget.style.background = "var(--bg-subtle)");
 			},
 			onMouseLeave: function(e) {
 				e.currentTarget.style.background = "transparent";
@@ -104182,7 +104182,7 @@ function R7(t) {
 			flexShrink: 0
 		} }) : null);
 	}), e.createElement("a", {
-		href: S,
+		href: x,
 		style: {
 			display: "flex",
 			alignItems: "center",

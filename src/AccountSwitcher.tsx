@@ -11,8 +11,6 @@ import React, { useState, useEffect, useCallback } from 'react'
 export interface AccountSwitcherProps {
   /** API base URL (empty string for same-origin) */
   apiBase?: string
-  /** SSO provider to use for "Add Account" (google or microsoft) */
-  ssoProvider?: 'google' | 'microsoft'
 }
 
 interface LinkedAccount {
@@ -38,7 +36,6 @@ function PlusIcon() {
 
 export function AccountSwitcher(props: AccountSwitcherProps) {
   var apiBase = props.apiBase || 'https://api.sprintmode.ai'
-  var ssoProvider = props.ssoProvider || 'google'
 
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
   var _loaded = useState(false); var loaded = _loaded[0]; var setLoaded = _loaded[1]
@@ -97,7 +94,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   // Build the "Add Account" SSO link
   var currentUrl = typeof window !== 'undefined' ? window.location.href : '/'
   var addAccountHref = meUserId
-    ? apiBase + '/auth/sso/' + ssoProvider + '?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(currentUrl)
+    ? apiBase + '/auth/link-account?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(currentUrl)
     : ''
 
   // Don't render anything until loaded
