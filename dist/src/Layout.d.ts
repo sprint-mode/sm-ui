@@ -120,6 +120,10 @@ export interface LayoutProps {
     bugPanelAdmin?: boolean;
     bugPanelLabel?: string;
     portalSubdomain?: string;
+    viewAsClientNav?: (NavSection & {
+        type?: string;
+        heading?: string;
+    })[];
 }
 export declare function useSession(): SessionData | null;
 interface ViewAsUser {

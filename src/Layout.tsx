@@ -122,6 +122,7 @@ export interface LayoutProps {
   bugPanelAdmin?: boolean
   bugPanelLabel?: string
   portalSubdomain?: string
+  viewAsClientNav?: (NavSection & { type?: string; heading?: string })[]
 }
 
 // ─── Session Context ────────────────────────────────────────────────────────
@@ -1238,8 +1239,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   var sections: BuiltSection[] = []
 
-  if (navSections) {
-    navSections.forEach(function(section) {
+  // When viewing as a client and the host app provided a client-specific nav set, use it
+  var activeNavSections = (viewAsCustomer && props.viewAsClientNav) ? props.viewAsClientNav : navSections
+
+  if (activeNavSections) {
+    activeNavSections.forEach(function(section) {
       if (section.type === 'heading') {
         sections.push({ key: section.key || section.label, heading: section.label })
         return
