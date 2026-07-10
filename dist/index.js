@@ -104078,11 +104078,21 @@ function B7(t) {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ user_id: e })
+			body: JSON.stringify({
+				user_id: e,
+				redirect: window.location.href
+			})
 		}).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			e.ok ? window.location.reload() : m(null);
+			if (e.ok) {
+				var t = e.redirect || window.location.href;
+				try {
+					new URL(t).hostname === window.location.hostname ? window.location.reload() : window.location.href = t;
+				} catch {
+					window.location.reload();
+				}
+			} else m(null);
 		}).catch(function() {
 			m(null);
 		});
