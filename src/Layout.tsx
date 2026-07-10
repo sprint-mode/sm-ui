@@ -782,7 +782,7 @@ function parsePerms(session: SessionData | ViewAsUser | null): Permissions | nul
 
 function canViewSection(perms: Permissions | null, role: string | null | undefined, key: string | undefined): boolean {
   if (!key) return true
-  if (role === 'super_admin' || role === 'admin') return true
+  if (role === 'super_admin') return true
   if (!perms || !perms.sections) return true
   var entry = perms.sections[key]
   if (!entry) return true
@@ -791,7 +791,7 @@ function canViewSection(perms: Permissions | null, role: string | null | undefin
 
 function canViewProduct(perms: Permissions | null, role: string | null | undefined, product: string | undefined): boolean {
   if (!product) return true
-  if (role === 'super_admin' || role === 'admin') return true
+  if (role === 'super_admin') return true
   if (!perms) return true
   if (perms.products && perms.products[product]) return true
   if (perms.sections && perms.sections[product] && perms.sections[product].view === false) return false

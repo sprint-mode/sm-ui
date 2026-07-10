@@ -108686,12 +108686,12 @@ function XMe(e) {
 	}
 }
 function j9(e, t, n) {
-	if (!n || t === "super_admin" || t === "admin" || !e || !e.sections) return !0;
+	if (!n || t === "super_admin" || !e || !e.sections) return !0;
 	var r = e.sections[n];
 	return r ? r.view !== !1 : !0;
 }
 function ZMe(e, t, n) {
-	return !n || t === "super_admin" || t === "admin" || !e || e.products && e.products[n] ? !0 : !(e.sections && e.sections[n] && e.sections[n].view === !1);
+	return !n || t === "super_admin" || !e || e.products && e.products[n] ? !0 : !(e.sections && e.sections[n] && e.sections[n].view === !1);
 }
 function QMe({ label: t, sectionIcon: n, sectionColor: r, items: a, color: c, tint: f, defaultOpen: m, product: h, collapsed: g, onToggle: _, flat: v }) {
 	var y = g !== void 0 && _ !== void 0, b = s(m !== !1), x = b[0], S = b[1], C = p(), w = y ? !g : x, T = a.some(function(e) {
