@@ -494,7 +494,7 @@ function HeaderUserMenu(props: {
 
 // ─── Portal Switcher ────────────────────────────────────────────────────────
 
-var ICON_KEY_SVG_PATHS: Record<string, string> = {
+var _ICON_KEY_SVG_PATHS: Record<string, string> = {
   'grid':        '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   'code':        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
   'bar-chart':   '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
@@ -520,13 +520,38 @@ var PORTAL_ICONS: Record<string, string> = {
 }
 
 function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
-  var _sel = useState(0); var sel = _sel[0]; var setSel = _sel[1]
+  var _sel = useState(-1); var sel = _sel[0]; var setSel = _sel[1]
   var _portals = useState<PortalEntry[]>([]); var portals = _portals[0]; var setPortals = _portals[1]
   var _q = useState(''); var q = _q[0]; var setQ = _q[1]
   var inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(function() {
-    if (!open) { setQ(''); setSel(0); return }
+    if (!open) { setQ(''); setSel(-1); return }
+    // Read from session portals first (available on every portal via /auth/me),
+    // then fall back to module cache, then fetch /api/my-portals as last resort.
+    var sessionPortals = (typeof window !== 'undefined' && window.__SM_SESSION && window.__SM_SESSION.portals) || null
+    if (sessionPortals) {
+      var list: PortalEntry[] = Object.entries(sessionPortals)
+        .filter(function(entry) { return entry[1].access })
+        .map(function(entry) {
+          var sub = entry[0]
+          var p = entry[1]
+          return {
+            portal: sub,
+            role: 'member',
+            name: p.name || sub,
+            portal_type: p.portal_type || 'sm',
+            brand_color: p.brand_color || null,
+            brand_tint: p.brand_tint || null,
+            icon_key: p.icon_key || null,
+            logo_mark_url: p.logo_mark_url || null,
+            custom_domain: p.custom_domain || null,
+          }
+        })
+      _portalCache = list
+      setPortals(list)
+      return
+    }
     if (_portalCache) { setPortals(_portalCache); return }
     fetch('/api/my-portals', { credentials: 'include' })
       .then(function(r) { return r.json() })
@@ -542,10 +567,10 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
     return name.indexOf(q.toLowerCase()) !== -1
   }) : portals
 
-  useEffect(function() { setSel(0) }, [q])
+  useEffect(function() { setSel(-1) }, [q])
 
   useEffect(function() {
-    if (!open) return
+    if (!open || sel < 0) return
     var el = document.querySelector('[data-picker-idx="' + sel + '"]') as HTMLElement | null
     if (el) el.scrollIntoView({ block: 'nearest' })
   }, [sel, open])
@@ -564,7 +589,8 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
       if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 }); return }
       if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 }); return }
-      if (e.key === 'Enter') { e.preventDefault(); openPortal(sel); return }
+      if (e.key === 'Enter') { e.preventDefault(); if (sel >= 0) openPortal(sel); return }
+      // Cmd+C / Cmd+Shift+C cycle through list while picker is open
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault()
         setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 })
@@ -575,12 +601,8 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
         setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 })
       }
     }
-    function onUp(e: KeyboardEvent) {
-      if (e.key === 'Meta' || e.key === 'Control') { openPortal(sel) }
-    }
     window.addEventListener('keydown', onDown, true)
-    window.addEventListener('keyup', onUp, true)
-    return function() { window.removeEventListener('keydown', onDown, true); window.removeEventListener('keyup', onUp, true) }
+    return function() { window.removeEventListener('keydown', onDown, true) }
   }, [open, sel, filtered])
 
   if (!open) return null
@@ -660,91 +682,11 @@ interface PortalEntry {
 var _portalCache: PortalEntry[] | null = null
 var _portalFetch: Promise<PortalEntry[]> | null = null
 
+// PortalSwitcher — retained as a no-op export for backward compat.
+// Portal list removed from user menu (PORTAL-SWITCHER-FIX-1 B6).
+// Users switch portals via Cmd+C shortcut; the badge is shown in the header.
 export function PortalSwitcher() {
-  var _p = useState<PortalEntry[] | null>(_portalCache); var portals = _p[0]; var setPortals = _p[1]
-  var portalCfg = usePortalConfig()
-
-  useEffect(function() {
-    var sessionPortals = (typeof window !== 'undefined' && window.__SM_SESSION && window.__SM_SESSION.portals) || null
-    if (sessionPortals) {
-      var list: PortalEntry[] = Object.entries(sessionPortals)
-        .filter(function(entry) { return entry[1].access })
-        .map(function(entry) {
-          var sub = entry[0]
-          var p = entry[1]
-          return {
-            portal: sub,
-            role: 'member',
-            name: p.name || sub,
-            portal_type: p.portal_type || 'sm',
-            brand_color: p.brand_color || null,
-            brand_tint: p.brand_tint || null,
-            icon_key: p.icon_key || null,
-            logo_mark_url: p.logo_mark_url || null,
-            custom_domain: p.custom_domain || null,
-          }
-        })
-      _portalCache = list
-      setPortals(list)
-      return
-    }
-    if (_portalCache) { setPortals(_portalCache); return }
-    if (!_portalFetch) {
-      _portalFetch = fetch('/api/my-portals', { credentials: 'include' })
-        .then(function(r) { return r.json() })
-        .then(function(data: { ok: boolean; data?: { portals?: PortalEntry[] } }) {
-          if (data.ok && data.data && data.data.portals) {
-            _portalCache = data.data.portals
-            return _portalCache!
-          }
-          return []
-        })
-        .catch(function() { return [] })
-    }
-    _portalFetch.then(function(list) { setPortals(list) })
-  }, [])
-
-  if (!portals || portals.length <= 1) return null
-  // Hide if portal config explicitly disables the switcher (portal_switcher = 0).
-  // Default to shown while config is loading (portalCfg.config null) for backward compat.
-  if (portalCfg.config && (portalCfg.config as any).portal_switcher === 0) return null
-
-  var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
-  var sorted = portals.slice().sort(function(a, b) {
-    if (a.portal === 'admin') return -1
-    if (b.portal === 'admin') return 1
-    var na = a.name || a.portal
-    var nb = b.name || b.portal
-    return na.localeCompare(nb)
-  })
-
-  return React.createElement('div', { style: { borderTop: '1px solid var(--border)', marginTop: 2, paddingTop: 4 } },
-    React.createElement('div', { style: { padding: '6px 10px', fontSize: 11, color: 'var(--muted)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '.5px' } }, 'Portals'),
-    sorted.map(function(p) {
-      var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
-      var isCurrent = currentHost === domain
-      var shortName = p.name || p.portal
-      var iconEl: React.ReactNode
-      if (p.logo_mark_url) {
-        iconEl = React.createElement('img', { src: p.logo_mark_url, width: 14, height: 14, alt: shortName, style: { borderRadius: 2, objectFit: 'contain', display: 'block' } })
-      } else {
-        var paths = ICON_KEY_SVG_PATHS[p.icon_key || ''] || ICON_KEY_SVG_PATHS['grid']
-        iconEl = React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: p.brand_color || '#2362ea', strokeWidth: '2', strokeLinecap: 'round', strokeLinejoin: 'round', dangerouslySetInnerHTML: { __html: paths } })
-      }
-      var badge = React.createElement('div', { style: { width: 22, height: 22, borderRadius: 5, background: 'var(--accent-10)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 } }, iconEl)
-      return React.createElement('a', {
-        key: p.portal,
-        href: 'https://' + domain,
-        target: isCurrent ? undefined : '_blank',
-        rel: isCurrent ? undefined : 'noopener noreferrer',
-        style: { display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 6, fontSize: 13, color: isCurrent ? 'var(--accent)' : 'var(--foreground)', textDecoration: 'none', background: isCurrent ? 'var(--accent-10, hsla(215,80%,55%,.08))' : 'transparent', fontWeight: isCurrent ? 500 : 400 }
-      },
-        badge,
-        React.createElement('span', null, shortName),
-        !isCurrent ? React.createElement('span', { style: { marginLeft: 'auto', opacity: 0.25, fontSize: 10 } }, '\u2197') : null
-      )
-    })
-  )
+  return null
 }
 
 // ─── Product Colors ─────────────────────────────────────────────────────────
@@ -1054,6 +996,14 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
   var _bugPanelOpen = useState(false); var bugPanelOpen = _bugPanelOpen[0]; var setBugPanelOpen = _bugPanelOpen[1]
   var _portalPicker = useState(false); var portalPickerOpen = _portalPicker[0]; var setPortalPickerOpen = _portalPicker[1]
+
+  // Count accessible portals for the Cmd+C badge (show only when 2+)
+  var portalCount = 0
+  if (session && typeof window !== 'undefined' && window.__SM_SESSION && window.__SM_SESSION.portals) {
+    var sp = window.__SM_SESSION.portals
+    for (var k in sp) { if (sp[k] && sp[k].access) portalCount++ }
+  }
+
   var theme = useTheme()
   var navigate = useNavigate()
   var location = useLocation()
@@ -1455,6 +1405,13 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                   <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
                 )}
               </a>
+              {portalCount > 1 ? React.createElement('kbd', {
+                onClick: function(e: React.MouseEvent) { e.preventDefault(); setPortalPickerOpen(true) },
+                title: (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318' : 'Ctrl+') + 'C to change portals',
+                style: { fontSize: 10, padding: '2px 6px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle, var(--bg))', color: 'var(--muted)', lineHeight: 1.4, cursor: 'pointer', marginLeft: 6, userSelect: 'none' as const, transition: 'border-color .2s' },
+                onMouseEnter: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)' },
+                onMouseLeave: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = ''; (e.currentTarget as HTMLElement).style.color = 'var(--muted)' },
+              }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318C' : 'Ctrl+C')) : null}
               {(viewAsSelect || headerCta || headerRight || standardHeaderRight) && (
                 <div className="shell-header-right">
                   {viewAsSelect}
@@ -1483,8 +1440,15 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
         <aside className={'portal-sidebar' + (mobileOpen ? ' open' : '')} id="portalSidebar">
           {!hasHeader && (
-            <div className="portal-sidebar-logo">
+            <div className="portal-sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
+              {portalCount > 1 ? React.createElement('kbd', {
+                onClick: function(e: React.MouseEvent) { e.preventDefault(); setPortalPickerOpen(true) },
+                title: (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318' : 'Ctrl+') + 'C to change portals',
+                style: { fontSize: 10, padding: '2px 6px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle, var(--bg))', color: 'var(--muted)', lineHeight: 1.4, cursor: 'pointer', userSelect: 'none' as const, transition: 'border-color .2s' },
+                onMouseEnter: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)' },
+                onMouseLeave: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = ''; (e.currentTarget as HTMLElement).style.color = 'var(--muted)' },
+              }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318C' : 'Ctrl+C')) : null}
             </div>
           )}
           <nav className="portal-sidebar-nav">

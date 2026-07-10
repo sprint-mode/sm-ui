@@ -142,12 +142,6 @@ export declare function useTheme(): {
     toggle: () => void;
 };
 export declare function CmdK(props: CmdKProps): React.FunctionComponentElement<React.FragmentProps> | null;
-export declare function PortalSwitcher(): React.DetailedReactHTMLElement<{
-    style: {
-        borderTop: string;
-        marginTop: number;
-        paddingTop: number;
-    };
-}, HTMLElement> | null;
+export declare function PortalSwitcher(): null;
 declare const Layout: React.FC<LayoutProps>;
 export default Layout;
