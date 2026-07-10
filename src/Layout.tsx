@@ -117,6 +117,7 @@ export interface LayoutProps {
   notificationHref?: string
   headerCta?: HeaderCta
   viewAsAnyRole?: boolean
+  onViewAsChange?: (viewAs: ViewAsUser | null) => void
   bugPanel?: boolean | number
   bugPanelAdmin?: boolean
   bugPanelLabel?: string
@@ -1214,6 +1215,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         sessionStorage.removeItem('sm-view-as-customer-' + portalSubdomain)
       }
     } catch (_e) {}
+    if (props.onViewAsChange) props.onViewAsChange(viewAsCustomer)
   }, [viewAsCustomer, portalSubdomain, ssRestored])
 
   function fetchViewAsDetail(email: string, fallbackList: ViewAsUser[], setter: (u: ViewAsUser | null) => void) {
