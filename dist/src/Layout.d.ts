@@ -115,6 +115,7 @@ export interface LayoutProps {
     notificationHref?: string;
     headerCta?: HeaderCta;
     viewAsAnyRole?: boolean;
+    onViewAsChange?: (viewAs: ViewAsUser | null) => void;
     bugPanel?: boolean | number;
     bugPanelAdmin?: boolean;
     bugPanelLabel?: string;

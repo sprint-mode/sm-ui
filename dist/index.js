@@ -109111,9 +109111,12 @@ var $Me = function(t) {
 		q,
 		Z
 	]), i(function() {
-		if (q) try {
-			Y ? sessionStorage.setItem("sm-view-as-customer-" + q, Y.email) : Z && sessionStorage.removeItem("sm-view-as-customer-" + q);
-		} catch {}
+		if (q) {
+			try {
+				Y ? sessionStorage.setItem("sm-view-as-customer-" + q, Y.email) : Z && sessionStorage.removeItem("sm-view-as-customer-" + q);
+			} catch {}
+			t.onViewAsChange && t.onViewAsChange(Y);
+		}
 	}, [
 		Y,
 		q,
