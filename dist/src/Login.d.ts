@@ -17,6 +17,13 @@ export interface LoginProps {
      *  'optional' — shown but can be left blank; user can add company later.
      *  'hidden' — not rendered; no company record created on signup. */
     companyField?: 'required' | 'optional' | 'hidden';
+    /** When set, the Login component operates in "Link Account" mode.
+     *  The value is the current user_id to link to. SSO URLs and magic link
+     *  requests will include link_to={linkTo}. Heading changes to
+     *  "Link Another Account". Signup toggle is hidden. */
+    linkTo?: string;
+    /** Optional cancel URL shown in link mode. Defaults to '/'. */
+    cancelHref?: string;
 }
 declare const Login: React.FC<LoginProps>;
 export default Login;
