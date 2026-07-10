@@ -1392,6 +1392,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         {hasHeader && (
           <header className="shell-header">
             <div className="shell-header-inner">
+              <div style={{ display: 'flex', alignItems: 'center' }}>
               <a href="/" className="shell-header-logo">
                 {title ? (
                   <>
@@ -1414,6 +1415,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                 onMouseEnter: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = 'var(--accent)'; (e.currentTarget as HTMLElement).style.color = 'var(--accent)' },
                 onMouseLeave: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = ''; (e.currentTarget as HTMLElement).style.color = 'var(--muted)' },
               }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318C' : 'Ctrl+C')) : null}
+              </div>
               {(viewAsSelect || headerCta || headerRight || standardHeaderRight) && (
                 <div className="shell-header-right">
                   {viewAsSelect}
