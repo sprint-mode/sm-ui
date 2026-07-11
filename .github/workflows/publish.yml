@@ -19,7 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4
@@ -35,66 +34,50 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Auto-bump patch version
+      - name: Resolve publish version
         id: version
         run: |
-          # Read current version from package.json
           CURRENT=$(node -p "require('./package.json').version")
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
-
-          # Check if this commit already set a specific version (manual minor/major bump)
-          # by comparing to the last published tag
           LAST_TAG=$(git tag --sort=-v:refname | grep '^v' | head -1 || echo "")
-          echo "last_tag=$LAST_TAG" >> $GITHUB_OUTPUT
 
           if [ -z "$LAST_TAG" ]; then
-            # No tags yet — first publish, use package.json version as-is
-            echo "bumped=$CURRENT" >> $GITHUB_OUTPUT
-            echo "skip_bump=true" >> $GITHUB_OUTPUT
+            # No tags yet — publish current version as-is
+            PUBLISH_VERSION="$CURRENT"
           else
-            LAST_VERSION=${LAST_TAG#v}
+            LAST_VERSION="${LAST_TAG#v}"
             if [ "$CURRENT" != "$LAST_VERSION" ]; then
-              # PR author explicitly set a new version — use it as-is (minor/major bump)
-              echo "bumped=$CURRENT" >> $GITHUB_OUTPUT
-              echo "skip_bump=true" >> $GITHUB_OUTPUT
+              # PR author explicitly set a new version (minor/major bump) — use it
+              PUBLISH_VERSION="$CURRENT"
             else
               # Auto-bump patch
-              BUMPED=$(node -p "
+              PUBLISH_VERSION=$(node -p "
                 const [maj, min, pat] = '$CURRENT'.split('.').map(Number);
                 \`\${maj}.\${min}.\${pat + 1}\`
               ")
-              echo "bumped=$BUMPED" >> $GITHUB_OUTPUT
-              echo "skip_bump=false" >> $GITHUB_OUTPUT
             fi
           fi
 
-      - name: Write bumped version to package.json
-        if: steps.version.outputs.skip_bump == 'false'
+          echo "publish_version=$PUBLISH_VERSION" >> $GITHUB_OUTPUT
+          echo "Resolved publish version: $PUBLISH_VERSION"
+
+      - name: Set version for publish
         run: |
-          BUMPED="${{ steps.version.outputs.bumped }}"
+          VERSION="${{ steps.version.outputs.publish_version }}"
           node -e "
             const fs = require('fs');
             const pkg = JSON.parse(fs.readFileSync('package.json'));
-            pkg.version = '$BUMPED';
+            pkg.version = '$VERSION';
             fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
           "
-
-      - name: Commit version bump
-        if: steps.version.outputs.skip_bump == 'false'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add package.json
-          git commit -m "chore: bump version to ${{ steps.version.outputs.bumped }} [skip ci]"
-          git push
+          echo "package.json version set to $VERSION (not committed to main)"
 
       - name: Tag release
         run: |
-          BUMPED="${{ steps.version.outputs.bumped }}"
+          VERSION="${{ steps.version.outputs.publish_version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${BUMPED}"
-          git push origin "v${BUMPED}"
+          git tag "v${VERSION}"
+          git push origin "v${VERSION}"
 
       - name: Publish to GitHub Packages
         run: npm publish
