@@ -104082,20 +104082,13 @@ function B7(t) {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				user_id: e,
-				redirect: window.location.href
-			})
+			body: JSON.stringify({ user_id: e })
 		}).then(function(e) {
 			return e.json();
 		}).then(function(e) {
 			if (e.ok) {
-				var t = e.redirect || window.location.href;
-				try {
-					new URL(t).hostname === window.location.hostname ? window.location.reload() : window.location.href = t;
-				} catch {
-					window.location.reload();
-				}
+				var t = e.portals || [], n = window.location.hostname.replace(".sprintmode.ai", "");
+				t.indexOf(n) === -1 && e.redirect ? window.location.href = e.redirect : window.location.reload();
 			} else m(null);
 		}).catch(function() {
 			m(null);

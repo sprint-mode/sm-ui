@@ -78,22 +78,18 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, redirect: window.location.href }),
+      body: JSON.stringify({ user_id: userId }),
     })
       .then(function(r) { return r.json() })
-      .then(function(data: { ok: boolean; redirect?: string }) {
+      .then(function(data: { ok: boolean; portals?: string[]; redirect?: string }) {
         if (data.ok) {
-          // Navigate to the target user's portal (or portal chooser if multi-portal).
-          // If the redirect is the same origin, reload instead of navigating.
-          var target = data.redirect || window.location.href
-          try {
-            var targetHost = new URL(target).hostname
-            if (targetHost === window.location.hostname) {
-              window.location.reload()
-            } else {
-              window.location.href = target
-            }
-          } catch (_e) {
+          var portals = data.portals || []
+          var currentPortal = window.location.hostname.replace('.sprintmode.ai', '')
+          if (portals.indexOf(currentPortal) !== -1) {
+            window.location.reload()
+          } else if (data.redirect) {
+            window.location.href = data.redirect
+          } else {
             window.location.reload()
           }
         } else {
