@@ -108387,15 +108387,7 @@ function qMe({ open: t, onClose: n }) {
 				e.preventDefault(), a >= 0 && _(a);
 				return;
 			}
-			if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === "c" || e.key === "C")) {
-				e.preventDefault(), c(function(e) {
-					return g.length ? (e - 1 + g.length) % g.length : 0;
-				});
-				return;
-			}
-			(e.metaKey || e.ctrlKey) && e.key === "c" && (e.preventDefault(), c(function(e) {
-				return g.length ? (e + 1) % g.length : 0;
-			}));
+			(e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C") && (e.preventDefault(), e.stopImmediatePropagation());
 		}
 		return window.addEventListener("keydown", e, !0), function() {
 			window.removeEventListener("keydown", e, !0);

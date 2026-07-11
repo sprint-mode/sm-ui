@@ -592,15 +592,11 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
       if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 }); return }
       if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 }); return }
       if (e.key === 'Enter') { e.preventDefault(); if (sel >= 0) openPortal(sel); return }
-      // Cmd+C / Cmd+Shift+C cycle through list while picker is open
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+      // Swallow Cmd+C while picker is open — prevents Layout from re-firing or
+      // browser copy from interfering. Navigation is arrow keys + Enter only.
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'C')) {
         e.preventDefault()
-        setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 })
-        return
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-        e.preventDefault()
-        setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 })
+        e.stopImmediatePropagation()
       }
     }
     window.addEventListener('keydown', onDown, true)
