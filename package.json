@@ -1,10 +1,10 @@
 {
-  "name": "@nomadahq/sm-ui",
-  "version": "0.5.30",
+  "name": "@sprint-mode/sm-ui",
+  "version": "1.0.0",
   "description": "Sprint Mode shared platform UI \u2014 components, design tokens, auth helpers, login",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nomadahq/sprint-mode-ui"
+    "url": "https://github.com/sprint-mode/sm-ui"
   },
   "main": "dist/index.js",
   "exports": {
@@ -68,5 +68,9 @@
     "src/tokens.css",
     "src/Icons.d.ts",
     "brands"
-  ]
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  }
 }
