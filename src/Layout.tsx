@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { NavLink, useLocation, useNavigate, Outlet } from 'react-router-dom'
-import { getSession, SessionData } from './api.js'
+import { getSession, SessionData, ACCESS_DENIED } from './api.js'
 import { IconSearch, IconMoon, IconSun } from './Icons.jsx'
 import { NotificationBellNav } from './NotificationBellNav.tsx'
 import { AccountSwitcher } from './AccountSwitcher.tsx'
@@ -981,6 +981,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   var _s = useState<SessionData | null>(sessionProp || null); var session = _s[0]; var setSession = _s[1]
   var _l = useState(!sessionProp); var loading = _l[0]; var setLoading = _l[1]
+  var _ad = useState(false); var accessDenied = _ad[0]; var setAccessDenied = _ad[1]
 
   // Bug panel RBAC: requires both the portal-level flag AND the user's bugs permission.
   // Clients (no permissions object) never see the panel.
@@ -1054,6 +1055,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   useEffect(function() {
     if (sessionProp) return
     getSession().then(function(s) {
+      if (s === ACCESS_DENIED) {
+        setAccessDenied(true)
+        setLoading(false)
+        return
+      }
       if (!s) {
         navigate('/auth/login?redirect=' + encodeURIComponent(location.pathname))
         return
@@ -1236,6 +1242,15 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   }
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}><div className="spinner" /></div>
+
+  if (accessDenied) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'var(--font, system-ui, sans-serif)' }}>
+    <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 24px' }}>
+      <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>&#128274;</div>
+      <h2 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px', color: 'var(--foreground, #171717)' }}>Access denied</h2>
+      <p style={{ fontSize: 14, color: 'var(--muted, #6b7280)', margin: '0 0 24px', lineHeight: 1.5 }}>Your role does not have access to this portal. Contact your administrator to request access.</p>
+      <a href="https://sprintmode.ai" style={{ display: 'inline-block', padding: '10px 24px', fontSize: 13, fontWeight: 500, borderRadius: 8, background: 'var(--accent, #2362ea)', color: '#fff', textDecoration: 'none' }}>Go to Sprint Mode</a>
+    </div>
+  </div>
 
   var sections: BuiltSection[] = []
 
