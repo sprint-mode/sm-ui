@@ -76,8 +76,8 @@ jobs:
           VERSION="${{ steps.version.outputs.publish_version }}"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag "v${VERSION}"
-          git push origin "v${VERSION}"
+          git tag -f "v${VERSION}"
+          git push origin "v${VERSION}" --force
 
       - name: Publish to GitHub Packages
         run: npm publish
