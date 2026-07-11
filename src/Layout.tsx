@@ -1060,6 +1060,16 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         navigate('/auth/login?redirect=' + encodeURIComponent(location.pathname))
         return
       }
+      // Portal access check: if Layout knows which portal it's on and the
+      // session includes portals map, check portals[sub].access directly.
+      // This works regardless of what the _worker.js proxy does — the data
+      // comes from sm-api's /auth/me response.
+      var sub = props.portalSubdomain
+      if (sub && sub !== 'admin' && (s as any).portals && (s as any).portals[sub] && (s as any).portals[sub].access === false) {
+        setAccessDenied(true)
+        setLoading(false)
+        return
+      }
       setSession(s)
       setLoading(false)
     })

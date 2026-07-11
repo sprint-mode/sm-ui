@@ -60,10 +60,13 @@ export async function getSession(): Promise<SessionData | null> {
       SESSION_CACHE = data
       return data
     }
-    // Portal _worker.js returns 403 + reason:'not_authorized' when the user's
-    // role has login: false for this portal. Return ACCESS_DENIED sentinel so
-    // Layout can show an access-denied screen instead of redirecting to login.
-    if (res.status === 403 && data && (data as any).reason === 'not_authorized') {
+    // Portal _worker.js may return 403 when the user's role lacks access.
+    // Different portals use different shapes (reason:'not_authorized',
+    // reason:'team_only', error:'Admin access required'), so treat any
+    // 403 with ok:false as an access denial. The session-level check in
+    // Layout (portals[sub].access) is the primary gate — this is the
+    // fallback for portals that block at the proxy layer.
+    if (res.status === 403) {
       return ACCESS_DENIED
     }
   } catch (_e) { /* fall through */ }
