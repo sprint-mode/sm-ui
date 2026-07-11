@@ -72,30 +72,40 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     fetchAccounts()
   }, [fetchAccounts])
 
+  var [portalPicker, setPortalPicker] = useState<string[] | null>(null)
+
   var handleSwitch = useCallback(function(userId: string) {
     setSwitching(userId)
     fetch(apiBase + '/api/auth/switch-account', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId, redirect: window.location.href }),
+      body: JSON.stringify({ user_id: userId }),
     })
       .then(function(r) { return r.json() })
-      .then(function(data: { ok: boolean; redirect?: string }) {
+      .then(function(data: { ok: boolean; portals?: string[] }) {
         if (data.ok) {
-          // Navigate to the target user's portal (or portal chooser if multi-portal).
-          // If the redirect is the same origin, reload instead of navigating.
-          var target = data.redirect || window.location.href
-          try {
-            var targetHost = new URL(target).hostname
-            if (targetHost === window.location.hostname) {
-              window.location.reload()
-            } else {
-              window.location.href = target
-            }
-          } catch (_e) {
+          var portals = data.portals || []
+          var hostname = window.location.hostname
+          var currentPortal = hostname.replace('.sprintmode.ai', '')
+          // If current portal is in the target's list, just reload
+          if (portals.indexOf(currentPortal) !== -1) {
             window.location.reload()
+            return
           }
+          // If only one portal, go there directly
+          if (portals.length === 1) {
+            window.location.href = 'https://' + portals[0] + '.sprintmode.ai/'
+            return
+          }
+          // Multiple portals and current one isn't in the list — show picker
+          if (portals.length > 1) {
+            setSwitching(null)
+            setPortalPicker(portals)
+            return
+          }
+          // No portals at all — go to sprintmode.ai
+          window.location.href = 'https://sprintmode.ai'
         } else {
           setSwitching(null)
         }
@@ -206,6 +216,40 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     ),
 
     // Spinner keyframe (injected once)
-    React.createElement('style', null, '@keyframes sm-spin { to { transform: rotate(360deg) } }')
+    React.createElement('style', null, '@keyframes sm-spin { to { transform: rotate(360deg) } }'),
+
+    // Portal picker — shown after switching to an account that doesn't have
+    // access to the current portal
+    portalPicker
+      ? React.createElement(React.Fragment, null,
+          React.createElement('div', {
+            style: { height: 1, background: 'var(--border)', margin: '4px 0' }
+          }),
+          React.createElement('div', {
+            style: { padding: '6px 10px 2px', fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }
+          }, 'Go to Portal'),
+          portalPicker.map(function(portal) {
+            return React.createElement('a', {
+              key: portal,
+              href: 'https://' + portal + '.sprintmode.ai/',
+              style: {
+                display: 'block', padding: '7px 10px', borderRadius: 6,
+                fontSize: 13, color: 'var(--foreground)', textDecoration: 'none',
+                textTransform: 'capitalize', transition: 'background .15s',
+              },
+              onMouseEnter: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-subtle)' },
+              onMouseLeave: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' },
+            }, portal)
+          }),
+          React.createElement('button', {
+            onClick: function() { setPortalPicker(null) },
+            style: {
+              display: 'block', padding: '6px 10px', border: 'none',
+              background: 'transparent', fontSize: 12, color: 'var(--muted)',
+              cursor: 'pointer', width: '100%', textAlign: 'left',
+            },
+          }, 'Cancel')
+        )
+      : null
   )
 }

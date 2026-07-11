@@ -104077,53 +104077,58 @@ function B7(t) {
 	i(function() {
 		v();
 	}, [v]);
-	var y = n(function(e) {
+	var [y, b] = s(null), x = n(function(e) {
 		m(e), fetch(r + "/api/auth/switch-account", {
 			method: "POST",
 			credentials: "include",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				user_id: e,
-				redirect: window.location.href
-			})
+			body: JSON.stringify({ user_id: e })
 		}).then(function(e) {
 			return e.json();
 		}).then(function(e) {
 			if (e.ok) {
-				var t = e.redirect || window.location.href;
-				try {
-					new URL(t).hostname === window.location.hostname ? window.location.reload() : window.location.href = t;
-				} catch {
+				var t = e.portals || [], n = window.location.hostname.replace(".sprintmode.ai", "");
+				if (t.indexOf(n) !== -1) {
 					window.location.reload();
+					return;
 				}
+				if (t.length === 1) {
+					window.location.href = "https://" + t[0] + ".sprintmode.ai/";
+					return;
+				}
+				if (t.length > 1) {
+					m(null), b(t);
+					return;
+				}
+				window.location.href = "https://sprintmode.ai";
 			} else m(null);
 		}).catch(function() {
 			m(null);
 		});
-	}, [r]), b = typeof window < "u" ? window.location.href : "/", x = g ? "/auth/link-account?link_to=" + encodeURIComponent(g) + "&redirect=" + encodeURIComponent(b) : "";
+	}, [r]), S = typeof window < "u" ? window.location.href : "/", C = g ? "/auth/link-account?link_to=" + encodeURIComponent(g) + "&redirect=" + encodeURIComponent(S) : "";
 	if (!u) return null;
-	var S = o.filter(function(e) {
+	var w = o.filter(function(e) {
 		return !e.is_current;
 	});
 	return e.createElement(e.Fragment, null, e.createElement("div", { style: {
 		height: 1,
 		background: "var(--border)",
 		margin: "4px 0"
-	} }), S.length > 0 ? e.createElement("div", { style: {
+	} }), w.length > 0 ? e.createElement("div", { style: {
 		padding: "6px 10px 2px",
 		fontSize: 10,
 		fontWeight: 700,
 		color: "var(--muted)",
 		textTransform: "uppercase",
 		letterSpacing: "0.5px"
-	} }, "Switch Account") : null, S.map(function(t) {
+	} }, "Switch Account") : null, w.map(function(t) {
 		var n = (t.display_name || t.email || "?").split(" ").map(function(e) {
 			return e[0] || "";
 		}).join("").slice(0, 2).toUpperCase(), r = p === t.user_id;
 		return e.createElement("button", {
 			key: t.user_id,
 			onClick: function() {
-				p || y(t.user_id);
+				p || x(t.user_id);
 			},
 			disabled: !!p,
 			style: {
@@ -104196,7 +104201,7 @@ function B7(t) {
 			flexShrink: 0
 		} }) : null);
 	}), e.createElement("a", {
-		href: x,
+		href: C,
 		style: {
 			display: "flex",
 			alignItems: "center",
@@ -104214,7 +104219,54 @@ function B7(t) {
 		onMouseLeave: function(e) {
 			e.currentTarget.style.background = "transparent";
 		}
-	}, e.createElement(lMe, null), "Add Account"), e.createElement("style", null, "@keyframes sm-spin { to { transform: rotate(360deg) } }"));
+	}, e.createElement(lMe, null), "Add Account"), e.createElement("style", null, "@keyframes sm-spin { to { transform: rotate(360deg) } }"), y ? e.createElement(e.Fragment, null, e.createElement("div", { style: {
+		height: 1,
+		background: "var(--border)",
+		margin: "4px 0"
+	} }), e.createElement("div", { style: {
+		padding: "6px 10px 2px",
+		fontSize: 10,
+		fontWeight: 700,
+		color: "var(--muted)",
+		textTransform: "uppercase",
+		letterSpacing: "0.5px"
+	} }, "Go to Portal"), y.map(function(t) {
+		return e.createElement("a", {
+			key: t,
+			href: "https://" + t + ".sprintmode.ai/",
+			style: {
+				display: "block",
+				padding: "7px 10px",
+				borderRadius: 6,
+				fontSize: 13,
+				color: "var(--foreground)",
+				textDecoration: "none",
+				textTransform: "capitalize",
+				transition: "background .15s"
+			},
+			onMouseEnter: function(e) {
+				e.currentTarget.style.background = "var(--bg-subtle)";
+			},
+			onMouseLeave: function(e) {
+				e.currentTarget.style.background = "transparent";
+			}
+		}, t);
+	}), e.createElement("button", {
+		onClick: function() {
+			b(null);
+		},
+		style: {
+			display: "block",
+			padding: "6px 10px",
+			border: "none",
+			background: "transparent",
+			fontSize: 12,
+			color: "var(--muted)",
+			cursor: "pointer",
+			width: "100%",
+			textAlign: "left"
+		}
+	}, "Cancel")) : null);
 }
 //#endregion
 //#region src/FileViewer.jsx
