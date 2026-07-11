@@ -723,9 +723,16 @@ function parsePerms(session: SessionData | ViewAsUser | null): Permissions | nul
 function canViewSection(perms: Permissions | null, role: string | null | undefined, key: string | undefined): boolean {
   if (!key) return true
   if (role === 'super_admin') return true
+  // No permissions object at all → allow (session not loaded yet or legacy)
   if (!perms || !perms.sections) return true
+  // No keys configured at all → allow (permissions exist but are empty —
+  // the admin fallback in resolvePermissions should have populated them,
+  // but if it didn't, don't lock everyone out)
+  if (Object.keys(perms.sections).length === 0) return true
   var entry = perms.sections[key]
-  if (!entry) return true
+  // Key not in permissions → deny (if other keys exist, this one was
+  // intentionally excluded or set to none)
+  if (!entry) return false
   return entry.view !== false
 }
 
@@ -1578,7 +1585,50 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               </span>
             </div>
           )}
-          <div key={(viewAsTeam ? viewAsTeam.email : '') + '|' + (viewAsCustomer ? viewAsCustomer.id || viewAsCustomer.email : '__self__')}>{children || <Outlet />}</div>
+          <div key={(viewAsTeam ? viewAsTeam.email : '') + '|' + (viewAsCustomer ? viewAsCustomer.id || viewAsCustomer.email : '__self__')}>
+            {(() => {
+              // Route guard: check if the current route's nav item has permission
+              // Build a flat list of all nav items with their permKeys
+              var routePermKey: string | undefined = undefined
+              var allNavItems: NavItem[] = []
+              if (activeNavSections) {
+                activeNavSections.forEach(function(section) {
+                  if (section.items) {
+                    section.items.forEach(function(item) { allNavItems.push(item) })
+                  }
+                })
+              }
+              if (navBottom) {
+                navBottom.forEach(function(item) { allNavItems.push(item) })
+              }
+              // Match current path to a nav item
+              var curPath = location.pathname
+              for (var i = 0; i < allNavItems.length; i++) {
+                var navItem = allNavItems[i]
+                if (!navItem.to || !navItem.permKey) continue
+                // Exact match or prefix match (e.g. /sm/projects matches /sm/projects/123)
+                if (curPath === navItem.to || curPath.startsWith(navItem.to + '/')) {
+                  routePermKey = navItem.permKey
+                  break
+                }
+              }
+              // If we found a permKey for this route and it's denied, show access-denied
+              if (routePermKey && !canViewSection(effectivePerms, effectiveRole, routePermKey)) {
+                return React.createElement('div', {
+                  style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', fontFamily: 'var(--font, system-ui, sans-serif)' }
+                },
+                  React.createElement('div', { style: { textAlign: 'center', maxWidth: 400, padding: '0 24px' } },
+                    React.createElement('div', { style: { fontSize: 36, marginBottom: 12 } }, '🔒'),
+                    React.createElement('h2', { style: { fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--foreground)' } }, 'Section not available'),
+                    React.createElement('p', { style: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.5 } },
+                      'Your role does not have access to this section. Contact your admin to request access.'
+                    )
+                  )
+                )
+              }
+              return children || React.createElement(Outlet, null)
+            })()}
+          </div>
         </main>
 
         </div>
