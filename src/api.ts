@@ -47,6 +47,10 @@ export interface ApiOptions {
 
 var SESSION_CACHE: SessionData | null = null
 
+/** Sentinel returned by getSession when the user is authenticated but their
+ *  role does not have login access to this portal (403 + reason: 'not_authorized'). */
+export var ACCESS_DENIED: SessionData = { ok: false, _accessDenied: true } as any
+
 export async function getSession(): Promise<SessionData | null> {
   if (SESSION_CACHE) return SESSION_CACHE
   try {
@@ -55,6 +59,12 @@ export async function getSession(): Promise<SessionData | null> {
     if (data && data.ok) {
       SESSION_CACHE = data
       return data
+    }
+    // Portal _worker.js returns 403 + reason:'not_authorized' when the user's
+    // role has login: false for this portal. Return ACCESS_DENIED sentinel so
+    // Layout can show an access-denied screen instead of redirecting to login.
+    if (res.status === 403 && data && (data as any).reason === 'not_authorized') {
+      return ACCESS_DENIED
     }
   } catch (_e) { /* fall through */ }
   return null

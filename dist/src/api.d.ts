@@ -42,6 +42,9 @@ export interface ApiOptions {
     method?: string;
     body?: unknown;
 }
+/** Sentinel returned by getSession when the user is authenticated but their
+ *  role does not have login access to this portal (403 + reason: 'not_authorized'). */
+export declare var ACCESS_DENIED: SessionData;
 export declare function getSession(): Promise<SessionData | null>;
 export declare function clearSession(): void;
 export declare function api(path: string, opts?: ApiOptions): Promise<ApiResponse>;
