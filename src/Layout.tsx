@@ -694,7 +694,7 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
             },
               p.logo_mark_url
                 ? React.createElement('img', {
-                    src: p.logo_mark_url,
+                    src: p.logo_mark_url.replace('logo_mark.png', 'logo_mark_inverted.png'),
                     alt: p.name || p.portal,
                     style: { width: '100%', height: '100%', objectFit: 'contain' as const, display: 'block' },
                   })
