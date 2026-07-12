@@ -71,7 +71,15 @@ function api(path: string, opts?: Record<string, unknown>): Promise<Record<strin
 }
 
 // ── Login prompt ───────────────────────────────────────────────────────────
+// Uses the existing sm-website login drawer (Google SSO, Microsoft SSO, magic link)
+// built by buildLoginDrawer() in _worker.js. We just trigger it via the
+// sm-login-toggle event — same as clicking the header "Log in" button.
 function LoginPrompt() {
+  useEffect(function() {
+    // Auto-open the login drawer when unauthenticated user lands on /updates
+    window.dispatchEvent(new Event('sm-login-toggle'))
+  }, [])
+
   return createElement('div', {
     style: { padding: '60px 20px', textAlign: 'center' as const, maxWidth: 400, margin: '0 auto' }
   },
@@ -81,10 +89,11 @@ function LoginPrompt() {
     createElement('p', {
       style: { fontSize: 14, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }
     }, 'Your inbox shows updates, notifications, and messages across all Sprint Mode products.'),
-    createElement('a', {
-      href: SM_API + '/auth/sso/google',
+    createElement('button', {
+      onClick: function() { window.dispatchEvent(new Event('sm-login-toggle')) },
       style: { display: 'inline-block', padding: '10px 20px', background: 'var(--accent)',
-        color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: 500, textDecoration: 'none' }
+        color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: 500, border: 'none',
+        cursor: 'pointer', fontFamily: 'inherit' }
     }, 'Sign in')
   )
 }
