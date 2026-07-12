@@ -1,13 +1,8 @@
 // NoAccessScreen.tsx — ACCOUNT-SWITCHER-3
 // Full-page replacement for the emoji lock access-denied screens.
-// Two variants:
-//   A) No linked account has access → show portal list + switch accounts
-//   B) A linked account HAS access → primary CTA to switch
-//
-// Data sources:
-//   - portalSubdomain + portalName from Layout props
-//   - current user email from session or /auth/me
-//   - linked accounts + per-account portals from /api/auth/linked-accounts
+// Built pixel-for-pixel from Aaron's approved HTML mockups:
+//   no_access_redirect_screen.html (Variant A)
+//   no_access_switch_available.html (Variant B)
 
 import React, { useState, useEffect } from 'react'
 
@@ -37,53 +32,57 @@ export interface NoAccessScreenProps {
   portalName?: string
   portalBrandColor?: string
   portalIconKey?: string
-  /** Current user email — passed from session when available */
   email?: string
 }
 
-// Icon SVG paths keyed by icon_key (same set as user-menu.js)
+// Inline SVG icons — no Tabler webfont dependency
+function LockSvg() {
+  return React.createElement('svg', {
+    width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+    'aria-hidden': 'true',
+  },
+    React.createElement('rect', { x: 5, y: 11, width: 14, height: 10, rx: 2 }),
+    React.createElement('circle', { cx: 12, cy: 16, r: 1 }),
+    React.createElement('path', { d: 'M8 11V7a4 4 0 1 1 8 0v4' })
+  )
+}
+
+function ArrowSvg() {
+  return React.createElement('svg', {
+    width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+    'aria-hidden': 'true',
+  },
+    React.createElement('path', { d: 'M5 12h14' }),
+    React.createElement('path', { d: 'M13 18l6-6' }),
+    React.createElement('path', { d: 'M13 6l6 6' })
+  )
+}
+
+function LogoutSvg() {
+  return React.createElement('svg', {
+    width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none',
+    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+    style: { verticalAlign: -1, marginRight: 6 },
+    'aria-hidden': 'true',
+  },
+    React.createElement('path', { d: 'M14 8v-2a2 2 0 0 0-2-2h-7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-2' }),
+    React.createElement('path', { d: 'M9 12h12l-3-3' }),
+    React.createElement('path', { d: 'M18 15l3-3' })
+  )
+}
+
+// Icon paths for portal icons (fallback when no R2 logo)
 var ICON_PATHS: Record<string, string> = {
   grid: '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',
   code: '<path d="M7 8l-4 4l4 4"/><path d="M17 8l4 4l-4 4"/><path d="M14 4l-4 16"/>',
   'trending-up': '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+  'bar-chart': '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
   shield: '<path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3"/>',
-  lock: '<path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6"/><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0"/><path d="M8 11v-4a4 4 0 1 1 8 0v4"/>',
-  'book-open': '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
   layers: '<polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>',
   terminal: '<path d="M5 7l5 5l-5 5"/><path d="M12 19l7 0"/>',
-  'file-text': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2"/><path d="M9 9l1 0"/><path d="M9 13l6 0"/><path d="M9 17l6 0"/>',
-  'bar-chart': '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
-}
-
-function PortalIcon(props: { iconKey?: string | null; brandColor?: string | null; logoMarkUrl?: string | null; name: string; size?: number }) {
-  var size = props.size || 22
-  var innerSize = Math.round(size * 0.6)
-  var radius = Math.round(size * 0.23)
-  var color = props.brandColor || '#2362ea'
-  var tint = color + '1a' // ~10% opacity hex
-
-  if (props.logoMarkUrl) {
-    return React.createElement('img', {
-      src: props.logoMarkUrl,
-      alt: props.name,
-      width: size,
-      height: size,
-      style: { borderRadius: radius, objectFit: 'contain', display: 'block', flexShrink: 0 }
-    })
-  }
-
-  var pathHtml = ICON_PATHS[props.iconKey || ''] || ICON_PATHS.grid
-  return React.createElement('div', {
-    style: { width: size, height: size, borderRadius: radius, background: tint, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
-  },
-    React.createElement('svg', {
-      width: innerSize, height: innerSize, viewBox: '0 0 24 24',
-      fill: 'none', stroke: color, strokeWidth: 2,
-      strokeLinecap: 'round', strokeLinejoin: 'round',
-      dangerouslySetInnerHTML: { __html: pathHtml },
-      'aria-hidden': 'true',
-    })
-  )
+  home: '<path d="M5 12l-2 0l9 -9l9 9l-2 0"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-7"/><path d="M9 21v-6a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v6"/>',
 }
 
 function portalUrl(p: PortalInfo): string {
@@ -93,7 +92,7 @@ function portalUrl(p: PortalInfo): string {
 
 export function NoAccessScreen(props: NoAccessScreenProps) {
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
-  var _loaded = useState(false); var loaded = _loaded[0]; var setLoaded = _loaded[1]
+  var _loaded = useState(false); var _loadedVal = _loaded[0]; var setLoaded = _loaded[1]
   var _switching = useState(false); var switching = _switching[0]; var setSwitching = _switching[1]
   var _email = useState(props.email || ''); var email = _email[0]; var setEmail = _email[1]
 
@@ -115,10 +114,10 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
 
   var sub = props.portalSubdomain
   var portalName = props.portalName || sub
-
-  // Find the current account
+  var brandColor = props.portalBrandColor || '#2362ea'
   var currentAccount = accounts.find(function(a) { return a.is_current })
   var currentPortals = currentAccount ? currentAccount.portals : []
+  var otherAccounts = accounts.filter(function(a) { return !a.is_current })
 
   // Find a linked account that has access to this portal
   var switchTarget: LinkedAccount | null = null
@@ -133,44 +132,37 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
     if (switchTarget) break
   }
 
-  // Other accounts (for Variant A switch section)
-  var otherAccounts = accounts.filter(function(a) { return !a.is_current })
-
   function handleSwitch(userId: string) {
     setSwitching(true)
     fetch('/api/auth/switch-account', {
-      method: 'POST',
-      credentials: 'include',
+      method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId }),
     })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean }) {
-        if (data.ok) {
-          window.location.reload()
-        } else {
-          setSwitching(false)
-        }
+        if (data.ok) window.location.reload()
+        else setSwitching(false)
       })
       .catch(function() { setSwitching(false) })
   }
 
-  // Brand color from props or default
-  var brandColor = props.portalBrandColor || '#2362ea'
-
-  // Header logo — use R2 endpoint
+  // R2 logo URL
   var logoUrl = 'https://api.sprintmode.ai/portals/' + sub + '/logo_mark.png'
 
-  // ── Render ──
+  // Hover helpers
+  function hoverBg(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.background = 'var(--bg-subtle, #f3f4f6)' }
+  function unhoverBg(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.background = 'transparent' }
 
-  // Frame container
+  // ── Render — matches approved mockup HTML structure ──
   return React.createElement('div', {
-    style: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: 'var(--font, system-ui, sans-serif)', padding: '24px' }
+    style: { display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', fontFamily: "var(--font, 'Geist', system-ui, sans-serif)", padding: 24, background: 'var(--bg, #fff)' }
   },
     React.createElement('div', {
-      style: { background: 'var(--bg-card, var(--bg-subtle, #f7f7f8))', borderRadius: 12, padding: 24, maxWidth: 540, width: '100%' }
+      // .frame from approved mockup
+      style: { background: 'var(--bg-card, #fff)', borderRadius: 12, padding: 24, maxWidth: 540, width: '100%', border: '0.5px solid var(--border, #e5e7eb)' }
     },
-      // Header — portal logo + name
+      // ── Header: logo + portal name, left-aligned, border-bottom ──
       React.createElement('div', {
         style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24, paddingBottom: 16, borderBottom: '0.5px solid var(--border, #e5e7eb)' }
       },
@@ -178,11 +170,24 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
           style: { width: 28, height: 28, borderRadius: 6, background: brandColor, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }
         },
           React.createElement('img', {
-            src: logoUrl, alt: portalName, width: 28, height: 28,
-            style: { borderRadius: 6, objectFit: 'cover' },
+            src: logoUrl, alt: '', width: 16, height: 16,
+            style: { display: 'block', filter: 'brightness(0) invert(1)' },
             onError: function(e: React.SyntheticEvent<HTMLImageElement>) {
-              // Fallback: hide broken image
-              (e.target as HTMLImageElement).style.display = 'none'
+              // Fallback: render icon SVG path
+              var el = e.currentTarget as HTMLImageElement
+              el.style.display = 'none'
+              var svgNs = 'http://www.w3.org/2000/svg'
+              var svg = document.createElementNS(svgNs, 'svg')
+              svg.setAttribute('width', '14')
+              svg.setAttribute('height', '14')
+              svg.setAttribute('viewBox', '0 0 24 24')
+              svg.setAttribute('fill', 'none')
+              svg.setAttribute('stroke', 'white')
+              svg.setAttribute('stroke-width', '2.5')
+              svg.setAttribute('stroke-linecap', 'round')
+              svg.setAttribute('stroke-linejoin', 'round')
+              svg.innerHTML = ICON_PATHS[props.portalIconKey || ''] || ICON_PATHS.grid
+              el.parentNode?.appendChild(svg)
             }
           })
         ),
@@ -191,15 +196,13 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
         }, portalName)
       ),
 
-      // Message — lock icon + text
+      // ── Message: lock icon + heading + email ──
       React.createElement('div', {
         style: { textAlign: 'center', padding: '20px 0 ' + (switchTarget ? '24px' : '28px') }
       },
         React.createElement('div', {
-          style: { fontSize: 20, color: 'var(--muted, #6b7280)', marginBottom: 8 }
-        },
-          React.createElement('i', { className: 'ti ti-lock', 'aria-hidden': 'true' })
-        ),
+          style: { color: 'var(--muted, #9ca3af)', marginBottom: 8 }
+        }, React.createElement(LockSvg, null)),
         React.createElement('h3', {
           style: { fontSize: 16, fontWeight: 500, margin: '0 0 6px', color: 'var(--foreground, #171717)' }
         }, "You don't have access to " + portalName),
@@ -217,12 +220,9 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
           border: '1.5px solid var(--accent, #2362ea)',
           background: 'var(--accent-10, rgba(35,98,234,0.1))',
           cursor: switching ? 'wait' : 'pointer',
-          marginBottom: 20,
-          opacity: switching ? 0.7 : 1,
-          transition: 'opacity .15s',
+          marginBottom: 20, opacity: switching ? 0.7 : 1,
         }
       },
-        // Avatar
         React.createElement('div', {
           style: {
             width: 28, height: 28, borderRadius: 6,
@@ -231,7 +231,6 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
             fontSize: 11, fontWeight: 500, flexShrink: 0,
           }
         }, (switchTarget.display_name || switchTarget.email || '?')[0].toUpperCase()),
-        // Info
         React.createElement('div', { style: { flex: 1 } },
           React.createElement('div', {
             style: { fontSize: 13, fontWeight: 500, color: 'var(--accent, #2362ea)' }
@@ -240,78 +239,74 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
             style: { fontSize: 11, color: 'var(--muted, #6b7280)' }
           }, 'This account has access to ' + portalName)
         ),
-        // Arrow
-        React.createElement('i', {
-          className: 'ti ti-arrow-right',
-          style: { fontSize: 14, color: 'var(--accent, #2362ea)', flexShrink: 0 },
-          'aria-hidden': 'true',
-        })
+        React.createElement('span', {
+          style: { color: 'var(--accent, #2362ea)', flexShrink: 0 }
+        }, React.createElement(ArrowSvg, null))
       ) : null,
-
-      // ── Divider before portals (Variant B) or after switch accounts section (Variant A) ──
-      switchTarget ? React.createElement('div', {
-        style: { height: 0.5, background: 'var(--border, #e5e7eb)', margin: '16px 0' }
-      }) : null,
 
       // ── Your Portals ──
       currentPortals.length > 0 ? React.createElement(React.Fragment, null,
+        switchTarget ? React.createElement('div', {
+          style: { height: 0.5, background: 'var(--border, #e5e7eb)', margin: '16px 0' }
+        }) : null,
         React.createElement('div', {
-          style: { fontSize: 11, fontWeight: 500, color: 'var(--muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: '0 0 8px' }
+          style: { fontSize: 11, fontWeight: 500, color: 'var(--muted, #9ca3af)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: '0 0 8px' }
         }, 'Your portals'),
         React.createElement('div', {
           style: { display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 20 }
         },
           currentPortals.map(function(p) {
+            var iconColor = p.brand_color || '#2362ea'
+            var iconTint = (p.brand_tint || iconColor + '1a')
+            var iconPath = ICON_PATHS[p.icon_key || ''] || ICON_PATHS.grid
             return React.createElement('a', {
-              key: p.subdomain,
-              href: portalUrl(p),
+              key: p.subdomain, href: portalUrl(p),
               style: {
                 display: 'flex', alignItems: 'center', gap: 10,
-                padding: '8px 10px', borderRadius: 6,
-                cursor: 'pointer', textDecoration: 'none',
-                color: 'var(--foreground, #171717)',
+                padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
+                textDecoration: 'none', color: 'var(--foreground, #171717)',
                 fontSize: 13, fontWeight: 500,
-                transition: 'background .15s',
               },
-              onMouseEnter: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-subtle, #f3f4f6)' },
-              onMouseLeave: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' },
+              onMouseEnter: hoverBg, onMouseLeave: unhoverBg,
             },
-              React.createElement(PortalIcon, {
-                iconKey: p.icon_key, brandColor: p.brand_color,
-                logoMarkUrl: p.logo_mark_url, name: p.name
-              }),
+              // Portal icon — R2 logo or SVG fallback
+              p.logo_mark_url
+                ? React.createElement('div', {
+                    style: { width: 22, height: 22, borderRadius: 5, overflow: 'hidden', flexShrink: 0 }
+                  },
+                    React.createElement('img', { src: p.logo_mark_url, alt: '', width: 22, height: 22, style: { display: 'block', objectFit: 'contain' } })
+                  )
+                : React.createElement('div', {
+                    style: { width: 22, height: 22, borderRadius: 5, background: iconTint, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }
+                  },
+                    React.createElement('svg', {
+                      width: 13, height: 13, viewBox: '0 0 24 24', fill: 'none',
+                      stroke: iconColor, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                      dangerouslySetInnerHTML: { __html: iconPath }, 'aria-hidden': 'true',
+                    })
+                  ),
               p.name,
-              React.createElement('i', {
-                className: 'ti ti-arrow-right',
-                style: { marginLeft: 'auto', fontSize: 14, color: 'var(--muted, #6b7280)' },
-                'aria-hidden': 'true',
-              })
+              React.createElement('span', {
+                style: { marginLeft: 'auto', color: 'var(--muted, #9ca3af)', fontSize: 14 }
+              }, React.createElement(ArrowSvg, null))
             )
           })
         )
       ) : null,
 
-      // ── Switch Account section (Variant A — no switch target) ──
+      // ── Switch Account section (Variant A only — when no switchTarget) ──
       !switchTarget && otherAccounts.length > 0 ? React.createElement(React.Fragment, null,
         React.createElement('div', {
           style: { height: 0.5, background: 'var(--border, #e5e7eb)', margin: '16px 0' }
         }),
         React.createElement('div', {
-          style: { fontSize: 11, fontWeight: 500, color: 'var(--muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: '0 0 8px' }
+          style: { fontSize: 11, fontWeight: 500, color: 'var(--muted, #9ca3af)', textTransform: 'uppercase', letterSpacing: '0.4px', margin: '0 0 8px' }
         }, 'Switch account'),
         otherAccounts.map(function(acct) {
           var initials = (acct.display_name || acct.email || '?')
-            .split(' ')
-            .map(function(w) { return w[0] || '' })
-            .join('')
-            .slice(0, 2)
-            .toUpperCase()
-
-          // Use a brand color from their first portal if available
-          var acctColor = acct.portals.length > 0 && acct.portals[0].brand_color
-            ? acct.portals[0].brand_color : '#6b7280'
-          var acctTint = acctColor + '26' // ~15% opacity
-
+            .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
+          var acctColor = acct.portals.length > 0 && acct.portals[0].brand_color ? acct.portals[0].brand_color : '#6b7280'
+          var acctTint = acctColor + '26'
           return React.createElement('div', {
             key: acct.user_id,
             onClick: function() { if (!switching) handleSwitch(acct.user_id) },
@@ -319,10 +314,8 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
               display: 'flex', alignItems: 'center', gap: 10,
               padding: '8px 10px', borderRadius: 6,
               cursor: switching ? 'wait' : 'pointer',
-              transition: 'background .15s',
             },
-            onMouseEnter: function(e: React.MouseEvent<HTMLDivElement>) { (e.currentTarget as HTMLDivElement).style.background = 'var(--bg-subtle, #f3f4f6)' },
-            onMouseLeave: function(e: React.MouseEvent<HTMLDivElement>) { (e.currentTarget as HTMLDivElement).style.background = 'transparent' },
+            onMouseEnter: hoverBg, onMouseLeave: unhoverBg,
           },
             React.createElement('div', {
               style: {
@@ -353,31 +346,20 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
         style: {
           display: 'block', padding: '8px 10px', borderRadius: 6,
           fontSize: 13, color: 'var(--muted, #6b7280)',
-          textDecoration: 'none', transition: 'background .15s',
+          textDecoration: 'none',
         },
         onMouseEnter: function(e: React.MouseEvent<HTMLAnchorElement>) {
-          var el = e.currentTarget as HTMLAnchorElement
-          el.style.background = 'var(--bg-subtle, #f3f4f6)'
-          el.style.color = 'var(--foreground, #171717)'
+          hoverBg(e)
+          ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--foreground, #171717)'
         },
         onMouseLeave: function(e: React.MouseEvent<HTMLAnchorElement>) {
-          var el = e.currentTarget as HTMLAnchorElement
-          el.style.background = 'transparent'
-          el.style.color = 'var(--muted, #6b7280)'
+          unhoverBg(e)
+          ;(e.currentTarget as HTMLAnchorElement).style.color = 'var(--muted, #6b7280)'
         },
       },
-        React.createElement('i', {
-          className: 'ti ti-logout',
-          style: { fontSize: 14, verticalAlign: -1, marginRight: 6 },
-          'aria-hidden': 'true',
-        }),
+        React.createElement(LogoutSvg, null),
         'Sign out'
-      ),
-
-      // Loading state — show a minimal screen while fetching
-      !loaded ? React.createElement('div', {
-        style: { textAlign: 'center', padding: '20px 0', fontSize: 13, color: 'var(--muted, #6b7280)' }
-      }) : null
+      )
     )
   )
 }
