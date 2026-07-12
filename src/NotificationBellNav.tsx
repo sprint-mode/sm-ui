@@ -22,7 +22,7 @@ function MailboxIcon() {
 }
 
 export function NotificationBellNav(props: NotificationBellNavProps) {
-  var href = props.href || '/user/updates'
+  var href = props.href || 'https://sprintmode.ai/updates'
   var apiBase = props.apiBase || ''
   var onNavigate = props.onNavigate
   var countEndpoint = props.countEndpoint || '/api/notifications?count_only=true'
@@ -47,6 +47,9 @@ export function NotificationBellNav(props: NotificationBellNavProps) {
   }, [fetchCount])
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    // External URLs (https://sprintmode.ai/updates) — let the browser navigate naturally
+    if (href.startsWith('http')) return
+    // Internal paths — use onNavigate (react-router) if provided
     if (onNavigate) {
       e.preventDefault()
       onNavigate(href)

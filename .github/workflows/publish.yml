@@ -34,6 +34,9 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Build standalone bundles
+        run: npm run build:standalone
+
       - name: Resolve publish version
         id: version
         run: |

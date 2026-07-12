@@ -1084,7 +1084,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
         var tag = (document.activeElement?.tagName || '').toLowerCase()
         if (tag !== 'input' && tag !== 'textarea' && !(document.activeElement as HTMLElement)?.isContentEditable) {
-          e.preventDefault(); navigate(notificationHref || '/user/updates')
+          e.preventDefault(); var inboxDest = notificationHref || 'https://sprintmode.ai/updates'; inboxDest.startsWith('http') ? (window.location.href = inboxDest) : navigate(inboxDest)
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
