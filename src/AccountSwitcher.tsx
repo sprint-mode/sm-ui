@@ -81,17 +81,9 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       body: JSON.stringify({ user_id: userId }),
     })
       .then(function(r) { return r.json() })
-      .then(function(data: { ok: boolean; portals?: string[]; redirect?: string }) {
+      .then(function(data: { ok: boolean }) {
         if (data.ok) {
-          var portals = data.portals || []
-          var currentPortal = window.location.hostname.replace('.sprintmode.ai', '')
-          if (portals.indexOf(currentPortal) !== -1) {
-            window.location.href = 'https://sprintmode.ai/choose-portal'
-          } else if (data.redirect) {
-            window.location.href = data.redirect
-          } else {
-            window.location.href = 'https://sprintmode.ai/choose-portal'
-          }
+          window.location.href = 'https://sprintmode.ai/choose-portal'
         } else {
           setSwitching(null)
         }
