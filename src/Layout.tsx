@@ -618,100 +618,109 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
 
   if (!open || portals.length === 0) return null
 
-  var ICON_SIZE = 68
-  var ICON_RADIUS = 16
-  var IMG_SIZE = 48
+  // Responsive: each icon slot is 72px, gaps 8px, pill padding 20px each side.
+  // Max pill width = 100vw - 32px. If portals overflow, icons scale down uniformly.
+  // Icon renders at full 72px — source is 512px so always sharp.
+  // No background blur/dim behind the overlay (matches macOS Cmd+Tab exactly).
+  // No per-icon color box — transparent background on each slot.
+  // Selected icon gets a rounded rect highlight only.
 
   return React.createElement(React.Fragment, null,
-    // Frosted backdrop — click outside to dismiss
+    // Transparent click-away — no blur, no dim
     React.createElement('div', {
       onClick: onClose,
-      style: {
-        position: 'fixed', inset: 0, zIndex: 9998,
-        background: 'rgba(0,0,0,0.38)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-      }
+      style: { position: 'fixed', inset: 0, zIndex: 9998 }
     }),
-    // Dock container — centered horizontally and vertically
+    // Outer wrapper: constrains pill to viewport width with padding
     React.createElement('div', {
       style: {
         position: 'fixed',
         top: '50%', left: '50%',
         transform: 'translate(-50%, -50%)',
         zIndex: 9999,
-        display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 12,
+        maxWidth: 'calc(100vw - 32px)',
+        boxSizing: 'border-box' as const,
       }
     },
-      // The frosted glass pill
+      // Single pill: icons + labels in one container
       React.createElement('div', {
         style: {
           display: 'flex', flexDirection: 'row' as const, alignItems: 'flex-start',
-          gap: 10,
-          padding: '18px 20px',
+          flexWrap: 'nowrap' as const,
+          padding: '20px 20px 16px',
           borderRadius: 20,
-          background: 'rgba(30,32,40,0.72)',
-          border: '0.5px solid rgba(255,255,255,0.14)',
+          background: 'rgba(30,30,36,0.90)',
+          border: '0.5px solid rgba(255,255,255,0.13)',
           backdropFilter: 'blur(40px) saturate(180%)',
           WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.07)',
+          overflowX: 'auto' as const,
+          // Hide scrollbar but allow scroll if truly tiny viewport
+          msOverflowStyle: 'none' as const,
         }
       },
         portals.map(function(p, i) {
           var isSelected = i === sel
-          var color = p.brand_color || '#2362ea'
           return React.createElement('div', {
             key: p.portal,
             onClick: function() { navigateToPortal(i) },
             style: {
-              width: ICON_SIZE, height: ICON_SIZE,
-              borderRadius: ICON_RADIUS,
-              background: color,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', flexShrink: 0, cursor: 'pointer',
-              boxShadow: isSelected
-                ? '0 0 0 3px #ffffff, 0 0 0 5px rgba(255,255,255,0.22)'
-                : '0 0 0 0px transparent',
-              transition: 'box-shadow 0.12s ease',
+              display: 'flex', flexDirection: 'column' as const, alignItems: 'center',
+              gap: 8,
+              // Use vw-based flex to shrink uniformly on narrow screens,
+              // capped at 92px per slot (72px icon + 10px padding each side)
+              flex: '0 1 auto',
+              minWidth: 0,
+              width: 'clamp(52px, calc((100vw - 72px) / ' + portals.length + '), 92px)',
+              cursor: 'pointer',
+              paddingTop: 0,
             }
           },
-            p.logo_mark_url
-              ? React.createElement('img', {
-                  src: p.logo_mark_url,
-                  alt: p.name || p.portal,
-                  style: { width: IMG_SIZE, height: IMG_SIZE, objectFit: 'contain' as const, display: 'block', borderRadius: 8 },
-                })
-              : React.createElement('span', {
-                  style: {
-                    fontFamily: 'Geist, system-ui, -apple-system, sans-serif',
-                    fontSize: 20, fontWeight: 700, color: '#fff',
-                    letterSpacing: '-0.5px',
-                  }
-                }, (p.name || p.portal).slice(0, 2).toUpperCase())
+            // Icon — no color background, selection = highlight rect only
+            React.createElement('div', {
+              style: {
+                // Icon scales with slot width; intrinsic 72px, shrinks on narrow screens
+                width: '100%', aspectRatio: '1/1' as const,
+                maxWidth: 72, margin: '0 auto',
+                borderRadius: 18,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: isSelected ? 'rgba(255,255,255,0.15)' : 'transparent',
+                outline: isSelected ? '2px solid rgba(255,255,255,0.6)' : '2px solid transparent',
+                outlineOffset: 2,
+                overflow: 'hidden',
+                transition: 'background 0.1s, outline-color 0.1s',
+                boxSizing: 'border-box' as const,
+              }
+            },
+              p.logo_mark_url
+                ? React.createElement('img', {
+                    src: p.logo_mark_url,
+                    alt: p.name || p.portal,
+                    style: { width: '100%', height: '100%', objectFit: 'contain' as const, display: 'block' },
+                  })
+                : React.createElement('span', {
+                    style: {
+                      fontFamily: 'Geist, system-ui, -apple-system, sans-serif',
+                      fontSize: 'clamp(14px, 2vw, 22px)', fontWeight: 700,
+                      color: '#fff', letterSpacing: '-0.5px',
+                    }
+                  }, (p.name || p.portal).slice(0, 2).toUpperCase())
+            ),
+            // Label inside the pill
+            React.createElement('div', {
+              style: {
+                width: '100%', minWidth: 0,
+                textAlign: 'center' as const,
+                fontFamily: 'Geist, system-ui, -apple-system, sans-serif',
+                fontSize: 11, fontWeight: isSelected ? 600 : 400,
+                color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.5)',
+                whiteSpace: 'nowrap' as const,
+                overflow: 'hidden', textOverflow: 'ellipsis',
+                letterSpacing: '0.01em',
+                transition: 'color 0.1s',
+              }
+            }, p.name || p.portal)
           )
-        })
-      ),
-      // Portal name row — aligned under each icon
-      React.createElement('div', {
-        style: { display: 'flex', flexDirection: 'row' as const, gap: 10 }
-      },
-        portals.map(function(p, i) {
-          var isSelected = i === sel
-          return React.createElement('div', {
-            key: p.portal,
-            style: {
-              width: ICON_SIZE,
-              textAlign: 'center' as const,
-              fontFamily: 'Geist, system-ui, -apple-system, sans-serif',
-              fontSize: 11,
-              fontWeight: isSelected ? 600 : 400,
-              color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.45)',
-              whiteSpace: 'nowrap' as const,
-              overflow: 'hidden', textOverflow: 'ellipsis',
-              letterSpacing: '0.01em',
-              transition: 'color 0.1s ease',
-            }
-          }, p.name || p.portal)
         })
       )
     )
@@ -1087,7 +1096,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     }
     window.addEventListener('keydown', handler)
     return function() { window.removeEventListener('keydown', handler) }
-  }, [bugPanelEnabled, portalPickerOpen])
+  }, [bugPanelEnabled, portalPickerOpen, portalCount])
 
   // Deep link: ?bug=bug_xxx opens the bug panel and focuses that bug
   var _focusBug = useState<string | null>(null); var focusBugId = _focusBug[0]; var setFocusBugId = _focusBug[1]
