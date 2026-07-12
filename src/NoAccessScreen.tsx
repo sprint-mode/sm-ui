@@ -141,7 +141,7 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
     })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean }) {
-        if (data.ok) window.location.reload()
+        if (data.ok) window.location.href = 'https://sprintmode.ai/choose-portal'
         else setSwitching(false)
       })
       .catch(function() { setSwitching(false) })
