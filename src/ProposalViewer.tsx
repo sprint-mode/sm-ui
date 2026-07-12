@@ -183,7 +183,11 @@ export function ProposalViewer({
         if (section.type === 'signature') {
           return (
             <div key={section.key} data-section-key={section.key} style={{ marginBottom: 32, paddingTop: 24, borderTop: '2px solid var(--border)' }}>
-              <div style={{ fontSize: 17, fontWeight: 700, marginBottom: 12 }}>{section.title}</div>
+              <div style={{
+                fontFamily: "'Geist Mono', monospace", fontSize: 9, fontWeight: 600,
+                letterSpacing: '0.1em', textTransform: 'uppercase' as any,
+                color: 'var(--accent)', marginBottom: 8,
+              }}>{section.title}</div>
               <div style={{ fontSize: 14, lineHeight: 1.7, color: 'var(--foreground)', marginBottom: 20 }}>
                 <p>Accepting this proposal is the first step. Upon acceptance:</p>
                 <p style={{ margin: '8px 0 4px' }}>1. A Master Service Agreement (MSA) and Sales Order will be generated for formal execution via DocuSeal</p>
@@ -191,7 +195,7 @@ export function ProposalViewer({
                 <p style={{ margin: '4px 0' }}>3. Environment access and team introductions will be arranged</p>
                 <p style={{ marginTop: 16, fontSize: 12, color: 'var(--muted)' }}>Questions? Contact <a href="mailto:studios@sprintmode.ai" style={{ color: 'var(--accent)', textDecoration: 'none' }}>studios@sprintmode.ai</a></p>
               </div>
-              {sigRequired && sigStatus === 'signed' && (
+              {!!sigRequired && sigStatus === 'signed' && (
                 <div style={{ padding: '16px 20px', background: 'var(--green-light, #f0fdf4)', border: '1px solid var(--green, #22c55e)', borderRadius: 8, color: 'var(--green, #22c55e)', fontWeight: 700 }}>Signed</div>
               )}
               {renderSignature && renderSignature()}
