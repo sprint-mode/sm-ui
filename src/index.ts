@@ -77,6 +77,10 @@ export type { InboxItem, CategoryPill } from './InboxRow.tsx'
 export { AccountSwitcher } from './AccountSwitcher.tsx'
 export type { AccountSwitcherProps } from './AccountSwitcher.tsx'
 
+// No-access redirect screen — replaces emoji lock pages
+export { NoAccessScreen } from './NoAccessScreen.tsx'
+export type { NoAccessScreenProps } from './NoAccessScreen.tsx'
+
 // Document detail — universal 5-section document viewer
 export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx'
 
