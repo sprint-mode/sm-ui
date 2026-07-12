@@ -35,7 +35,7 @@ function PlusIcon() {
 }
 
 export function AccountSwitcher(props: AccountSwitcherProps) {
-  var apiBase = props.apiBase || 'https://api.sprintmode.ai'
+  var apiBase = props.apiBase || ''
 
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
   var _loaded = useState(false); var loaded = _loaded[0]; var setLoaded = _loaded[1]

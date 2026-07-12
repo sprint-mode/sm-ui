@@ -4,6 +4,7 @@ import { getSession, SessionData, ACCESS_DENIED } from './api.js'
 import { IconSearch, IconMoon, IconSun } from './Icons.jsx'
 import { NotificationBellNav } from './NotificationBellNav.tsx'
 import { AccountSwitcher } from './AccountSwitcher.tsx'
+import { NoAccessScreen } from './NoAccessScreen.tsx'
 import { BugPanel, BugPanelHeaderButton } from './BugPanel.jsx'
 import { usePortalConfig } from './usePortalConfig.jsx'
 
@@ -985,6 +986,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var _s = useState<SessionData | null>(sessionProp || null); var session = _s[0]; var setSession = _s[1]
   var _l = useState(!sessionProp); var loading = _l[0]; var setLoading = _l[1]
   var _ad = useState(false); var accessDenied = _ad[0]; var setAccessDenied = _ad[1]
+  var _adEmail = useState(''); var accessDeniedEmail = _adEmail[0]; var setAccessDeniedEmail = _adEmail[1]
 
   // Bug panel RBAC: requires both the portal-level flag AND the user's bugs permission.
   // Clients (no permissions object) never see the panel.
@@ -1073,6 +1075,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       // comes from sm-api's /auth/me response.
       var sub = props.portalSubdomain
       if (sub && sub !== 'admin' && (s as any).portals && (s as any).portals[sub] && (s as any).portals[sub].access === false) {
+        setAccessDeniedEmail((s as any).email || '')
         setAccessDenied(true)
         setLoading(false)
         return
@@ -1256,14 +1259,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
   if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}><div className="spinner" /></div>
 
-  if (accessDenied) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'var(--font, system-ui, sans-serif)' }}>
-    <div style={{ textAlign: 'center', maxWidth: 400, padding: '0 24px' }}>
-      <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>&#128274;</div>
-      <h2 style={{ fontSize: 18, fontWeight: 600, margin: '0 0 8px', color: 'var(--foreground, #171717)' }}>Access denied</h2>
-      <p style={{ fontSize: 14, color: 'var(--muted, #6b7280)', margin: '0 0 24px', lineHeight: 1.5 }}>Your role does not have access to this portal. Contact your administrator to request access.</p>
-      <a href="https://sprintmode.ai" style={{ display: 'inline-block', padding: '10px 24px', fontSize: 13, fontWeight: 500, borderRadius: 8, background: 'var(--accent, #2362ea)', color: '#fff', textDecoration: 'none' }}>Go to Sprint Mode</a>
-    </div>
-  </div>
+  if (accessDenied) return <NoAccessScreen
+    portalSubdomain={props.portalSubdomain || ''}
+    portalName={props.title || props.portalSubdomain || ''}
+    email={accessDeniedEmail}
+  />
 
   var sections: BuiltSection[] = []
 
@@ -1618,9 +1618,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                   style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', fontFamily: 'var(--font, system-ui, sans-serif)' }
                 },
                   React.createElement('div', { style: { textAlign: 'center', maxWidth: 400, padding: '0 24px' } },
-                    React.createElement('div', { style: { fontSize: 36, marginBottom: 12 } }, '🔒'),
-                    React.createElement('h2', { style: { fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--foreground)' } }, 'Section not available'),
-                    React.createElement('p', { style: { fontSize: 14, color: 'var(--muted)', lineHeight: 1.5 } },
+                    React.createElement('div', { style: { fontSize: 20, color: 'var(--muted)', marginBottom: 8 } },
+                      React.createElement('i', { className: 'ti ti-lock', 'aria-hidden': 'true' })
+                    ),
+                    React.createElement('h3', { style: { fontSize: 16, fontWeight: 500, margin: '0 0 6px', color: 'var(--foreground)' } }, 'Section not available'),
+                    React.createElement('p', { style: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 } },
                       'Your role does not have access to this section. Contact your admin to request access.'
                     )
                   )
