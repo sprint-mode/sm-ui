@@ -1681,7 +1681,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                 },
                   React.createElement('div', { style: { textAlign: 'center', maxWidth: 400, padding: '0 24px' } },
                     React.createElement('div', { style: { fontSize: 20, color: 'var(--muted)', marginBottom: 8 } },
-                      React.createElement('i', { className: 'ti ti-lock', 'aria-hidden': 'true' })
+                      React.createElement('svg', { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', 'aria-hidden': 'true' },
+                        React.createElement('rect', { x: 5, y: 11, width: 14, height: 10, rx: 2 }),
+                        React.createElement('circle', { cx: 12, cy: 16, r: 1 }),
+                        React.createElement('path', { d: 'M8 11V7a4 4 0 1 1 8 0v4' })
+                      )
                     ),
                     React.createElement('h3', { style: { fontSize: 16, fontWeight: 500, margin: '0 0 6px', color: 'var(--foreground)' } }, 'Section not available'),
                     React.createElement('p', { style: { fontSize: 13, color: 'var(--muted)', lineHeight: 1.5 } },
