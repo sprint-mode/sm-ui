@@ -86,11 +86,11 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
           var portals = data.portals || []
           var currentPortal = window.location.hostname.replace('.sprintmode.ai', '')
           if (portals.indexOf(currentPortal) !== -1) {
-            window.location.reload()
+            window.location.href = 'https://sprintmode.ai/choose-portal'
           } else if (data.redirect) {
             window.location.href = data.redirect
           } else {
-            window.location.reload()
+            window.location.href = 'https://sprintmode.ai/choose-portal'
           }
         } else {
           setSwitching(null)
