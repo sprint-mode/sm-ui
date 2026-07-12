@@ -70,34 +70,6 @@ function api(path: string, opts?: Record<string, unknown>): Promise<Record<strin
   return fetch(SM_API + path, fetchOpts).then(function(r) { return r.json() })
 }
 
-// ── Login prompt ───────────────────────────────────────────────────────────
-// Uses the existing sm-website login drawer (Google SSO, Microsoft SSO, magic link)
-// built by buildLoginDrawer() in _worker.js. We just trigger it via the
-// sm-login-toggle event — same as clicking the header "Log in" button.
-function LoginPrompt() {
-  useEffect(function() {
-    // Auto-open the login drawer when unauthenticated user lands on /updates
-    window.dispatchEvent(new Event('sm-login-toggle'))
-  }, [])
-
-  return createElement('div', {
-    style: { padding: '60px 20px', textAlign: 'center' as const, maxWidth: 400, margin: '0 auto' }
-  },
-    createElement('h2', {
-      style: { fontSize: 18, fontWeight: 600, color: 'var(--foreground)', marginBottom: 8 }
-    }, 'Sign in to view your inbox'),
-    createElement('p', {
-      style: { fontSize: 14, color: 'var(--muted)', marginBottom: 20, lineHeight: 1.5 }
-    }, 'Your inbox shows updates, notifications, and messages across all Sprint Mode products.'),
-    createElement('button', {
-      onClick: function() { window.dispatchEvent(new Event('sm-login-toggle')) },
-      style: { display: 'inline-block', padding: '10px 20px', background: 'var(--accent)',
-        color: '#fff', borderRadius: 8, fontSize: 14, fontWeight: 500, border: 'none',
-        cursor: 'pointer', fontFamily: 'inherit' }
-    }, 'Sign in')
-  )
-}
-
 // ── Wrapper component ──────────────────────────────────────────────────────
 function InboxPage() {
   var _state = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading')
@@ -128,7 +100,9 @@ function InboxPage() {
   }
 
   if (state === 'unauthenticated') {
-    return createElement(LoginPrompt, null)
+    // Redirect to the approved signin page with return URL
+    window.location.href = '/signin?redirect=' + encodeURIComponent(window.location.pathname)
+    return null
   }
 
   return createElement('div', { style: { maxWidth: 800, margin: '0 auto', padding: '32px 20px' } },
