@@ -510,27 +510,19 @@ var _ICON_KEY_SVG_PATHS: Record<string, string> = {
   'book':        '<path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 19a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6a9 9 0 0 1 9 0a9 9 0 0 1 9 0"/><path d="M3 6l0 13"/><path d="M12 6l0 13"/><path d="M21 6l0 13"/>',
 }
 
-// ─── Portal Picker (Cmd+C) ──────────────────────────────────────────────────
-
-var PORTAL_ICONS: Record<string, string> = {
-  admin: 'ti-layout-dashboard', studios: 'ti-code', signal: 'ti-chart-bar',
-  mode: 'ti-scan', hub: 'ti-server-2', investors: 'ti-chart-pie',
-  docs: 'ti-file-text', dev: 'ti-terminal-2', website: 'ti-globe',
-  privacyai: 'ti-shield-lock', 'privacyai-docs': 'ti-shield-lock',
-  nomada: 'ti-home', safeshepherd: 'ti-shield-check', capital: 'ti-chart-pie',
-  launchpad: 'ti-rocket',
-}
+// ─── Portal Dock (Cmd+C) — macOS Cmd+Tab style overlay ──────────────────────
+// PORTAL-SWITCHER-UX-1: replaced search-list picker with horizontal icon dock.
+// Trigger: Cmd+C (hold). Tap C to advance, Shift+C to go back, release to nav.
+// Portals sourced from window.__SM_SESSION.portals (access: true only).
+// Hide entirely when user has only 1 accessible portal (portalCount <= 1).
 
 function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
-  var _sel = useState(-1); var sel = _sel[0]; var setSel = _sel[1]
+  var _sel = useState(0); var sel = _sel[0]; var setSel = _sel[1]
   var _portals = useState<PortalEntry[]>([]); var portals = _portals[0]; var setPortals = _portals[1]
-  var _q = useState(''); var q = _q[0]; var setQ = _q[1]
-  var inputRef = useRef<HTMLInputElement>(null)
 
+  // Build portal list from session on open
   useEffect(function() {
-    if (!open) { setQ(''); setSel(-1); return }
-    // Read from session portals first (available on every portal via /auth/me),
-    // then fall back to module cache, then fetch /api/my-portals as last resort.
+    if (!open) return
     var sessionPortals = (typeof window !== 'undefined' && window.__SM_SESSION && window.__SM_SESSION.portals) || null
     if (sessionPortals) {
       var list: PortalEntry[] = Object.entries(sessionPortals)
@@ -552,9 +544,20 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
         })
       _portalCache = list
       setPortals(list)
+      // Pre-select current portal
+      var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
+      var currentIdx = list.findIndex(function(p) {
+        var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
+        return currentHost === domain || currentHost.startsWith(p.portal + '.')
+      })
+      setSel(currentIdx >= 0 ? currentIdx : 0)
       return
     }
-    if (_portalCache) { setPortals(_portalCache); return }
+    if (_portalCache) {
+      setPortals(_portalCache)
+      setSel(0)
+      return
+    }
     fetch('/api/my-portals', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d: { ok: boolean; data?: { portals?: PortalEntry[] } }) {
@@ -562,26 +565,17 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
       }).catch(function() {})
   }, [open])
 
-  useEffect(function() { if (open && inputRef.current) setTimeout(function() { inputRef.current?.focus() }, 50) }, [open])
-
-  var filtered = q ? portals.filter(function(p) {
-    var name = (p.name || p.portal || '').toLowerCase()
-    return name.indexOf(q.toLowerCase()) !== -1
-  }) : portals
-
-  useEffect(function() { setSel(-1) }, [q])
-
-  useEffect(function() {
-    if (!open || sel < 0) return
-    var el = document.querySelector('[data-picker-idx="' + sel + '"]') as HTMLElement | null
-    if (el) el.scrollIntoView({ block: 'nearest' })
-  }, [sel, open])
-
-  function openPortal(idx: number) {
-    var p = filtered[idx]
+  function navigateToPortal(idx: number) {
+    var p = portals[idx]
     if (!p) return
     var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
-    window.open('https://' + domain, '_blank')
+    var currentHost = typeof window !== 'undefined' ? window.location.hostname : ''
+    // If already on selected portal, just dismiss
+    if (currentHost === domain || currentHost.startsWith(p.portal + '.')) {
+      onClose()
+      return
+    }
+    window.location.href = 'https://' + domain
     onClose()
   }
 
@@ -589,77 +583,135 @@ function PortalPicker({ open, onClose }: { open: boolean; onClose: () => void })
     if (!open) return
     function onDown(e: KeyboardEvent) {
       if (e.key === 'Escape') { e.preventDefault(); onClose(); return }
-      if (e.key === 'ArrowDown') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s + 1) % filtered.length : 0 }); return }
-      if (e.key === 'ArrowUp') { e.preventDefault(); setSel(function(s) { return filtered.length ? (s - 1 + filtered.length) % filtered.length : 0 }); return }
-      if (e.key === 'Enter') { e.preventDefault(); if (sel >= 0) openPortal(sel); return }
-      // Swallow Cmd+C while picker is open — prevents Layout from re-firing or
-      // browser copy from interfering. Navigation is arrow keys + Enter only.
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'C')) {
+      // Cmd+C / Ctrl+C: advance selection (swallow to prevent browser copy)
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'c' || e.key === 'C') && !e.shiftKey) {
         e.preventDefault()
         e.stopImmediatePropagation()
+        setSel(function(s) { return portals.length ? (s + 1) % portals.length : 0 })
+        return
+      }
+      // Cmd+Shift+C / Ctrl+Shift+C: go back
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'c' || e.key === 'C')) {
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        setSel(function(s) { return portals.length ? (s - 1 + portals.length) % portals.length : 0 })
+        return
+      }
+      // Arrow keys also move selection
+      if (e.key === 'ArrowRight') { e.preventDefault(); setSel(function(s) { return portals.length ? (s + 1) % portals.length : 0 }); return }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); setSel(function(s) { return portals.length ? (s - 1 + portals.length) % portals.length : 0 }); return }
+    }
+    // Cmd keyup = navigate (same as macOS Cmd+Tab releasing Cmd commits selection)
+    function onUp(e: KeyboardEvent) {
+      if (e.key === 'Meta' || e.key === 'Control') {
+        navigateToPortal(sel)
       }
     }
     window.addEventListener('keydown', onDown, true)
-    return function() { window.removeEventListener('keydown', onDown, true) }
-  }, [open, sel, filtered])
+    window.addEventListener('keyup', onUp, true)
+    return function() {
+      window.removeEventListener('keydown', onDown, true)
+      window.removeEventListener('keyup', onUp, true)
+    }
+  }, [open, sel, portals])
 
-  if (!open) return null
+  if (!open || portals.length === 0) return null
 
-  var isMac = typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1
+  var ICON_SIZE = 68
+  var ICON_RADIUS = 16
+  var IMG_SIZE = 48
 
   return React.createElement(React.Fragment, null,
+    // Frosted backdrop — click outside to dismiss
     React.createElement('div', {
       onClick: onClose,
-      style: { position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 9998 }
+      style: {
+        position: 'fixed', inset: 0, zIndex: 9998,
+        background: 'rgba(0,0,0,0.38)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }
     }),
+    // Dock container — centered horizontally and vertically
     React.createElement('div', {
-      style: { position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: 420, maxHeight: '60vh', background: 'var(--bg-card, var(--bg, transparent))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 9999, display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' },
+      style: {
+        position: 'fixed',
+        top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        zIndex: 9999,
+        display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 12,
+      }
     },
-      React.createElement('div', { style: { padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 } },
-        React.createElement('i', { className: 'ti ti-apps', style: { fontSize: 16, color: 'var(--muted)' }, 'aria-hidden': 'true' }),
-        React.createElement('input', {
-          ref: inputRef,
-          value: q,
-          onChange: function(e: React.ChangeEvent<HTMLInputElement>) { setQ(e.target.value) },
-          placeholder: 'Switch portal\u2026',
-          style: { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 14, color: 'var(--foreground, inherit)', fontFamily: 'inherit' }
-        }),
-        React.createElement('kbd', { style: { fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4 } }, 'esc')
+      // The frosted glass pill
+      React.createElement('div', {
+        style: {
+          display: 'flex', flexDirection: 'row' as const, alignItems: 'flex-start',
+          gap: 10,
+          padding: '18px 20px',
+          borderRadius: 20,
+          background: 'rgba(30,32,40,0.72)',
+          border: '0.5px solid rgba(255,255,255,0.14)',
+          backdropFilter: 'blur(40px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(40px) saturate(180%)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+        }
+      },
+        portals.map(function(p, i) {
+          var isSelected = i === sel
+          var color = p.brand_color || '#2362ea'
+          return React.createElement('div', {
+            key: p.portal,
+            onClick: function() { navigateToPortal(i) },
+            style: {
+              width: ICON_SIZE, height: ICON_SIZE,
+              borderRadius: ICON_RADIUS,
+              background: color,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden', flexShrink: 0, cursor: 'pointer',
+              boxShadow: isSelected
+                ? '0 0 0 3px #ffffff, 0 0 0 5px rgba(255,255,255,0.22)'
+                : '0 0 0 0px transparent',
+              transition: 'box-shadow 0.12s ease',
+            }
+          },
+            p.logo_mark_url
+              ? React.createElement('img', {
+                  src: p.logo_mark_url,
+                  alt: p.name || p.portal,
+                  style: { width: IMG_SIZE, height: IMG_SIZE, objectFit: 'contain' as const, display: 'block', borderRadius: 8 },
+                })
+              : React.createElement('span', {
+                  style: {
+                    fontFamily: 'Geist, system-ui, -apple-system, sans-serif',
+                    fontSize: 20, fontWeight: 700, color: '#fff',
+                    letterSpacing: '-0.5px',
+                  }
+                }, (p.name || p.portal).slice(0, 2).toUpperCase())
+          )
+        })
       ),
-      React.createElement('div', { id: 'portal-picker-list', style: { overflowY: 'auto' as const, padding: '6px 0', maxHeight: '50vh' } },
-        filtered.length === 0
-          ? React.createElement('div', { style: { padding: '16px', textAlign: 'center' as const, color: 'var(--muted)', fontSize: 13 } }, 'No portals found')
-          : filtered.map(function(p, i) {
-            var icon = PORTAL_ICONS[p.portal] || 'ti-layout-grid'
-            var color = p.brand_color || 'var(--accent, #7947d1)'
-            var domain = p.custom_domain || (p.portal + '.sprintmode.ai')
-            return React.createElement('div', {
-              key: p.portal,
-              'data-picker-idx': i,
-              onClick: function() { window.open('https://' + domain, '_blank'); onClose() },
-              style: {
-                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', cursor: 'pointer',
-                background: i === sel ? 'rgba(128,128,128,0.12)' : 'transparent',
-                borderLeft: '3px solid ' + (i === sel ? color : 'transparent'),
-              }
-            },
-              React.createElement('div', {
-                style: { width: 32, height: 32, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, border: '1px solid var(--border)', background: 'var(--bg-card, var(--bg, transparent))' }
-              },
-                p.logo_mark_url
-                  ? React.createElement('img', { src: p.logo_mark_url, alt: '', style: { width: 20, height: 20, objectFit: 'contain' as const } })
-                  : React.createElement('i', { className: 'ti ' + icon, style: { fontSize: 18, color: color }, 'aria-hidden': 'true' })
-              ),
-              React.createElement('span', { style: { flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--foreground, inherit)' } }, p.name || p.portal),
-              React.createElement('i', { className: 'ti ti-chevron-right', style: { fontSize: 14, color: 'var(--muted)' }, 'aria-hidden': 'true' })
-            )
-          })
-      ),
-      React.createElement('div', { style: { padding: '6px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: 12, fontSize: 11, color: 'var(--muted)' } },
-        React.createElement('span', null, '\u2191\u2193 navigate'),
-        React.createElement('span', null, '\u21B5 open'),
-        React.createElement('span', null, 'esc close'),
-        React.createElement('span', { style: { marginLeft: 'auto' } }, React.createElement('kbd', { style: { fontSize: 10, padding: '0 4px', border: '1px solid var(--border)', borderRadius: 3 } }, isMac ? '\u2318C' : 'Ctrl+C'))
+      // Portal name row — aligned under each icon
+      React.createElement('div', {
+        style: { display: 'flex', flexDirection: 'row' as const, gap: 10 }
+      },
+        portals.map(function(p, i) {
+          var isSelected = i === sel
+          return React.createElement('div', {
+            key: p.portal,
+            style: {
+              width: ICON_SIZE,
+              textAlign: 'center' as const,
+              fontFamily: 'Geist, system-ui, -apple-system, sans-serif',
+              fontSize: 11,
+              fontWeight: isSelected ? 600 : 400,
+              color: isSelected ? '#ffffff' : 'rgba(255,255,255,0.45)',
+              whiteSpace: 'nowrap' as const,
+              overflow: 'hidden', textOverflow: 'ellipsis',
+              letterSpacing: '0.01em',
+              transition: 'color 0.1s ease',
+            }
+          }, p.name || p.portal)
+        })
       )
     )
   )
@@ -1025,7 +1077,8 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-        if (!portalPickerOpen && !window.getSelection()?.toString()) {
+        // Only open dock if user has 2+ accessible portals and no text selected
+        if (!portalPickerOpen && portalCount > 1 && !window.getSelection()?.toString()) {
           e.preventDefault(); setPortalPickerOpen(true)
         }
       }
