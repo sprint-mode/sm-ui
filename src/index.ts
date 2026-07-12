@@ -86,3 +86,7 @@ export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx'
 
 // Universal file viewer — PDF, images, Excel, Word with CDN-loaded renderers
 export { FileViewer, isViewableFile } from './FileViewer.jsx'
+
+// Proposal viewer — continuous scroll viewer for client portals (studios, mode, signal)
+export { ProposalViewer } from './ProposalViewer.tsx'
+export type { ProposalViewerProps, ProposalViewerSection, ProposalViewerComment } from './ProposalViewer.tsx'
