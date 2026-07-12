@@ -143,10 +143,18 @@ function InboxPage() {
 // ── Auto-mount ─────────────────────────────────────────────────────────────
 function init() {
   injectDeps()
-  var root = document.getElementById('sm-inbox-root')
-  if (root) {
-    createRoot(root).render(createElement(InboxPage, null))
-  }
+  setTimeout(function() {
+    var root = document.getElementById('sm-inbox-root')
+    if (!root) return
+    try {
+      createRoot(root).render(createElement(InboxPage, null))
+    } catch (_e) {
+      // Fallback: if createRoot still fails, the element may have been
+      // used by another React instance — clear it and retry once
+      root.innerHTML = ''
+      try { createRoot(root).render(createElement(InboxPage, null)) } catch (_) {}
+    }
+  }, 0)
 }
 
 if (document.readyState === 'loading') {
