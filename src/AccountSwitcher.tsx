@@ -74,22 +74,8 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   var handleSwitch = useCallback(function(userId: string) {
     setSwitching(userId)
-    fetch('https://api.sprintmode.ai/api/auth/switch-account', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
-    })
-      .then(function(r) { return r.json() })
-      .then(function(data: { ok: boolean }) {
-        if (data.ok) {
-          window.location.href = 'https://sprintmode.ai/choose-portal'
-        } else {
-          setSwitching(null)
-        }
-      })
-      .catch(function() { setSwitching(null) })
-  }, [apiBase])
+    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId
+  }, [])
 
   // Build the "Add Account" link — points to the portal's own /auth/link-account
   // page, which renders the sm-ui Login component in link mode.
