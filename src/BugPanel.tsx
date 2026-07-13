@@ -360,7 +360,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
                 attachments={bug.attachments.map(function(att) { return { id: att.id, type: att.type || 'file', filename: att.filename, r2Key: att.r2_key || att.id, size: att.size, mime: att.mime } })}
                 updateId={bug.id}
                 getSignedUrl={function(_uid: string, attId: string) {
-                  return fetch(apiBase + '/api/bugs/' + bug.id + '/attachments/' + attId + '/url', { credentials: 'include' })
+                  return fetch(apiBase + '/api/bugs/' + bug.id + '/attachments/' + attId + '/url', { credentials: 'include', headers: { 'X-SM-Product': product } })
                     .then(function(r) { return r.json() })
                 }}
               />
