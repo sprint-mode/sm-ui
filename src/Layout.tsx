@@ -1220,13 +1220,17 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     try {
       var storedTeam = sessionStorage.getItem('sm-view-as-team-' + portalSubdomain)
       if (storedTeam && !viewAsTeam) {
+        // PORTAL-PERMISSIONS-1: Restore via fetchViewAsDetail instead of
+        // setViewAsTeam(matchT). The dropdown user object only has email/name —
+        // no role or permissions. Without the detail fetch, canViewSection gets
+        // empty permissions and hides all nav sections after refresh.
         var matchT = teamDropUsers.find(function(u) { return u.email === storedTeam })
-        if (matchT) setViewAsTeam(matchT)
+        if (matchT) fetchViewAsDetail(storedTeam, teamDropUsers, setViewAsTeam)
       }
       var storedCust = sessionStorage.getItem('sm-view-as-customer-' + portalSubdomain)
       if (storedCust && !viewAsCustomer) {
         var matchC = customerDropUsers.find(function(u) { return u.email === storedCust })
-        if (matchC) setViewAsCustomer(matchC)
+        if (matchC) fetchViewAsDetail(storedCust, customerDropUsers, setViewAsCustomer)
       }
     } catch (_e) {}
     setSsRestored(true)
