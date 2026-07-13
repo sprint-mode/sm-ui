@@ -119,6 +119,7 @@ export interface LayoutProps {
   headerCta?: HeaderCta
   viewAsAnyRole?: boolean
   onViewAsChange?: (viewAs: ViewAsUser | null) => void
+  onViewAsTeamChange?: (viewAs: ViewAsUser | null) => void
   bugPanel?: boolean | number
   bugPanelAdmin?: boolean
   bugPanelLabel?: string
@@ -1241,6 +1242,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         sessionStorage.removeItem('sm-view-as-team-' + portalSubdomain)
       }
     } catch (_e) {}
+    if (props.onViewAsTeamChange) props.onViewAsTeamChange(viewAsTeam)
   }, [viewAsTeam, portalSubdomain, ssRestored])
 
   // Persist customer selection
