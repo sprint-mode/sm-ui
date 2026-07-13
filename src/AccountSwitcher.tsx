@@ -74,7 +74,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   var handleSwitch = useCallback(function(userId: string) {
     setSwitching(userId)
-    fetch(apiBase + '/api/auth/switch-account', {
+    fetch('https://api.sprintmode.ai/api/auth/switch-account', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
