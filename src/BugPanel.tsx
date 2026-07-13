@@ -265,7 +265,7 @@ function highlightText(text: string, query: string): React.ReactNode {
   )
 }
 
-function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDelete, onFire, onFireTerminal, apiBase, searchQuery }: {
+function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDelete, onFire, onFireTerminal, apiBase, product, searchQuery }: {
   bug: Bug
   isAdmin?: boolean
   expanded: boolean
@@ -276,6 +276,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
   onFire?: (bugId: string) => void
   onFireTerminal?: (bugId: string) => void
   apiBase: string
+  product: string
   searchQuery?: string
 }) {
   var _comment = useState(''); var comment = _comment[0]; var setComment = _comment[1]
@@ -538,6 +539,14 @@ export function BugPanel(props: BugPanelProps) {
   var label = props.label || 'Report Bug'
   var offsetFab = props.offsetFab
   var onClose = props.onClose
+
+  // PORTAL-PERMISSIONS-1: Send X-SM-Product so the API reads the correct
+  // per-portal session cookie (e.g. sm_session_admin) instead of falling
+  // back to sm_client which may be missing or stale.
+  function apiFetch(url: string, opts?: RequestInit): Promise<Response> {
+    var headers = Object.assign({}, (opts && opts.headers) || {}, { 'X-SM-Product': product }) as Record<string, string>
+    return fetch(url, Object.assign({}, opts || {}, { credentials: 'include' as RequestCredentials, headers: headers }))
+  }
   var visible = props.visible
 
   var _open = useState(false); var selfOpen = _open[0]; var setSelfOpen = _open[1]
@@ -674,7 +683,7 @@ export function BugPanel(props: BugPanelProps) {
 
     var url = apiBase + '/api/bugs?' + params.join('&')
 
-    fetch(url, { credentials: 'include' })
+    apiFetch(url, { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d: { data?: Bug[] }) {
         var items: Bug[] = Array.isArray(d.data) ? d.data : []
@@ -693,7 +702,7 @@ export function BugPanel(props: BugPanelProps) {
     if (filterProduct !== 'all') params.push('product=' + filterProduct)
     if (filterPriority !== 'all') params.push('priority=' + filterPriority)
     if (debouncedSearch.trim()) params.push('q=' + encodeURIComponent(debouncedSearch.trim()))
-    fetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
+    apiFetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d: { data?: ThreadItem[]; total?: number }) { setThreads(Array.isArray(d.data) ? d.data : []); setThreadTotal(d.total || (d.data ? d.data.length : 0)); setLoading(false) })
       .catch(function() { setLoading(false) })
@@ -707,7 +716,7 @@ export function BugPanel(props: BugPanelProps) {
       var params = ['status=open', 'limit=1']
       if (filterProduct !== 'all') params.push('product=' + filterProduct)
       if (filterPriority !== 'all') params.push('priority=' + filterPriority)
-      fetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
+      apiFetch(apiBase + '/api/bugs/threads?' + params.join('&'), { credentials: 'include' })
         .then(function(r) { return r.json() })
         .then(function(d: { total?: number }) { if (d.total !== undefined) setThreadTotal(d.total) })
         .catch(function() {})
@@ -716,7 +725,7 @@ export function BugPanel(props: BugPanelProps) {
 
   useEffect(function() {
     if (!expanded || source !== 'reports') return
-    fetch(apiBase + '/api/bugs/' + expanded, { credentials: 'include' })
+    apiFetch(apiBase + '/api/bugs/' + expanded, { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(d: { ok: boolean; data?: Bug }) {
         if (d.ok && d.data) {
@@ -731,7 +740,7 @@ export function BugPanel(props: BugPanelProps) {
   }, [expanded, apiBase, source])
 
   function handleAction(bugId: string, updates: Record<string, string>) {
-    fetch(apiBase + '/api/bugs/' + bugId, {
+    apiFetch(apiBase + '/api/bugs/' + bugId, {
       method: 'PATCH', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
@@ -739,7 +748,7 @@ export function BugPanel(props: BugPanelProps) {
   }
 
   function handleDelete(bugId: string) {
-    fetch(apiBase + '/api/bugs/' + bugId, {
+    apiFetch(apiBase + '/api/bugs/' + bugId, {
       method: 'DELETE', credentials: 'include'
     }).then(function(r) { return r.json() })
       .then(function(d: { ok: boolean }) {
@@ -748,7 +757,7 @@ export function BugPanel(props: BugPanelProps) {
   }
 
   function handleFire(bugId: string) {
-    fetch(apiBase + '/api/bugs/' + bugId + '/fire', {
+    apiFetch(apiBase + '/api/bugs/' + bugId + '/fire', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({})
@@ -759,7 +768,7 @@ export function BugPanel(props: BugPanelProps) {
   }
 
   function handleFireTerminal(bugId: string) {
-    fetch(apiBase + '/api/bugs/' + bugId + '/fire', {
+    apiFetch(apiBase + '/api/bugs/' + bugId + '/fire', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ mode: 'terminal' })
@@ -773,12 +782,12 @@ export function BugPanel(props: BugPanelProps) {
   }
 
   function handleComment(bugId: string, body: string): Promise<void> {
-    return fetch(apiBase + '/api/bugs/' + bugId + '/comments', {
+    return apiFetch(apiBase + '/api/bugs/' + bugId + '/comments', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: body })
     }).then(function() {
-      return fetch(apiBase + '/api/bugs/' + bugId, { credentials: 'include' })
+      return apiFetch(apiBase + '/api/bugs/' + bugId, { credentials: 'include' })
         .then(function(r) { return r.json() })
         .then(function(d: { ok: boolean; data?: Bug }) {
           if (d.ok && d.data) {
@@ -795,7 +804,7 @@ export function BugPanel(props: BugPanelProps) {
   function handleSubmit() {
     if (!fTitle.trim() || submitting) return
     setSubmitting(true)
-    fetch(apiBase + '/api/bugs', {
+    apiFetch(apiBase + '/api/bugs', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: fTitle.trim(), description: fDesc.trim(), type: fType, product: fProduct, page_url: window.location.pathname })
@@ -819,7 +828,7 @@ export function BugPanel(props: BugPanelProps) {
               var blob = new Blob([ab], { type: mime })
               fd.append('file', blob, att.name)
             }
-            uploads.push(fetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
+            uploads.push(apiFetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
               method: 'POST', credentials: 'include', body: fd
             }))
           })
@@ -974,7 +983,7 @@ export function BugPanel(props: BugPanelProps) {
           }).map(function(bug) {
             return <BugCard key={bug.id} bug={bug} isAdmin={isAdmin} expanded={expanded === bug.id}
               onToggle={function() { setExpanded(expanded === bug.id ? null : bug.id) }}
-              onAction={handleAction} onComment={handleComment} onDelete={isAdmin ? handleDelete : undefined} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} searchQuery={debouncedSearch} />
+              onAction={handleAction} onComment={handleComment} onDelete={isAdmin ? handleDelete : undefined} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} product={product} searchQuery={debouncedSearch} />
           })}
           {!loading && source === 'threads' && threads.map(function(item) {
             return <ThreadCard key={item.id} item={item} expanded={expanded === item.id}
