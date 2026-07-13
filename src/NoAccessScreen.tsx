@@ -134,21 +134,12 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
 
   function handleSwitch(userId: string) {
     setSwitching(true)
-    fetch('/api/auth/switch-account', {
-      method: 'POST', credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
-    })
-      .then(function(r) { return r.json() })
-      .then(function(data: { ok: boolean }) {
-        if (data.ok) window.location.href = 'https://sprintmode.ai/choose-portal'
-        else setSwitching(false)
-      })
-      .catch(function() { setSwitching(false) })
+    var returnTo = encodeURIComponent(window.location.origin)
+    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
   }
 
-  // R2 logo URL
-  var logoUrl = 'https://api.sprintmode.ai/portals/' + sub + '/logo_mark.png'
+  // R2 logo URL (inverted white-on-transparent for colored header box)
+  var logoInvertedUrl = 'https://api.sprintmode.ai/portals/' + sub + '/logo_mark_inverted.png'
 
   // Hover helpers
   function hoverBg(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.background = 'var(--bg-subtle, #f3f4f6)' }
@@ -170,8 +161,8 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
           style: { width: 28, height: 28, borderRadius: 6, background: brandColor, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }
         },
           React.createElement('img', {
-            src: logoUrl, alt: '', width: 16, height: 16,
-            style: { display: 'block', filter: 'brightness(0) invert(1)' },
+            src: logoInvertedUrl, alt: '', width: 16, height: 16,
+            style: { display: 'block' },
             onError: function(e: React.SyntheticEvent<HTMLImageElement>) {
               // Fallback: render icon SVG path
               var el = e.currentTarget as HTMLImageElement
