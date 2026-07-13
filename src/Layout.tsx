@@ -757,7 +757,7 @@ var PRODUCT_COLORS: Record<string, { color: string; tint: string }> = {
   'mode':           { color: '#0D9488', tint: '#e6f5f3' },
   'hub':            { color: '#4f5d93', tint: '#eef0f8' },
   'sprint-capital': { color: '#1fac6a', tint: '#e8f6f0' },
-  'privacyai':      { color: '#0fb67f', tint: '#e7f7f2' },
+  'privacyai':      { color: '#0891b2', tint: '#e0f4f9' },
   'investor':       { color: '#2362ea', tint: '#e9effc' },
 }
 
