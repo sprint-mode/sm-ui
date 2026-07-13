@@ -1659,16 +1659,21 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
           <div key={(viewAsTeam ? viewAsTeam.email : '') + '|' + (viewAsCustomer ? viewAsCustomer.id || viewAsCustomer.email : '__self__')}>
             {(() => {
               // Route guard: check if the current route's nav item has permission
-              // Build a flat list of all nav items with their permKeys
+              // PORTAL-PERMISSIONS-1: Use the ORIGINAL navSections prop (unfiltered),
+              // not activeNavSections (which has denied items removed). If we only
+              // check filtered nav, denied routes can't be found and the guard is
+              // bypassed by direct URL navigation.
               var routePermKey: string | undefined = undefined
               var allNavItems: NavItem[] = []
-              if (activeNavSections) {
-                activeNavSections.forEach(function(section) {
-                  if (section.items) {
-                    section.items.forEach(function(item) { allNavItems.push(item) })
-                  }
-                })
-              }
+              var originalNav = navSections || []
+              // Collect section-level permKeys for parent gating
+              var sectionPermKeys: string[] = []
+              originalNav.forEach(function(section) {
+                if ((section as any).permKey) sectionPermKeys.push((section as any).permKey)
+                if ((section as any).items) {
+                  ;(section as any).items.forEach(function(item: NavItem) { allNavItems.push(item) })
+                }
+              })
               if (navBottom) {
                 navBottom.forEach(function(item) { allNavItems.push(item) })
               }
@@ -1684,7 +1689,23 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                 }
               }
               // If we found a permKey for this route and it's denied, show access-denied
+              // Also check if the route's permKey belongs to a denied parent section
+              // (e.g. finance.reports is denied if finance:{view:false})
+              var routeDenied = false
               if (routePermKey && !canViewSection(effectivePerms, effectiveRole, routePermKey)) {
+                routeDenied = true
+              }
+              if (!routeDenied && routePermKey) {
+                // Check parent section: if routePermKey is "finance.reports", check "finance"
+                var dotIdx = routePermKey.indexOf('.')
+                if (dotIdx > 0) {
+                  var parentKey = routePermKey.substring(0, dotIdx)
+                  if (sectionPermKeys.indexOf(parentKey) >= 0 && !canViewSection(effectivePerms, effectiveRole, parentKey)) {
+                    routeDenied = true
+                  }
+                }
+              }
+              if (routeDenied) {
                 return React.createElement('div', {
                   style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', fontFamily: 'var(--font, system-ui, sans-serif)' }
                 },
