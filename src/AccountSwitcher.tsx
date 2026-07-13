@@ -1,10 +1,6 @@
-// AccountSwitcher.tsx — ACCOUNT-SWITCHER-1
-// Renders linked accounts list + "Add Account" in the user menu dropdown.
-// Pass as userMenuExtra to Layout.
-//
-// Usage in portal:
-//   import { AccountSwitcher } from '@nomadahq/sm-ui'
-//   <Layout userMenuExtra={<AccountSwitcher />} ... />
+// AccountSwitcher.tsx — ACCOUNT-SWITCHER-5
+// Two-step switch: click account → see their portals → click portal → switch.
+// Session only changes when user commits to a destination portal.
 
 import React, { useState, useEffect, useCallback } from 'react'
 
@@ -13,12 +9,22 @@ export interface AccountSwitcherProps {
   apiBase?: string
 }
 
+interface PortalInfo {
+  subdomain: string
+  name: string
+  brand_color: string | null
+  brand_tint: string | null
+  logo_mark_url: string | null
+  custom_domain: string | null
+}
+
 interface LinkedAccount {
   user_id: string
   display_name: string
   email: string
   photo_url: string | null
   is_current: boolean
+  portals: PortalInfo[]
 }
 
 function PlusIcon() {
@@ -34,16 +40,44 @@ function PlusIcon() {
   )
 }
 
+function ArrowIcon() {
+  return React.createElement('svg', {
+    width: 12, height: 12, viewBox: '0 0 24 24',
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    strokeLinecap: 'round', strokeLinejoin: 'round',
+    style: { flexShrink: 0, color: 'var(--muted)' },
+    'aria-hidden': 'true',
+  },
+    React.createElement('path', { d: 'M9 18l6-6-6-6' })
+  )
+}
+
+function BackIcon() {
+  return React.createElement('svg', {
+    width: 12, height: 12, viewBox: '0 0 24 24',
+    fill: 'none', stroke: 'currentColor', strokeWidth: 2,
+    strokeLinecap: 'round', strokeLinejoin: 'round',
+    style: { flexShrink: 0 },
+    'aria-hidden': 'true',
+  },
+    React.createElement('path', { d: 'M15 18l-6-6 6-6' })
+  )
+}
+
+function portalUrl(p: PortalInfo): string {
+  if (p.custom_domain) return 'https://' + p.custom_domain
+  return 'https://' + p.subdomain + '.sprintmode.ai'
+}
+
 export function AccountSwitcher(props: AccountSwitcherProps) {
   var apiBase = props.apiBase || ''
 
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
   var _loaded = useState(false); var loaded = _loaded[0]; var setLoaded = _loaded[1]
-  var _switching = useState<string | null>(null); var switching = _switching[0]; var setSwitching = _switching[1]
+  var _expanded = useState<string | null>(null); var expanded = _expanded[0]; var setExpanded = _expanded[1]
   var _meUserId = useState(''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
 
   var fetchAccounts = useCallback(function() {
-    // Fetch linked accounts and current user ID in parallel
     var linkedP = fetch(apiBase + '/api/auth/linked-accounts', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean; data?: { accounts: LinkedAccount[] } }) {
@@ -55,7 +89,6 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       })
       .catch(function() {})
 
-    // Also fetch /auth/me to get current user_id even when not linked
     var meP = fetch(apiBase + '/auth/me', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean; user?: { id: string } }) {
@@ -72,70 +105,110 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     fetchAccounts()
   }, [fetchAccounts])
 
-  var handleSwitch = useCallback(function(userId: string) {
-    setSwitching(userId)
-    var returnTo = encodeURIComponent(window.location.origin)
+  // Navigate to the redirect endpoint only after user picks a portal
+  function handlePortalClick(userId: string, targetUrl: string) {
+    var returnTo = encodeURIComponent(targetUrl)
     window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
-  }, [])
+  }
 
-  // Build the "Add Account" link — points to the portal's own /auth/link-account
-  // page, which renders the sm-ui Login component in link mode.
   var currentUrl = typeof window !== 'undefined' ? window.location.href : '/'
   var addAccountHref = meUserId
     ? '/auth/link-account?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(currentUrl)
     : ''
 
-  // Don't render anything until loaded
   if (!loaded) return null
 
   var otherAccounts = accounts.filter(function(a) { return !a.is_current })
 
-  return React.createElement(React.Fragment, null,
-    // Divider
-    React.createElement('div', {
-      style: { height: 1, background: 'var(--border)', margin: '4px 0' }
-    }),
+  // If an account is expanded, show its portal list instead of the account list
+  var expandedAccount = expanded ? otherAccounts.find(function(a) { return a.user_id === expanded }) : null
 
-    // Section label
+  if (expandedAccount) {
+    return React.createElement(React.Fragment, null,
+      React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+      // Back button + account name
+      React.createElement('button', {
+        onClick: function() { setExpanded(null) },
+        style: {
+          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
+          border: 'none', background: 'transparent', cursor: 'pointer',
+          width: '100%', textAlign: 'left' as const, fontSize: 11, fontWeight: 600,
+          color: 'var(--muted)', textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+        }
+      },
+        React.createElement(BackIcon, null),
+        expandedAccount.email
+      ),
+      // Portal list
+      expandedAccount.portals.length > 0
+        ? expandedAccount.portals.map(function(p) {
+            return React.createElement('button', {
+              key: p.subdomain,
+              onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p)) },
+              style: {
+                display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer',
+                width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
+                transition: 'background .15s',
+              },
+              onMouseEnter: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-subtle)' },
+              onMouseLeave: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' },
+            },
+              p.logo_mark_url
+                ? React.createElement('img', {
+                    src: p.logo_mark_url, alt: '',
+                    style: { width: 18, height: 18, borderRadius: 4, objectFit: 'contain' as const, flexShrink: 0 }
+                  })
+                : React.createElement('div', {
+                    style: {
+                      width: 18, height: 18, borderRadius: 4,
+                      background: p.brand_tint || 'var(--accent-10)',
+                      color: p.brand_color || 'var(--accent)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 8, fontWeight: 700, flexShrink: 0,
+                    }
+                  }, (p.name || p.subdomain).charAt(0).toUpperCase()),
+              React.createElement('span', { style: { fontSize: 13 } }, p.name || p.subdomain)
+            )
+          })
+        : React.createElement('div', {
+            style: { padding: '8px 10px', fontSize: 12, color: 'var(--muted)' }
+          }, 'No portals available')
+    )
+  }
+
+  // Default view: account list
+  return React.createElement(React.Fragment, null,
+    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+
     otherAccounts.length > 0
       ? React.createElement('div', {
-          style: { padding: '6px 10px 2px', fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }
+          style: { padding: '6px 10px 2px', fontSize: 10, fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
         }, 'Switch Account')
       : null,
 
-    // Other accounts
     otherAccounts.map(function(account) {
       var initials = (account.display_name || account.email || '?')
-        .split(' ')
-        .map(function(w) { return w[0] || '' })
-        .join('')
-        .slice(0, 2)
-        .toUpperCase()
-
-      var isLoading = switching === account.user_id
+        .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
 
       return React.createElement('button', {
         key: account.user_id,
-        onClick: function() { if (!switching) handleSwitch(account.user_id) },
-        disabled: !!switching,
+        onClick: function() { setExpanded(account.user_id) },
         style: {
           display: 'flex', alignItems: 'center', gap: 8,
           padding: '7px 10px', borderRadius: 6,
           border: 'none', background: 'transparent',
-          cursor: switching ? 'wait' : 'pointer',
-          width: '100%', textAlign: 'left',
+          cursor: 'pointer', width: '100%', textAlign: 'left' as const,
           fontSize: 13, color: 'var(--foreground)',
-          opacity: isLoading ? 0.6 : 1,
           transition: 'background .15s',
         },
-        onMouseEnter: function(e: React.MouseEvent<HTMLButtonElement>) { if (!switching) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-subtle)' },
+        onMouseEnter: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-subtle)' },
         onMouseLeave: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' },
       },
-        // Avatar
         account.photo_url
           ? React.createElement('img', {
               src: account.photo_url, alt: '',
-              style: { width: 22, height: 22, borderRadius: 5, objectFit: 'cover', flexShrink: 0 }
+              style: { width: 22, height: 22, borderRadius: 5, objectFit: 'cover' as const, flexShrink: 0 }
             })
           : React.createElement('div', {
               style: {
@@ -145,42 +218,31 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
                 fontSize: 9, fontWeight: 600, flexShrink: 0,
               }
             }, initials),
-        // Name + email
         React.createElement('div', { style: { flex: 1, minWidth: 0, overflow: 'hidden' } },
           React.createElement('div', {
-            style: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+            style: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
           }, account.display_name || account.email),
           React.createElement('div', {
-            style: { fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+            style: { fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
           }, account.email)
         ),
-        // Loading indicator
-        isLoading
-          ? React.createElement('div', {
-              style: { width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'sm-spin .6s linear infinite', flexShrink: 0 }
-            })
-          : null
+        React.createElement(ArrowIcon, null)
       )
     }),
 
-    // Add Account link
     React.createElement('a', {
       href: addAccountHref,
       style: {
         display: 'flex', alignItems: 'center', gap: 7,
         padding: '8px 10px', borderRadius: 6,
         fontSize: 13, color: 'var(--foreground)',
-        textDecoration: 'none',
-        transition: 'background .15s',
+        textDecoration: 'none', transition: 'background .15s',
       },
       onMouseEnter: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-subtle)' },
       onMouseLeave: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' },
     },
       React.createElement(PlusIcon, null),
       'Add Account'
-    ),
-
-    // Spinner keyframe (injected once)
-    React.createElement('style', null, '@keyframes sm-spin { to { transform: rotate(360deg) } }')
+    )
   )
 }

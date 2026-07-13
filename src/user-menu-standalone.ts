@@ -68,12 +68,22 @@ interface Session {
   [key: string]: unknown
 }
 
+interface PortalInfo {
+  subdomain: string
+  name: string
+  brand_color: string | null
+  brand_tint: string | null
+  logo_mark_url: string | null
+  custom_domain: string | null
+}
+
 interface LinkedAccount {
   user_id: string
   display_name: string
   email: string
   photo_url: string | null
   is_current: boolean
+  portals: PortalInfo[]
 }
 
 function UserMenu(props: { session: Session; logoutHref: string }) {
@@ -82,12 +92,12 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
   var _open = useState(false); var isOpen = _open[0]; var setOpen = _open[1]
   var ref = useRef<HTMLDivElement>(null)
   var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
-  var _switching = useState<string | null>(null); var switching = _switching[0]; var setSwitching = _switching[1]
+  var _expanded = useState<string | null>(null); var expanded = _expanded[0]; var setExpanded = _expanded[1]
   var _meUserId = useState(''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
 
   useEffect(function() {
     var handler = function(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setExpanded(null) }
     }
     document.addEventListener('mousedown', handler)
     return function() { document.removeEventListener('mousedown', handler) }
@@ -105,7 +115,6 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
         }
       })
       .catch(function() {})
-    // Also get current user_id from /auth/me
     fetch('/auth/me', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean; user?: { id: string } }) {
@@ -116,10 +125,14 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
       .catch(function() {})
   }, [])
 
-  function handleSwitch(userId: string) {
-    setSwitching(userId)
-    var returnTo = encodeURIComponent(window.location.origin)
+  function handlePortalClick(userId: string, targetUrl: string) {
+    var returnTo = encodeURIComponent(targetUrl)
     window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
+  }
+
+  function portalUrl(p: { subdomain: string; custom_domain: string | null }): string {
+    if (p.custom_domain) return 'https://' + p.custom_domain
+    return 'https://' + p.subdomain + '.sprintmode.ai'
   }
 
   var initials = (session.name || session.email || '?')
@@ -130,6 +143,7 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
     : session.portal_role ? session.portal_role.replace(/_/g, ' ') : ''
   var photoUrl = session.photo || session.photo_url
   var otherAccounts = accounts.filter(function(a) { return !a.is_current })
+  var expandedAccount = expanded ? otherAccounts.find(function(a) { return a.user_id === expanded }) || null : null
 
   var avatar = photoUrl
     ? createElement('img', {
@@ -174,53 +188,98 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
         style: { display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px',
           borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' }
       }, SettingsIcon, 'Notification Settings'),
-      // ── Linked accounts ──
+      // ── Linked accounts: two-step portal picker ──
       otherAccounts.length > 0 ? createElement('div', null,
-        createElement('div', {
-          style: { height: 1, background: 'var(--border)', margin: '4px 0' }
-        }),
-        createElement('div', {
-          style: { padding: '6px 10px 2px', fontSize: 10, fontWeight: 700, color: 'var(--muted)',
-            textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
-        }, 'Switch Account'),
-        otherAccounts.map(function(acct) {
-          var acctInitials = (acct.display_name || acct.email || '?')
-            .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
-          var isLoading = switching === acct.user_id
-          return createElement('button', {
-            key: acct.user_id,
-            onClick: function() { if (!switching) handleSwitch(acct.user_id) },
-            disabled: !!switching,
-            style: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
-              borderRadius: 6, border: 'none', background: 'transparent', cursor: switching ? 'wait' : 'pointer',
-              width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
-              opacity: isLoading ? 0.6 : 1 }
-          },
-            acct.photo_url
-              ? createElement('img', { src: acct.photo_url, alt: '',
-                  style: { width: 22, height: 22, borderRadius: 5, objectFit: 'cover' as const, flexShrink: 0 } })
-              : createElement('div', {
-                  style: { width: 22, height: 22, borderRadius: 5, background: 'var(--accent-10)',
-                    color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 9, fontWeight: 600, flexShrink: 0 }
-                }, acctInitials),
-            createElement('div', { style: { flex: 1, minWidth: 0, overflow: 'hidden' } },
+        createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+        expandedAccount
+          // ── Expanded: show portals for selected account ──
+          ? createElement('div', null,
+              createElement('button', {
+                onClick: function() { setExpanded(null) },
+                style: { display: 'flex', alignItems: 'center', gap: 6, padding: '6px 10px',
+                  border: 'none', background: 'transparent', cursor: 'pointer',
+                  width: '100%', textAlign: 'left' as const, fontSize: 11, fontWeight: 600,
+                  color: 'var(--muted)', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
+              },
+                createElement('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none',
+                  stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                  style: { flexShrink: 0 } },
+                  createElement('path', { d: 'M15 18l-6-6 6-6' })
+                ),
+                expandedAccount.email
+              ),
+              expandedAccount.portals.length > 0
+                ? expandedAccount.portals.map(function(p) {
+                    return createElement('button', {
+                      key: p.subdomain,
+                      onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p)) },
+                      style: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                        borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer',
+                        width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
+                        transition: 'background .15s' },
+                      onMouseEnter: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-subtle)' },
+                      onMouseLeave: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' },
+                    },
+                      p.logo_mark_url
+                        ? createElement('img', { src: p.logo_mark_url, alt: '',
+                            style: { width: 18, height: 18, borderRadius: 4, objectFit: 'contain' as const, flexShrink: 0 } })
+                        : createElement('div', {
+                            style: { width: 18, height: 18, borderRadius: 4,
+                              background: p.brand_tint || 'var(--accent-10)', color: p.brand_color || 'var(--accent)',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 8, fontWeight: 700, flexShrink: 0 }
+                          }, (p.name || p.subdomain).charAt(0).toUpperCase()),
+                      createElement('span', { style: { fontSize: 13 } }, p.name || p.subdomain)
+                    )
+                  })
+                : createElement('div', { style: { padding: '8px 10px', fontSize: 12, color: 'var(--muted)' } }, 'No portals available')
+            )
+          // ── Default: show account list ──
+          : createElement('div', null,
               createElement('div', {
-                style: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
-              }, acct.display_name || acct.email),
-              createElement('div', {
-                style: { fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
-              }, acct.email)
-            ),
-            isLoading ? createElement('div', {
-              style: { width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
-                borderRadius: '50%', animation: 'sm-spin .6s linear infinite', flexShrink: 0 }
-            }) : null
-          )
-        })
+                style: { padding: '6px 10px 2px', fontSize: 10, fontWeight: 700, color: 'var(--muted)',
+                  textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
+              }, 'Switch Account'),
+              otherAccounts.map(function(acct) {
+                var acctInitials = (acct.display_name || acct.email || '?')
+                  .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
+                return createElement('button', {
+                  key: acct.user_id,
+                  onClick: function() { setExpanded(acct.user_id) },
+                  style: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+                    borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer',
+                    width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
+                    transition: 'background .15s' },
+                  onMouseEnter: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-subtle)' },
+                  onMouseLeave: function(e: React.MouseEvent<HTMLButtonElement>) { (e.currentTarget as HTMLButtonElement).style.background = 'transparent' },
+                },
+                  acct.photo_url
+                    ? createElement('img', { src: acct.photo_url, alt: '',
+                        style: { width: 22, height: 22, borderRadius: 5, objectFit: 'cover' as const, flexShrink: 0 } })
+                    : createElement('div', {
+                        style: { width: 22, height: 22, borderRadius: 5, background: 'var(--accent-10)',
+                          color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 9, fontWeight: 600, flexShrink: 0 }
+                      }, acctInitials),
+                  createElement('div', { style: { flex: 1, minWidth: 0, overflow: 'hidden' } },
+                    createElement('div', {
+                      style: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
+                    }, acct.display_name || acct.email),
+                    createElement('div', {
+                      style: { fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
+                    }, acct.email)
+                  ),
+                  createElement('svg', { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none',
+                    stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+                    style: { flexShrink: 0, color: 'var(--muted)' } },
+                    createElement('path', { d: 'M9 18l6-6-6-6' })
+                  )
+                )
+              })
+            )
       ) : null,
       // ── Add Account ──
-      meUserId ? createElement('a', {
+      !expandedAccount && meUserId ? createElement('a', {
         href: '/auth/link-account?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '/'),
         style: { display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px',
           borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' }
@@ -233,8 +292,6 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
         ),
         'Add Account'
       ) : null,
-      // ── Spinner keyframe ──
-      otherAccounts.length > 0 ? createElement('style', null, '@keyframes sm-spin { to { transform: rotate(360deg) } }') : null,
       createElement('a', {
         href: logoutHref,
         style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13,
