@@ -45,7 +45,7 @@ export function PortalConfigProvider({ subdomain, apiBase, children }: PortalCon
 
   useEffect(function() {
     if (!subdomain) { setLoading(false); return }
-    var base = apiBase || 'https://api.sprintmode.ai'
+    var base = apiBase ?? 'https://api.sprintmode.ai'
     fetch(base + '/api/portal/config?subdomain=' + encodeURIComponent(subdomain), {
       credentials: 'include'
     })
