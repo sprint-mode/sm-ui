@@ -105,10 +105,24 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     fetchAccounts()
   }, [fetchAccounts])
 
-  // Navigate to the redirect endpoint only after user picks a portal
+  // POST through the portal proxy (same-origin), not directly to api.sprintmode.ai.
+  // The proxy forwards cookies + X-SM-Product correctly and passes Set-Cookie back.
   function handlePortalClick(userId: string, targetUrl: string) {
-    var returnTo = encodeURIComponent(targetUrl)
-    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
+    fetch('/api/auth/switch-account', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean }) {
+        if (data.ok) {
+          window.location.href = targetUrl
+        } else {
+          setExpanded(null)
+        }
+      })
+      .catch(function() { setExpanded(null) })
   }
 
   var currentUrl = typeof window !== 'undefined' ? window.location.href : '/'

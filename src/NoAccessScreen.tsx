@@ -134,8 +134,18 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
 
   function handleSwitch(userId: string) {
     setSwitching(true)
-    var returnTo = encodeURIComponent(window.location.origin)
-    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
+    fetch('/api/auth/switch-account', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean }) {
+        if (data.ok) window.location.reload()
+        else setSwitching(false)
+      })
+      .catch(function() { setSwitching(false) })
   }
 
   // R2 logo URL (inverted white-on-transparent for colored header box)

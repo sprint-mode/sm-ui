@@ -126,8 +126,21 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
   }, [])
 
   function handlePortalClick(userId: string, targetUrl: string) {
-    var returnTo = encodeURIComponent(targetUrl)
-    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
+    fetch('/api/auth/switch-account', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean }) {
+        if (data.ok) {
+          window.location.href = targetUrl
+        } else {
+          setExpanded(null)
+        }
+      })
+      .catch(function() { setExpanded(null) })
   }
 
   function portalUrl(p: { subdomain: string; custom_domain: string | null }): string {
