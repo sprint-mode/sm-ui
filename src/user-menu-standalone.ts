@@ -68,11 +68,22 @@ interface Session {
   [key: string]: unknown
 }
 
+interface LinkedAccount {
+  user_id: string
+  display_name: string
+  email: string
+  photo_url: string | null
+  is_current: boolean
+}
+
 function UserMenu(props: { session: Session; logoutHref: string }) {
   var session = props.session
   var logoutHref = props.logoutHref
   var _open = useState(false); var isOpen = _open[0]; var setOpen = _open[1]
   var ref = useRef<HTMLDivElement>(null)
+  var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
+  var _switching = useState<string | null>(null); var switching = _switching[0]; var setSwitching = _switching[1]
+  var _meUserId = useState(''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
 
   useEffect(function() {
     var handler = function(e: MouseEvent) {
@@ -82,6 +93,35 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
     return function() { document.removeEventListener('mousedown', handler) }
   }, [])
 
+  // Fetch linked accounts
+  useEffect(function() {
+    fetch('/api/auth/linked-accounts', { credentials: 'include' })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean; data?: { accounts: LinkedAccount[] } }) {
+        if (data.ok && data.data) {
+          setAccounts(data.data.accounts)
+          var cur = data.data.accounts.find(function(a) { return a.is_current })
+          if (cur) setMeUserId(cur.user_id)
+        }
+      })
+      .catch(function() {})
+    // Also get current user_id from /auth/me
+    fetch('/auth/me', { credentials: 'include' })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean; user?: { id: string } }) {
+        if (data.ok && data.user) {
+          setMeUserId(function(prev: string) { return prev || data.user!.id })
+        }
+      })
+      .catch(function() {})
+  }, [])
+
+  function handleSwitch(userId: string) {
+    setSwitching(userId)
+    var returnTo = encodeURIComponent(window.location.origin)
+    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
+  }
+
   var initials = (session.name || session.email || '?')
     .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
   var firstName = session.name ? session.name.split(' ')[0]
@@ -89,6 +129,7 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
   var roleLine = session.role ? session.role.replace(/_/g, ' ')
     : session.portal_role ? session.portal_role.replace(/_/g, ' ') : ''
   var photoUrl = session.photo || session.photo_url
+  var otherAccounts = accounts.filter(function(a) { return !a.is_current })
 
   var avatar = photoUrl
     ? createElement('img', {
@@ -133,6 +174,67 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
         style: { display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px',
           borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' }
       }, SettingsIcon, 'Notification Settings'),
+      // ── Linked accounts ──
+      otherAccounts.length > 0 ? createElement('div', null,
+        createElement('div', {
+          style: { height: 1, background: 'var(--border)', margin: '4px 0' }
+        }),
+        createElement('div', {
+          style: { padding: '6px 10px 2px', fontSize: 10, fontWeight: 700, color: 'var(--muted)',
+            textTransform: 'uppercase' as const, letterSpacing: '0.5px' }
+        }, 'Switch Account'),
+        otherAccounts.map(function(acct) {
+          var acctInitials = (acct.display_name || acct.email || '?')
+            .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
+          var isLoading = switching === acct.user_id
+          return createElement('button', {
+            key: acct.user_id,
+            onClick: function() { if (!switching) handleSwitch(acct.user_id) },
+            disabled: !!switching,
+            style: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+              borderRadius: 6, border: 'none', background: 'transparent', cursor: switching ? 'wait' : 'pointer',
+              width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
+              opacity: isLoading ? 0.6 : 1 }
+          },
+            acct.photo_url
+              ? createElement('img', { src: acct.photo_url, alt: '',
+                  style: { width: 22, height: 22, borderRadius: 5, objectFit: 'cover' as const, flexShrink: 0 } })
+              : createElement('div', {
+                  style: { width: 22, height: 22, borderRadius: 5, background: 'var(--accent-10)',
+                    color: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: 9, fontWeight: 600, flexShrink: 0 }
+                }, acctInitials),
+            createElement('div', { style: { flex: 1, minWidth: 0, overflow: 'hidden' } },
+              createElement('div', {
+                style: { fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
+              }, acct.display_name || acct.email),
+              createElement('div', {
+                style: { fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' }
+              }, acct.email)
+            ),
+            isLoading ? createElement('div', {
+              style: { width: 12, height: 12, border: '2px solid var(--border)', borderTopColor: 'var(--accent)',
+                borderRadius: '50%', animation: 'sm-spin .6s linear infinite', flexShrink: 0 }
+            }) : null
+          )
+        })
+      ) : null,
+      // ── Add Account ──
+      meUserId ? createElement('a', {
+        href: '/auth/link-account?link_to=' + encodeURIComponent(meUserId) + '&redirect=' + encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '/'),
+        style: { display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px',
+          borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' }
+      },
+        createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none',
+          stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+          style: { flexShrink: 0, color: 'var(--muted)' } },
+          createElement('line', { x1: 12, y1: 5, x2: 12, y2: 19 }),
+          createElement('line', { x1: 5, y1: 12, x2: 19, y2: 12 })
+        ),
+        'Add Account'
+      ) : null,
+      // ── Spinner keyframe ──
+      otherAccounts.length > 0 ? createElement('style', null, '@keyframes sm-spin { to { transform: rotate(360deg) } }') : null,
       createElement('a', {
         href: logoutHref,
         style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13,

@@ -74,7 +74,8 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   var handleSwitch = useCallback(function(userId: string) {
     setSwitching(userId)
-    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId
+    var returnTo = encodeURIComponent(window.location.origin)
+    window.location.href = 'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=' + userId + '&return_to=' + returnTo
   }, [])
 
   // Build the "Add Account" link — points to the portal's own /auth/link-account
