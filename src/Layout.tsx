@@ -1088,8 +1088,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         }
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
-        // Only open dock if user has 2+ accessible portals and no text selected
-        if (!portalPickerOpen && portalCount > 1 && !window.getSelection()?.toString()) {
+        // Only open dock if user has 2+ accessible portals, no text selected,
+        // and not on the marketing website (sprintmode.ai root — not a portal)
+        var host = typeof window !== 'undefined' ? window.location.hostname : ''
+        var isMarketingSite = host === 'sprintmode.ai' || host === 'www.sprintmode.ai'
+        if (!isMarketingSite && !portalPickerOpen && portalCount > 1 && !window.getSelection()?.toString()) {
           e.preventDefault(); setPortalPickerOpen(true)
         }
       }
