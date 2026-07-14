@@ -1686,15 +1686,20 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               if (navBottom) {
                 navBottom.forEach(function(item) { allNavItems.push(item) })
               }
-              // Match current path to a nav item
+              // Match current path to a nav item — use LONGEST (most specific) match.
+              // Without this, /hiring/placements prefix-matches /hiring (Pipeline item,
+              // which may be denied) and blocks access even though Placements is allowed.
               var curPath = location.pathname
+              var bestMatch = ''
               for (var i = 0; i < allNavItems.length; i++) {
                 var navItem = allNavItems[i]
                 if (!navItem.to || !navItem.permKey) continue
-                // Exact match or prefix match (e.g. /sm/projects matches /sm/projects/123)
                 if (curPath === navItem.to || curPath.startsWith(navItem.to + '/')) {
-                  routePermKey = navItem.permKey
-                  break
+                  // Keep the longest matching path (most specific route)
+                  if (navItem.to.length > bestMatch.length) {
+                    bestMatch = navItem.to
+                    routePermKey = navItem.permKey
+                  }
                 }
               }
               // If we found a permKey for this route and it's denied, show access-denied
