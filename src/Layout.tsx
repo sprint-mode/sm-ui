@@ -799,9 +799,17 @@ function canViewSection(perms: Permissions | null, role: string | null | undefin
   // but if it didn't, don't lock everyone out)
   if (Object.keys(perms.sections).length === 0) return true
   var entry = perms.sections[key]
-  // Key not in permissions → deny (if other keys exist, this one was
-  // intentionally excluded or set to none)
-  if (!entry) return false
+  // PORTAL-PERMISSIONS-1: If sub-item key is missing (e.g. contracts.all_contracts),
+  // check parent section key (contracts). Missing sub-item = inherits parent permission.
+  // Only top-level keys missing = deny (intentionally excluded).
+  if (!entry) {
+    var dotIdx = key.indexOf('.')
+    if (dotIdx > 0) {
+      var parentEntry = perms.sections[key.substring(0, dotIdx)]
+      if (parentEntry) return parentEntry.view !== false
+    }
+    return false
+  }
   return entry.view !== false
 }
 
