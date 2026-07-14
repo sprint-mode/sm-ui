@@ -93,6 +93,12 @@ export interface HeaderCta {
 export interface LayoutProps {
   navConfig?: Record<string, { label: string; items: NavItem[] }>
   navSections?: (NavSection & { type?: string; heading?: string })[]
+  /** Unfiltered nav sections for route-level permission checking.
+   * When the parent component pre-filters navSections (e.g. filterNavByPermissions),
+   * denied items are removed and the route guard can't find them. Pass the ORIGINAL
+   * unfiltered sections here so the route guard can block direct URL navigation
+   * to denied routes. Falls back to navSections if not provided. */
+  routeGuardNav?: (NavSection & { type?: string; heading?: string })[]
   navBottom?: NavItem[]
   session?: SessionData | null
   children?: React.ReactNode
@@ -1665,10 +1671,13 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               // bypassed by direct URL navigation.
               var routePermKey: string | undefined = undefined
               var allNavItems: NavItem[] = []
-              var originalNav = navSections || []
+              // PORTAL-PERMISSIONS-1: Use routeGuardNav (unfiltered) so denied routes
+              // are still matchable. If the parent filters navSections before passing
+              // them, denied items are removed and the guard can't find them.
+              var guardNav = props.routeGuardNav || navSections || []
               // Collect section-level permKeys for parent gating
               var sectionPermKeys: string[] = []
-              originalNav.forEach(function(section) {
+              guardNav.forEach(function(section) {
                 if ((section as any).permKey) sectionPermKeys.push((section as any).permKey)
                 if ((section as any).items) {
                   ;(section as any).items.forEach(function(item: NavItem) { allNavItems.push(item) })
