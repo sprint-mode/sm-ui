@@ -771,7 +771,7 @@ var PRODUCT_COLORS: Record<string, { color: string; tint: string }> = {
 // ─── Permission Helpers ─────────────────────────────────────────────────────
 
 interface Permissions {
-  sections?: Record<string, { view?: boolean }>
+  sections?: Record<string, { view?: boolean; login?: boolean }>
   products?: Record<string, boolean>
 }
 
