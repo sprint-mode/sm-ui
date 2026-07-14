@@ -816,14 +816,10 @@ function canViewProduct(perms: Permissions | null, role: string | null | undefin
   if (!product) return true
   if (role === 'super_admin') return true
   if (!perms) return true
-  // PORTAL-PERMISSIONS-1: Check portal.{product} login permission.
-  // If the portal is toggled off for this role, hide the entire product section.
-  if (perms.sections) {
-    var portalKey = 'portal.' + product
-    var portalPerm = perms.sections[portalKey]
-    if (portalPerm && portalPerm.login === false) return false
-    if (portalPerm && portalPerm.login === true) return true
-  }
+  // Product sections are gated by their section permKey (e.g. signal:{view:true/false}),
+  // same as any other section. portal.{product}:{login} is a SEPARATE concern — it
+  // controls whether the user can log into the portal itself (signal.sprintmode.ai),
+  // not whether they see the admin section on admin.sprintmode.ai.
   if (perms.products && perms.products[product]) return true
   if (perms.sections && perms.sections[product] && perms.sections[product].view === false) return false
   return true
