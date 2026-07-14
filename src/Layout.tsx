@@ -809,6 +809,14 @@ function canViewProduct(perms: Permissions | null, role: string | null | undefin
   if (!product) return true
   if (role === 'super_admin') return true
   if (!perms) return true
+  // PORTAL-PERMISSIONS-1: Check portal.{product} login permission.
+  // If the portal is toggled off for this role, hide the entire product section.
+  if (perms.sections) {
+    var portalKey = 'portal.' + product
+    var portalPerm = perms.sections[portalKey]
+    if (portalPerm && portalPerm.login === false) return false
+    if (portalPerm && portalPerm.login === true) return true
+  }
   if (perms.products && perms.products[product]) return true
   if (perms.sections && perms.sections[product] && perms.sections[product].view === false) return false
   return true
@@ -1675,10 +1683,14 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               // are still matchable. If the parent filters navSections before passing
               // them, denied items are removed and the guard can't find them.
               var guardNav = props.routeGuardNav || navSections || []
-              // Collect section-level permKeys for parent gating
+              // Collect section-level permKeys and product mappings for gating
               var sectionPermKeys: string[] = []
+              var sectionProducts: Record<string, string> = {}
               guardNav.forEach(function(section) {
                 if ((section as any).permKey) sectionPermKeys.push((section as any).permKey)
+                if ((section as any).product && (section as any).key) {
+                  sectionProducts[(section as any).key] = (section as any).product
+                }
                 if ((section as any).items) {
                   ;(section as any).items.forEach(function(item: NavItem) { allNavItems.push(item) })
                 }
@@ -1716,6 +1728,12 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                   var parentKey = routePermKey.substring(0, dotIdx)
                   if (sectionPermKeys.indexOf(parentKey) >= 0 && !canViewSection(effectivePerms, effectiveRole, parentKey)) {
                     routeDenied = true
+                  }
+                  // Check product access: if parent is a product section, check portal.{product}
+                  if (!routeDenied && sectionProducts[parentKey]) {
+                    if (!canViewProduct(effectivePerms, effectiveRole, sectionProducts[parentKey])) {
+                      routeDenied = true
+                    }
                   }
                 }
               }
