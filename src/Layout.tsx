@@ -801,7 +801,14 @@ function canViewSection(perms: Permissions | null, role: string | null | undefin
   var entry = perms.sections[key]
   // Key not in permissions → deny (if other keys exist, this one was
   // intentionally excluded or set to none)
-  if (!entry) return false
+  if (!entry) {
+    var dotIdx = key.indexOf('.')
+    if (dotIdx > 0) {
+      var parentEntry = perms.sections[key.substring(0, dotIdx)]
+      if (parentEntry) return parentEntry.view !== false
+    }
+    return false
+  }
   return entry.view !== false
 }
 
