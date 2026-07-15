@@ -439,6 +439,9 @@ export function DataTable(props: DataTableProps) {
   var pickerOpen = _pickerOpen[0]; var setPickerOpen = _pickerOpen[1]
   var pickerRef = React.useRef<HTMLDivElement>(null)
 
+  var _resizeOverlay = React.useState(false)
+  var showOverlay = _resizeOverlay[0]; var setShowOverlay = _resizeOverlay[1]
+
   var dragKey = React.useRef<string | null>(null)
   var resizing = React.useRef(false)
 
@@ -512,6 +515,7 @@ export function DataTable(props: DataTableProps) {
     return function(e: React.MouseEvent) {
       e.preventDefault(); e.stopPropagation()
       resizing.current = true
+      setShowOverlay(true)
       var sx = e.clientX
       var sw = widthOf(key)
       var mv = function(ev: MouseEvent) {
@@ -525,6 +529,7 @@ export function DataTable(props: DataTableProps) {
       var up = function() {
         window.removeEventListener('mousemove', mv)
         window.removeEventListener('mouseup', up)
+        setShowOverlay(false)
         setTimeout(function() { resizing.current = false }, 0)
         if (storageKey) {
           var sk = storageKey
@@ -539,6 +544,7 @@ export function DataTable(props: DataTableProps) {
   var resizeStyle: CSSProperties = { position: 'absolute', top: 0, right: 0, width: 7, height: '100%', cursor: 'col-resize', userSelect: 'none' }
 
   return React.createElement('div', { style: { position: 'relative' } },
+    showOverlay && React.createElement('div', { style: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, cursor: 'col-resize' } }),
     columnPicker && React.createElement('div', { ref: pickerRef, style: { position: 'absolute', top: -32, right: 0, zIndex: 10 } },
       React.createElement('button', {
         type: 'button',
