@@ -69,13 +69,20 @@ function portalUrl(p: PortalInfo): string {
   return 'https://' + p.subdomain + '.sprintmode.ai'
 }
 
+// Module-level cache — survives mount/unmount cycles so the user menu
+// opens instantly after the first fetch. The cache is keyed by apiBase
+// so different portals don't collide.
+var _linkedCache: Record<string, { accounts: LinkedAccount[]; meUserId: string; ts: number }> = {}
+var CACHE_TTL = 60000 // refresh in background after 60 s
+
 export function AccountSwitcher(props: AccountSwitcherProps) {
   var apiBase = props.apiBase || ''
 
-  var _accounts = useState<LinkedAccount[]>([]); var accounts = _accounts[0]; var setAccounts = _accounts[1]
-  var _loaded = useState(false); var loaded = _loaded[0]; var setLoaded = _loaded[1]
+  var cached = _linkedCache[apiBase]
+  var _accounts = useState<LinkedAccount[]>(cached ? cached.accounts : []); var accounts = _accounts[0]; var setAccounts = _accounts[1]
+  var _loaded = useState(!!cached); var loaded = _loaded[0]; var setLoaded = _loaded[1]
   var _expanded = useState<string | null>(null); var expanded = _expanded[0]; var setExpanded = _expanded[1]
-  var _meUserId = useState(''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
+  var _meUserId = useState(cached ? cached.meUserId : ''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
 
   var fetchAccounts = useCallback(function() {
     var linkedP = fetch(apiBase + '/api/auth/linked-accounts', { credentials: 'include' })
@@ -85,23 +92,42 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
           setAccounts(data.data.accounts)
           var cur = data.data.accounts.find(function(a) { return a.is_current })
           if (cur) setMeUserId(cur.user_id)
+          return data.data.accounts
         }
+        return null
       })
-      .catch(function() {})
+      .catch(function() { return null })
 
     var meP = fetch(apiBase + '/auth/me', { credentials: 'include' })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean; user?: { id: string } }) {
         if (data.ok && data.user) {
           setMeUserId(function(prev: string) { return prev || data.user!.id })
+          return data.user.id
         }
+        return null
       })
-      .catch(function() {})
+      .catch(function() { return null })
 
-    Promise.all([linkedP, meP]).then(function() { setLoaded(true) })
+    Promise.all([linkedP, meP]).then(function(results) {
+      setLoaded(true)
+      // Update cache
+      var accts = results[0] as LinkedAccount[] | null
+      var uid = results[1] as string | null
+      if (accts) {
+        var cur = accts.find(function(a) { return a.is_current })
+        _linkedCache[apiBase] = {
+          accounts: accts,
+          meUserId: uid || (cur ? cur.user_id : ''),
+          ts: Date.now(),
+        }
+      }
+    })
   }, [apiBase])
 
   useEffect(function() {
+    // If cache is fresh, skip the fetch entirely
+    if (cached && Date.now() - cached.ts < CACHE_TTL) return
     fetchAccounts()
   }, [fetchAccounts])
 
