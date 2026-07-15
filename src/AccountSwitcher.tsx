@@ -107,12 +107,12 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   // POST through the portal proxy (same-origin), not directly to api.sprintmode.ai.
   // The proxy forwards cookies + X-SM-Product correctly and passes Set-Cookie back.
-  function handlePortalClick(userId: string, targetUrl: string) {
+  function handlePortalClick(userId: string, targetUrl: string, portalSubdomain: string) {
     fetch('/api/auth/switch-account', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
+      body: JSON.stringify({ user_id: userId, target_portal: portalSubdomain }),
     })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean }) {
@@ -158,7 +158,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
         ? expandedAccount.portals.map(function(p) {
             return React.createElement('button', {
               key: p.subdomain,
-              onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p)) },
+              onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p), p.subdomain) },
               style: {
                 display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
                 borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer',

@@ -125,12 +125,12 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
       .catch(function() {})
   }, [])
 
-  function handlePortalClick(userId: string, targetUrl: string) {
+  function handlePortalClick(userId: string, targetUrl: string, portalSubdomain: string) {
     fetch('/api/auth/switch-account', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
+      body: JSON.stringify({ user_id: userId, target_portal: portalSubdomain }),
     })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean }) {
@@ -225,7 +225,7 @@ function UserMenu(props: { session: Session; logoutHref: string }) {
                 ? expandedAccount.portals.map(function(p) {
                     return createElement('button', {
                       key: p.subdomain,
-                      onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p)) },
+                      onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p), p.subdomain) },
                       style: { display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
                         borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer',
                         width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
