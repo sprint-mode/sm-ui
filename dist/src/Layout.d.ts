@@ -85,6 +85,15 @@ export interface LayoutProps {
         type?: string;
         heading?: string;
     })[];
+    /** Unfiltered nav sections for route-level permission checking.
+     * When the parent component pre-filters navSections (e.g. filterNavByPermissions),
+     * denied items are removed and the route guard can't find them. Pass the ORIGINAL
+     * unfiltered sections here so the route guard can block direct URL navigation
+     * to denied routes. Falls back to navSections if not provided. */
+    routeGuardNav?: (NavSection & {
+        type?: string;
+        heading?: string;
+    })[];
     navBottom?: NavItem[];
     session?: SessionData | null;
     children?: React.ReactNode;
@@ -116,6 +125,7 @@ export interface LayoutProps {
     headerCta?: HeaderCta;
     viewAsAnyRole?: boolean;
     onViewAsChange?: (viewAs: ViewAsUser | null) => void;
+    onViewAsTeamChange?: (viewAs: ViewAsUser | null) => void;
     bugPanel?: boolean | number;
     bugPanelAdmin?: boolean;
     bugPanelLabel?: string;
