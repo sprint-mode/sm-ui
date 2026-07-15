@@ -138,7 +138,7 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_id: userId }),
+      body: JSON.stringify({ user_id: userId, target_portal: sub }),
     })
       .then(function(r) { return r.json() })
       .then(function(data: { ok: boolean }) {
