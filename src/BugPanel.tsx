@@ -53,6 +53,10 @@ export interface Bug {
   ai_classification?: string | Record<string, unknown>
   fire_prompt?: string
   close_reason?: string
+  verified_status?: string | null
+  verified_at?: string | null
+  verification_run_id?: string | null
+  test_spec?: string | Record<string, unknown> | null
   comments?: BugComment[]
   attachments?: BugAttachment[]
 }
@@ -81,6 +85,12 @@ var STATUS_META: Record<string, { color: string; bg: string; label: string }> = 
 }
 
 var TYPES = ['bug', 'feature', 'ux', 'task']
+
+var VERIFIED_META: Record<string, { color: string; bg: string; label: string }> = {
+  pw_verifying: { color: '#e67700', bg: '#fff3e0', label: 'verifying' },
+  verified:     { color: 'var(--green)', bg: 'var(--green-light)', label: 'verified' },
+  pw_failed:    { color: 'var(--red)', bg: 'var(--red-light)', label: 'verify failed' },
+}
 
 var PRIORITY_META: Record<string, { label: string; sublabel: string; color: string; bg: string; sort: number }> = {
   critical: { label: 'P0', sublabel: 'Critical', color: 'var(--red)',   bg: 'var(--red-light)',   sort: 0 },
@@ -266,7 +276,7 @@ function highlightText(text: string, query: string): React.ReactNode {
   )
 }
 
-function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDelete, onFire, onFireTerminal, apiBase, product, searchQuery }: {
+function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDelete, onFire, onFireTerminal, onVerify, apiBase, product, searchQuery }: {
   bug: Bug
   isAdmin?: boolean
   expanded: boolean
@@ -276,6 +286,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
   onDelete?: (bugId: string) => void
   onFire?: (bugId: string) => void
   onFireTerminal?: (bugId: string) => void
+  onVerify?: (bugId: string) => void
   apiBase: string
   product: string
   searchQuery?: string
@@ -334,6 +345,9 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
         {isAdmin && bug.submitted_by_name && <span style={S.submittedBy}>{bug.submitted_by_name.split(' ')[0].toLowerCase()}</span>}
         {isAdmin ? <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', marginLeft: 'auto', color: sm.color }}>{bug.status}</span>
                  : <span style={S.statusPill(bug.status)}>{sm.label}</span>}
+        {bug.verified_status && VERIFIED_META[bug.verified_status] && (
+          <span style={{ display: 'inline-block', fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '2px 6px', borderRadius: 999, flexShrink: 0, background: VERIFIED_META[bug.verified_status].bg, color: VERIFIED_META[bug.verified_status].color, marginLeft: 4 }}>{VERIFIED_META[bug.verified_status].label}</span>
+        )}
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -468,6 +482,12 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
                 <>
                   <button style={S.btnSm('transparent', 'var(--accent)', '1px solid var(--accent)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'open' }) }}>Re-open</button>
                   {bug.close_reason && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{bug.close_reason.replace(/_/g, ' ')}</span>}
+                  {onVerify && bug.test_spec && !bug.verified_status && (
+                    <button style={S.btnSm('transparent', 'var(--green)', '1px solid var(--green)')} onClick={function(e) { e.stopPropagation(); onVerify(bug.id) }}>Verify</button>
+                  )}
+                  {onVerify && bug.verified_status === 'pw_failed' && bug.test_spec && (
+                    <button style={S.btnSm('transparent', '#e67700', '1px solid #e67700')} onClick={function(e) { e.stopPropagation(); onVerify(bug.id) }}>Re-verify</button>
+                  )}
                 </>
               )}
               {onDelete && <span style={{ marginLeft: 'auto' }} />}
@@ -784,6 +804,26 @@ export function BugPanel(props: BugPanelProps) {
       })
   }
 
+  function handleVerify(bugId: string) {
+    var bug = bugs.find(function(b) { return b.id === bugId })
+    if (!bug || !bug.test_spec) return
+    var spec = typeof bug.test_spec === 'string' ? JSON.parse(bug.test_spec) : bug.test_spec
+    apiFetch(apiBase + '/api/admin/qa/trigger', {
+      method: 'POST', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tests: [spec], trigger: 'bug-panel' })
+    }).then(function(r) { return r.json() })
+      .then(function(d: { ok: boolean; data?: { run_id: string } }) {
+        if (d.ok) {
+          setBugs(function(prev) {
+            return prev.map(function(b) {
+              return b.id === bugId ? Object.assign({}, b, { verified_status: 'pw_verifying', verification_run_id: d.data?.run_id }) : b
+            })
+          })
+        }
+      })
+  }
+
   function handleComment(bugId: string, body: string): Promise<void> {
     return apiFetch(apiBase + '/api/bugs/' + bugId + '/comments', {
       method: 'POST', credentials: 'include',
@@ -986,7 +1026,7 @@ export function BugPanel(props: BugPanelProps) {
           }).map(function(bug) {
             return <BugCard key={bug.id} bug={bug} isAdmin={isAdmin} expanded={expanded === bug.id}
               onToggle={function() { setExpanded(expanded === bug.id ? null : bug.id) }}
-              onAction={handleAction} onComment={handleComment} onDelete={isAdmin ? handleDelete : undefined} onFire={handleFire} onFireTerminal={handleFireTerminal} apiBase={apiBase} product={product} searchQuery={debouncedSearch} />
+              onAction={handleAction} onComment={handleComment} onDelete={isAdmin ? handleDelete : undefined} onFire={handleFire} onFireTerminal={handleFireTerminal} onVerify={isAdmin ? handleVerify : undefined} apiBase={apiBase} product={product} searchQuery={debouncedSearch} />
           })}
           {!loading && source === 'threads' && threads.map(function(item) {
             return <ThreadCard key={item.id} item={item} expanded={expanded === item.id}
