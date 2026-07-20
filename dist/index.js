@@ -107193,6 +107193,195 @@ function ZMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 								children: "Cancel"
 							})] })
 						]
+					}),
+					e.verified_status && e.verified_status !== "pw_verifying" && /* @__PURE__ */ u("div", {
+						style: {
+							borderTop: "1px solid var(--border)",
+							padding: "12px 14px",
+							background: e.verified_status === "verified" ? "var(--green-light, #f0fdf4)" : "var(--red-light, #fef2f2)"
+						},
+						onClick: function(e) {
+							e.stopPropagation();
+						},
+						children: [/* @__PURE__ */ u("div", {
+							style: {
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "space-between",
+								marginBottom: 8
+							},
+							children: [/* @__PURE__ */ l("div", {
+								style: {
+									display: "flex",
+									alignItems: "center",
+									gap: 8
+								},
+								children: /* @__PURE__ */ l("span", {
+									style: {
+										fontSize: 11,
+										fontWeight: 700,
+										fontFamily: "var(--font-mono)",
+										textTransform: "uppercase",
+										letterSpacing: "0.5px",
+										color: e.verified_status === "verified" ? "var(--green, hsl(142,71%,30%))" : "var(--red, hsl(0,84%,40%))"
+									},
+									children: e.verified_status === "verified" ? "✓ Playwright Verified" : "✗ Playwright Failed"
+								})
+							}), e.verified_at && /* @__PURE__ */ l("span", {
+								style: {
+									fontSize: 10,
+									fontFamily: "var(--font-mono)",
+									color: "var(--muted)"
+								},
+								children: new Date(e.verified_at).toLocaleString()
+							})]
+						}), e.verification_results && e.verification_results.map(function(e, t) {
+							return /* @__PURE__ */ u("div", {
+								style: {
+									background: "var(--bg-card, #fff)",
+									border: "1px solid var(--border)",
+									borderRadius: 6,
+									padding: "10px 12px",
+									marginBottom: 8
+								},
+								children: [
+									/* @__PURE__ */ u("div", {
+										style: {
+											display: "flex",
+											alignItems: "center",
+											gap: 8,
+											marginBottom: e.screenshots && e.screenshots.length > 0 ? 8 : 0
+										},
+										children: [
+											/* @__PURE__ */ l("span", {
+												style: {
+													fontSize: 10,
+													fontWeight: 700,
+													fontFamily: "var(--font-mono)",
+													padding: "1px 6px",
+													borderRadius: 3,
+													background: e.status === "pass" ? "var(--green-light, #dcfce7)" : "var(--red-light, #fee2e2)",
+													color: e.status === "pass" ? "var(--green, hsl(142,71%,30%))" : "var(--red, hsl(0,84%,40%))"
+												},
+												children: e.status === "pass" ? "PASS" : "FAIL"
+											}),
+											/* @__PURE__ */ l("span", {
+												style: {
+													fontSize: 11,
+													fontFamily: "var(--font)",
+													fontWeight: 500,
+													color: "var(--foreground)"
+												},
+												children: e.id.replace(/^bug_/, "BUG-").slice(0, 12)
+											}),
+											e.duration_ms != null && /* @__PURE__ */ u("span", {
+												style: {
+													fontSize: 10,
+													fontFamily: "var(--font-mono)",
+													color: "var(--muted)",
+													marginLeft: "auto"
+												},
+												children: [(e.duration_ms / 1e3).toFixed(1), "s"]
+											})
+										]
+									}),
+									e.error && /* @__PURE__ */ l("div", {
+										style: {
+											fontSize: 11,
+											fontFamily: "var(--font-mono)",
+											color: "var(--red, hsl(0,84%,40%))",
+											padding: "6px 8px",
+											background: "rgba(239,68,68,0.06)",
+											borderRadius: 4,
+											marginBottom: 6,
+											marginTop: 6,
+											wordBreak: "break-word",
+											lineHeight: "1.4"
+										},
+										children: e.error
+									}),
+									e.screenshots && e.screenshots.length > 0 && /* @__PURE__ */ l("div", {
+										style: {
+											display: "flex",
+											gap: 8,
+											flexWrap: "wrap"
+										},
+										children: e.screenshots.map(function(e, t) {
+											var n = e.split("/").pop()?.replace(".png", "").replace(/-/g, " ") || "screenshot";
+											return /* @__PURE__ */ u("div", {
+												style: {
+													display: "flex",
+													flexDirection: "column",
+													gap: 3
+												},
+												children: [/* @__PURE__ */ l("a", {
+													href: e,
+													target: "_blank",
+													rel: "noopener noreferrer",
+													style: { display: "block" },
+													children: /* @__PURE__ */ l("img", {
+														src: e,
+														alt: n,
+														style: {
+															maxWidth: 220,
+															maxHeight: 160,
+															borderRadius: 4,
+															border: "1px solid var(--border)",
+															cursor: "pointer",
+															display: "block"
+														}
+													})
+												}), /* @__PURE__ */ l("span", {
+													style: {
+														fontSize: 9,
+														fontFamily: "var(--font-mono)",
+														color: "var(--muted)",
+														textTransform: "uppercase",
+														letterSpacing: "0.3px"
+													},
+													children: n
+												})]
+											}, t);
+										})
+									})
+								]
+							}, t);
+						})]
+					}),
+					e.verified_status === "pw_verifying" && /* @__PURE__ */ l("div", {
+						style: {
+							borderTop: "1px solid var(--border)",
+							padding: "12px 14px",
+							background: "#fff8e1"
+						},
+						onClick: function(e) {
+							e.stopPropagation();
+						},
+						children: /* @__PURE__ */ u("div", {
+							style: {
+								display: "flex",
+								alignItems: "center",
+								gap: 8
+							},
+							children: [/* @__PURE__ */ u("span", {
+								style: {
+									fontSize: 11,
+									fontWeight: 700,
+									fontFamily: "var(--font-mono)",
+									textTransform: "uppercase",
+									letterSpacing: "0.5px",
+									color: "#e67700"
+								},
+								children: ["○", " Playwright running..."]
+							}), /* @__PURE__ */ l("span", {
+								style: {
+									fontSize: 10,
+									fontFamily: "var(--font-mono)",
+									color: "var(--muted)"
+								},
+								children: "Results will appear when complete"
+							})]
+						})
 					})
 				]
 			})
@@ -107460,14 +107649,26 @@ function h9(e) {
 		!H || P !== "reports" || m(r + "/api/bugs/" + H, { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			e.ok && e.data && C(function(t) {
-				return t.map(function(t) {
-					return t.id === H ? Object.assign({}, t, {
-						comments: e.data.comments,
-						attachments: e.data.attachments
-					}) : t;
+			if (e.ok && e.data) {
+				C(function(t) {
+					return t.map(function(t) {
+						return t.id === H ? Object.assign({}, t, {
+							comments: e.data.comments,
+							attachments: e.data.attachments
+						}) : t;
+					});
 				});
-			});
+				var t = e.data.verification_run_id;
+				t && e.data.verified_status && e.data.verified_status !== "pw_verifying" && m(r + "/api/admin/qa/runs/" + t, { credentials: "include" }).then(function(e) {
+					return e.json();
+				}).then(function(e) {
+					e.ok && e.data && e.data.results && C(function(t) {
+						return t.map(function(t) {
+							return t.id === H ? Object.assign({}, t, { verification_results: e.data.results }) : t;
+						});
+					});
+				}).catch(function() {});
+			}
 		}).catch(function() {});
 	}, [
 		H,
@@ -107869,12 +108070,15 @@ function h9(e) {
 			t && P === "reports" && /* @__PURE__ */ l("div", {
 				style: Q.tabBar,
 				children: l9.map(function(e) {
-					return /* @__PURE__ */ l("button", {
+					var t = S.filter(function(t) {
+						return e.statuses.indexOf(t.status) !== -1;
+					}).length;
+					return /* @__PURE__ */ u("button", {
 						style: Q.tabBtn(L === e.id),
 						onClick: function() {
 							R(e.id), te(null);
 						},
-						children: e.label
+						children: [e.label, t > 0 ? " " + t : ""]
 					}, e.id);
 				})
 			}),

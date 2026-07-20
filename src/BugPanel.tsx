@@ -39,6 +39,14 @@ export interface BugAttachment {
   mime?: string
 }
 
+export interface VerificationResult {
+  id: string
+  status: 'pass' | 'fail'
+  screenshots?: string[]
+  error?: string
+  duration_ms?: number
+}
+
 export interface Bug {
   id: string
   title: string
@@ -57,6 +65,7 @@ export interface Bug {
   verified_at?: string | null
   verification_run_id?: string | null
   test_spec?: string | Record<string, unknown> | null
+  verification_results?: VerificationResult[] | null
   comments?: BugComment[]
   attachments?: BugAttachment[]
 }
@@ -502,6 +511,49 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
               )}
             </div>
           )}
+
+          {/* PW-QA-VERIFY-1: Verification results with inline screenshots */}
+          {bug.verified_status && bug.verified_status !== 'pw_verifying' && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '12px 14px', background: bug.verified_status === 'verified' ? 'var(--green-light, #f0fdf4)' : 'var(--red-light, #fef2f2)' }} onClick={function(e) { e.stopPropagation() }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: bug.verified_status === 'verified' ? 'var(--green, hsl(142,71%,30%))' : 'var(--red, hsl(0,84%,40%))' }}>{bug.verified_status === 'verified' ? '\u2713 Playwright Verified' : '\u2717 Playwright Failed'}</span>
+                </div>
+                {bug.verified_at && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{new Date(bug.verified_at).toLocaleString()}</span>}
+              </div>
+              {bug.verification_results && bug.verification_results.map(function(r, i) {
+                return <div key={i} style={{ background: 'var(--bg-card, #fff)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: r.screenshots && r.screenshots.length > 0 ? 8 : 0 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', padding: '1px 6px', borderRadius: 3, background: r.status === 'pass' ? 'var(--green-light, #dcfce7)' : 'var(--red-light, #fee2e2)', color: r.status === 'pass' ? 'var(--green, hsl(142,71%,30%))' : 'var(--red, hsl(0,84%,40%))' }}>{r.status === 'pass' ? 'PASS' : 'FAIL'}</span>
+                    <span style={{ fontSize: 11, fontFamily: 'var(--font)', fontWeight: 500, color: 'var(--foreground)' }}>{r.id.replace(/^bug_/, 'BUG-').slice(0, 12)}</span>
+                    {r.duration_ms != null && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)', marginLeft: 'auto' }}>{(r.duration_ms / 1000).toFixed(1)}s</span>}
+                  </div>
+                  {r.error && <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--red, hsl(0,84%,40%))', padding: '6px 8px', background: 'rgba(239,68,68,0.06)', borderRadius: 4, marginBottom: 6, marginTop: 6, wordBreak: 'break-word' as const, lineHeight: '1.4' }}>{r.error}</div>}
+                  {r.screenshots && r.screenshots.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' as const }}>
+                      {r.screenshots.map(function(url, j) {
+                        var label = url.split('/').pop()?.replace('.png', '').replace(/-/g, ' ') || 'screenshot'
+                        return <div key={j} style={{ display: 'flex', flexDirection: 'column' as const, gap: 3 }}>
+                          <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                            <img src={url} alt={label} style={{ maxWidth: 220, maxHeight: 160, borderRadius: 4, border: '1px solid var(--border)', cursor: 'pointer', display: 'block' }} />
+                          </a>
+                          <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--muted)', textTransform: 'uppercase' as const, letterSpacing: '0.3px' }}>{label}</span>
+                        </div>
+                      })}
+                    </div>
+                  )}
+                </div>
+              })}
+            </div>
+          )}
+          {bug.verified_status === 'pw_verifying' && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '12px 14px', background: '#fff8e1' }} onClick={function(e) { e.stopPropagation() }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' as const, letterSpacing: '0.5px', color: '#e67700' }}>{'\u25CB'} Playwright running...</span>
+                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>Results will appear when complete</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -757,6 +809,22 @@ export function BugPanel(props: BugPanelProps) {
               return b.id === expanded ? Object.assign({}, b, { comments: d.data!.comments, attachments: d.data!.attachments }) : b
             })
           })
+          // PW-QA-VERIFY-1: Fetch verification results if bug has a run
+          var runId = d.data.verification_run_id
+          if (runId && d.data.verified_status && d.data.verified_status !== 'pw_verifying') {
+            apiFetch(apiBase + '/api/admin/qa/runs/' + runId, { credentials: 'include' })
+              .then(function(r2) { return r2.json() })
+              .then(function(d2: { ok: boolean; data?: { results?: VerificationResult[] } }) {
+                if (d2.ok && d2.data && d2.data.results) {
+                  setBugs(function(prev2) {
+                    return prev2.map(function(b2) {
+                      return b2.id === expanded ? Object.assign({}, b2, { verification_results: d2.data!.results }) : b2
+                    })
+                  })
+                }
+              })
+              .catch(function() {})
+          }
         }
       })
       .catch(function() {})
@@ -997,7 +1065,8 @@ export function BugPanel(props: BugPanelProps) {
         {isAdmin && source === 'reports' && (
           <div style={S.tabBar}>
             {ADMIN_TABS.map(function(t) {
-              return <button key={t.id} style={S.tabBtn(tab === t.id)} onClick={function() { setTab(t.id); setExpanded(null) }}>{t.label}</button>
+              var count = bugs.filter(function(b) { return t.statuses.indexOf(b.status) !== -1 }).length
+              return <button key={t.id} style={S.tabBtn(tab === t.id)} onClick={function() { setTab(t.id); setExpanded(null) }}>{t.label}{count > 0 ? ' ' + count : ''}</button>
             })}
           </div>
         )}
