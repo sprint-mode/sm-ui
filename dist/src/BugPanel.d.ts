@@ -32,6 +32,13 @@ export interface BugAttachment {
     size?: number;
     mime?: string;
 }
+export interface VerificationResult {
+    id: string;
+    status: 'pass' | 'fail';
+    screenshots?: string[];
+    error?: string;
+    duration_ms?: number;
+}
 export interface Bug {
     id: string;
     title: string;
@@ -50,6 +57,7 @@ export interface Bug {
     verified_at?: string | null;
     verification_run_id?: string | null;
     test_spec?: string | Record<string, unknown> | null;
+    verification_results?: VerificationResult[] | null;
     comments?: BugComment[];
     attachments?: BugAttachment[];
 }

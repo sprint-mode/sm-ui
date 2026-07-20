@@ -39,6 +39,14 @@ export interface BugAttachment {
   mime?: string
 }
 
+export interface VerificationResult {
+  id: string
+  status: 'pass' | 'fail'
+  screenshots?: string[]
+  error?: string
+  duration_ms?: number
+}
+
 export interface Bug {
   id: string
   title: string
@@ -57,6 +65,7 @@ export interface Bug {
   verified_at?: string | null
   verification_run_id?: string | null
   test_spec?: string | Record<string, unknown> | null
+  verification_results?: VerificationResult[] | null
   comments?: BugComment[]
   attachments?: BugAttachment[]
 }
@@ -502,6 +511,36 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
               )}
             </div>
           )}
+
+          {/* PW-QA-VERIFY-1: Verification results with inline screenshots */}
+          {bug.verified_status && bug.verified_status !== 'pw_verifying' && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px', background: bug.verified_status === 'verified' ? 'var(--green-light, #f0fdf4)' : 'var(--red-light, #fef2f2)' }} onClick={function(e) { e.stopPropagation() }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' as const, color: bug.verified_status === 'verified' ? 'var(--green, hsl(142,71%,30%))' : 'var(--red, hsl(0,84%,40%))' }}>{bug.verified_status === 'verified' ? 'PW Verified' : 'PW Failed'}</span>
+                {bug.verified_at && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{new Date(bug.verified_at).toLocaleString()}</span>}
+              </div>
+              {bug.verification_results && bug.verification_results.map(function(r, i) {
+                return <div key={i} style={{ marginBottom: 8 }}>
+                  {r.error && <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--red, hsl(0,84%,40%))', padding: '4px 8px', background: 'rgba(255,0,0,0.05)', borderRadius: 4, marginBottom: 6, wordBreak: 'break-word' as const }}>{r.error}</div>}
+                  {r.duration_ms != null && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{r.duration_ms}ms</span>}
+                  {r.screenshots && r.screenshots.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' as const, marginTop: 6 }}>
+                      {r.screenshots.map(function(url, j) {
+                        return <a key={j} href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                          <img src={url} alt={'Screenshot ' + (j + 1)} style={{ maxWidth: 200, maxHeight: 150, borderRadius: 4, border: '1px solid var(--border)', cursor: 'pointer' }} />
+                        </a>
+                      })}
+                    </div>
+                  )}
+                </div>
+              })}
+            </div>
+          )}
+          {bug.verified_status === 'pw_verifying' && (
+            <div style={{ borderTop: '1px solid var(--border)', padding: '10px 12px', background: '#fff3e0' }} onClick={function(e) { e.stopPropagation() }}>
+              <span style={{ fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)', textTransform: 'uppercase' as const, color: '#e67700' }}>Playwright verifying...</span>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -757,6 +796,22 @@ export function BugPanel(props: BugPanelProps) {
               return b.id === expanded ? Object.assign({}, b, { comments: d.data!.comments, attachments: d.data!.attachments }) : b
             })
           })
+          // PW-QA-VERIFY-1: Fetch verification results if bug has a run
+          var runId = d.data.verification_run_id
+          if (runId && d.data.verified_status && d.data.verified_status !== 'pw_verifying') {
+            apiFetch(apiBase + '/api/admin/qa/runs/' + runId, { credentials: 'include' })
+              .then(function(r2) { return r2.json() })
+              .then(function(d2: { ok: boolean; data?: { results?: VerificationResult[] } }) {
+                if (d2.ok && d2.data && d2.data.results) {
+                  setBugs(function(prev2) {
+                    return prev2.map(function(b2) {
+                      return b2.id === expanded ? Object.assign({}, b2, { verification_results: d2.data!.results }) : b2
+                    })
+                  })
+                }
+              })
+              .catch(function() {})
+          }
         }
       })
       .catch(function() {})
