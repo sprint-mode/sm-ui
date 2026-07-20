@@ -220,9 +220,10 @@ function initials(name: string | undefined): string {
   return name.slice(0, 2).toUpperCase()
 }
 
-function shortId(id: string | undefined): string {
+function shortId(id: string | undefined, type?: string): string {
   if (!id) return ''
-  if (id.startsWith('bug_')) return 'BUG-' + id.slice(4, 10)
+  var prefix = type === 'feature' ? 'FEAT' : type === 'ux' ? 'UX' : type === 'task' ? 'TASK' : 'BUG'
+  if (id.startsWith('bug_')) return prefix + '-' + id.slice(4, 10)
   return 'PS-' + id.slice(0, 6)
 }
 
@@ -288,6 +289,8 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
   var _viewingAtt = useState<string | null>(null); var _viewingAttVal = _viewingAtt[0]; var _setViewingAtt = _viewingAtt[1]
 
   var sm = STATUS_META[bug.status] || STATUS_META['open']
+  var TYPE_COLORS: Record<string, string> = { feature: 'var(--blue)', ux: 'var(--amber)', task: 'var(--green)' }
+  var dotColor = (bug.status === 'open' && bug.type && TYPE_COLORS[bug.type]) ? TYPE_COLORS[bug.type] : sm.color
   var ai: AiClassification | null = null
   try { ai = typeof bug.ai_classification === 'string' ? JSON.parse(bug.ai_classification) : (bug.ai_classification as AiClassification) || null } catch(_e) {}
 
@@ -325,7 +328,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
   return (
     <div style={S.card(expanded)} onClick={onToggle} data-bug-id={bug.id}>
       <div style={S.meta}>
-        <span style={S.dot(sm.color)} />
+        <span style={S.dot(dotColor)} />
         <span style={S.typeBadge}>{bug.type || 'bug'}</span>
         <span style={S.productBadge}>{bug.product}</span>
         {isAdmin && bug.submitted_by_name && <span style={S.submittedBy}>{bug.submitted_by_name.split(' ')[0].toLowerCase()}</span>}
@@ -334,7 +337,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-        <span style={S.bugId} onClick={copyId} title="Click to copy ID">{shortId(bug.id)}</span>
+        <span style={S.bugId} onClick={copyId} title="Click to copy ID">{shortId(bug.id, bug.type)}</span>
         {copied && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--green)' }}>copied</span>}
       </div>
       <div style={S.bugTitle}>{highlightText(bug.title, searchQuery || '')}</div>
