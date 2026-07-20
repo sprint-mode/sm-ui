@@ -107193,6 +107193,115 @@ function ZMe({ bug: e, isAdmin: t, expanded: n, onToggle: r, onAction: i, onComm
 								children: "Cancel"
 							})] })
 						]
+					}),
+					e.verified_status && e.verified_status !== "pw_verifying" && /* @__PURE__ */ u("div", {
+						style: {
+							borderTop: "1px solid var(--border)",
+							padding: "10px 12px",
+							background: e.verified_status === "verified" ? "var(--green-light, #f0fdf4)" : "var(--red-light, #fef2f2)"
+						},
+						onClick: function(e) {
+							e.stopPropagation();
+						},
+						children: [/* @__PURE__ */ u("div", {
+							style: {
+								display: "flex",
+								alignItems: "center",
+								gap: 6,
+								marginBottom: 6
+							},
+							children: [/* @__PURE__ */ l("span", {
+								style: {
+									fontSize: 10,
+									fontWeight: 700,
+									fontFamily: "var(--font-mono)",
+									textTransform: "uppercase",
+									color: e.verified_status === "verified" ? "var(--green, hsl(142,71%,30%))" : "var(--red, hsl(0,84%,40%))"
+								},
+								children: e.verified_status === "verified" ? "PW Verified" : "PW Failed"
+							}), e.verified_at && /* @__PURE__ */ l("span", {
+								style: {
+									fontSize: 10,
+									fontFamily: "var(--font-mono)",
+									color: "var(--muted)"
+								},
+								children: new Date(e.verified_at).toLocaleString()
+							})]
+						}), e.verification_results && e.verification_results.map(function(e, t) {
+							return /* @__PURE__ */ u("div", {
+								style: { marginBottom: 8 },
+								children: [
+									e.error && /* @__PURE__ */ l("div", {
+										style: {
+											fontSize: 11,
+											fontFamily: "var(--font-mono)",
+											color: "var(--red, hsl(0,84%,40%))",
+											padding: "4px 8px",
+											background: "rgba(255,0,0,0.05)",
+											borderRadius: 4,
+											marginBottom: 6,
+											wordBreak: "break-word"
+										},
+										children: e.error
+									}),
+									e.duration_ms != null && /* @__PURE__ */ u("span", {
+										style: {
+											fontSize: 10,
+											fontFamily: "var(--font-mono)",
+											color: "var(--muted)"
+										},
+										children: [e.duration_ms, "ms"]
+									}),
+									e.screenshots && e.screenshots.length > 0 && /* @__PURE__ */ l("div", {
+										style: {
+											display: "flex",
+											gap: 6,
+											flexWrap: "wrap",
+											marginTop: 6
+										},
+										children: e.screenshots.map(function(e, t) {
+											return /* @__PURE__ */ l("a", {
+												href: e,
+												target: "_blank",
+												rel: "noopener noreferrer",
+												style: { display: "block" },
+												children: /* @__PURE__ */ l("img", {
+													src: e,
+													alt: "Screenshot " + (t + 1),
+													style: {
+														maxWidth: 200,
+														maxHeight: 150,
+														borderRadius: 4,
+														border: "1px solid var(--border)",
+														cursor: "pointer"
+													}
+												})
+											}, t);
+										})
+									})
+								]
+							}, t);
+						})]
+					}),
+					e.verified_status === "pw_verifying" && /* @__PURE__ */ l("div", {
+						style: {
+							borderTop: "1px solid var(--border)",
+							padding: "10px 12px",
+							background: "#fff3e0"
+						},
+						onClick: function(e) {
+							e.stopPropagation();
+						},
+						children: /* @__PURE__ */ l("span", {
+							style: {
+								fontSize: 10,
+								fontWeight: 700,
+								fontFamily: "var(--font-mono)",
+								textTransform: "uppercase",
+								color: "#e67700"
+							},
+							children: "Playwright verifying..."
+						})
 					})
 				]
 			})
@@ -107460,14 +107569,26 @@ function h9(e) {
 		!H || P !== "reports" || m(r + "/api/bugs/" + H, { credentials: "include" }).then(function(e) {
 			return e.json();
 		}).then(function(e) {
-			e.ok && e.data && C(function(t) {
-				return t.map(function(t) {
-					return t.id === H ? Object.assign({}, t, {
-						comments: e.data.comments,
-						attachments: e.data.attachments
-					}) : t;
+			if (e.ok && e.data) {
+				C(function(t) {
+					return t.map(function(t) {
+						return t.id === H ? Object.assign({}, t, {
+							comments: e.data.comments,
+							attachments: e.data.attachments
+						}) : t;
+					});
 				});
-			});
+				var t = e.data.verification_run_id;
+				t && e.data.verified_status && e.data.verified_status !== "pw_verifying" && m(r + "/api/admin/qa/runs/" + t, { credentials: "include" }).then(function(e) {
+					return e.json();
+				}).then(function(e) {
+					e.ok && e.data && e.data.results && C(function(t) {
+						return t.map(function(t) {
+							return t.id === H ? Object.assign({}, t, { verification_results: e.data.results }) : t;
+						});
+					});
+				}).catch(function() {});
+			}
 		}).catch(function() {});
 	}, [
 		H,
