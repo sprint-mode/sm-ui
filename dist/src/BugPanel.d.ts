@@ -46,6 +46,10 @@ export interface Bug {
     ai_classification?: string | Record<string, unknown>;
     fire_prompt?: string;
     close_reason?: string;
+    verified_status?: string | null;
+    verified_at?: string | null;
+    verification_run_id?: string | null;
+    test_spec?: string | Record<string, unknown> | null;
     comments?: BugComment[];
     attachments?: BugAttachment[];
 }
