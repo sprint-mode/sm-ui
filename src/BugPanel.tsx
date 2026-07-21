@@ -115,7 +115,7 @@ function priorityBadge(priority: string | undefined) {
 }
 
 var PRODUCTS: Record<string, string[]> = {
-  'Products': ['studios', 'mode', 'signal', 'privacy'],
+  'Products': ['studios', 'mode', 'signal', 'privacy', 'safeshepherd'],
   'Apps': ['admin', 'platform', 'website', 'sm'],
 }
 
@@ -284,6 +284,23 @@ function highlightText(text: string, query: string): React.ReactNode {
   )
 }
 
+function CommentAttThumb({ att, bugId, isImage, apiBase, product }: { att: BugAttachment; bugId: string; isImage: boolean; apiBase: string; product: string }) {
+  var _url = useState<string | null>(null); var url = _url[0]; var setUrl = _url[1]
+  useEffect(function() {
+    fetch(apiBase + '/api/bugs/' + bugId + '/attachments/' + att.id + '/url', { credentials: 'include' as RequestCredentials, headers: { 'X-SM-Product': product } })
+      .then(function(r) { return r.json() })
+      .then(function(d: any) { if (d.ok && d.data?.url) setUrl(d.data.url) })
+      .catch(function() {})
+  }, [att.id, bugId, apiBase, product])
+  return React.createElement('div', {
+    style: { border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', maxWidth: isImage ? 200 : 180 },
+    onClick: function(e: React.MouseEvent) { e.stopPropagation(); if (url) window.open(url, '_blank') }
+  },
+    isImage && url ? React.createElement('img', { src: url, style: { width: '100%', maxHeight: 150, objectFit: 'cover' } }) : null,
+    React.createElement('div', { style: { padding: '4px 8px', fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, att.filename)
+  )
+}
+
 function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDelete, onFire, onFireTerminal, onVerify, apiBase, product, searchQuery }: {
   bug: Bug
   isAdmin?: boolean
@@ -439,15 +456,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
                       {commentAtts.map(function(att) {
                         var isImage = att.type === 'image' || /\.(png|jpg|jpeg|gif|webp)$/i.test(att.filename)
-                        return <div key={att.id} style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', maxWidth: isImage ? 200 : 180 }} onClick={function(e) {
-                          e.stopPropagation()
-                          fetch(apiBase + '/api/bugs/' + bug.id + '/attachments/' + att.id + '/url', { credentials: 'include' as RequestCredentials, headers: { 'X-SM-Product': product } })
-                            .then(function(r: Response) { return r.json() })
-                            .then(function(d: any) { if (d.ok && d.data?.url) window.open(d.data.url, '_blank') })
-                        }}>
-                          {isImage ? <img src={apiBase + '/api/bugs/' + bug.id + '/attachments/' + att.id + '/url?inline=1'} style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }} onError={function(e) { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
-                          <div style={{ padding: '4px 8px', fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.filename}</div>
-                        </div>
+                        return <CommentAttThumb key={att.id} att={att} bugId={bug.id} isImage={isImage} apiBase={apiBase} product={product} />
                       })}
                     </div>
                   )}
@@ -514,6 +523,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
               {bug.status === 'open' && (
                 <>
                   <button style={S.btnSm('var(--accent)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'in_progress' }) }}>Start</button>
+                  <button style={S.btnSm('var(--green)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'closed', verified_status: 'verified' }) }}>{'\u2713'} Verify & Close</button>
                   {!closing ? (
                     <button style={S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)')} onClick={function(e) { e.stopPropagation(); setClosure(true) }}>Close</button>
                   ) : (
@@ -534,6 +544,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
               )}
               {bug.status === 'in_progress' && (
                 <>
+                  <button style={S.btnSm('var(--green)', '#fff', 'none')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'closed', verified_status: 'verified' }) }}>{'\u2713'} Verify & Close</button>
                   {!closing ? (
                     <button style={S.btnSm('transparent', 'var(--muted)', '1px solid var(--border)')} onClick={function(e) { e.stopPropagation(); setClosure(true) }}>Close</button>
                   ) : (
