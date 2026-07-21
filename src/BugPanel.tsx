@@ -121,7 +121,7 @@ var PRODUCTS: Record<string, string[]> = {
 
 var ADMIN_TABS = [
   { id: 'queue',    label: 'Queue',       statuses: ['open', 'in_progress'] },
-  { id: 'closed',   label: 'Closed',      statuses: ['closed'] },
+  { id: 'closed',   label: 'Fixed/Unverified', statuses: ['closed'], excludeVerified: true },
   { id: 'verified', label: 'Verified',    statuses: ['closed'], verified: true },
 ]
 
@@ -290,7 +290,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
   expanded: boolean
   onToggle: () => void
   onAction: (bugId: string, updates: Record<string, string>) => void
-  onComment: (bugId: string, body: string) => Promise<void>
+  onComment: (bugId: string, body: string, files?: Array<{ name: string; dataUrl: string; file?: File }>) => Promise<void>
   onDelete?: (bugId: string) => void
   onFire?: (bugId: string) => void
   onFireTerminal?: (bugId: string) => void
@@ -306,6 +306,9 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
   var _closeReason = useState(''); var closeReason = _closeReason[0]; var setCloseReason = _closeReason[1]
   var _confirmDelete = useState(false); var confirmDelete = _confirmDelete[0]; var setConfirmDelete = _confirmDelete[1]
   var _viewingAtt = useState<string | null>(null); var _viewingAttVal = _viewingAtt[0]; var _setViewingAtt = _viewingAtt[1]
+  var _commentFiles = useState<Array<{ id: string; name: string; dataUrl: string; file?: File }>>([]); var commentFiles = _commentFiles[0]; var setCommentFiles = _commentFiles[1]
+  var commentFileInputRef = useRef<HTMLInputElement>(null)
+  var commentFileIdRef = useRef(0)
 
   var sm = STATUS_META[bug.status] || STATUS_META['open']
   var TYPE_COLORS: Record<string, string> = { feature: 'var(--blue)', ux: 'var(--amber)', task: 'var(--green)' }
@@ -320,10 +323,12 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
 
   function postComment(e: React.MouseEvent | React.KeyboardEvent) {
     e.stopPropagation()
-    if (!comment.trim() || posting) return
+    if ((!comment.trim() && commentFiles.length === 0) || posting) return
     setPosting(true)
-    onComment(bug.id, comment.trim()).then(function() {
+    var filesToSend = commentFiles.slice()
+    onComment(bug.id, comment.trim() || (filesToSend.length > 0 ? '[attachment]' : ''), filesToSend.length > 0 ? filesToSend : undefined).then(function() {
       setComment('')
+      setCommentFiles([])
       setPosting(false)
     }).catch(function() { setPosting(false) })
   }
@@ -420,6 +425,7 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
 
           <div style={S.sectionLabel}>Comments</div>
           {bug.comments && bug.comments.map(function(c) {
+            var commentAtts = (bug.attachments || []).filter(function(a) { return (a as any).comment_id === c.id })
             return (
               <div key={c.id} style={{ display: 'flex', gap: 8, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
                 <div style={S.commentAvatar()}>{initials(c.author_name)}</div>
@@ -429,16 +435,78 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
                     <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{relTime(c.created_at)}</span>
                   </div>
                   <div style={{ fontSize: 12, lineHeight: 1.4 }}>{c.body}</div>
+                  {commentAtts.length > 0 && (
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                      {commentAtts.map(function(att) {
+                        var isImage = att.type === 'image' || /\.(png|jpg|jpeg|gif|webp)$/i.test(att.filename)
+                        return <div key={att.id} style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', cursor: 'pointer', maxWidth: isImage ? 200 : 180 }} onClick={function(e) {
+                          e.stopPropagation()
+                          fetch(apiBase + '/api/bugs/' + bug.id + '/attachments/' + att.id + '/url', { credentials: 'include' as RequestCredentials, headers: { 'X-SM-Product': product } })
+                            .then(function(r: Response) { return r.json() })
+                            .then(function(d: any) { if (d.ok && d.data?.url) window.open(d.data.url, '_blank') })
+                        }}>
+                          {isImage ? <img src={apiBase + '/api/bugs/' + bug.id + '/attachments/' + att.id + '/url?inline=1'} style={{ width: '100%', maxHeight: 150, objectFit: 'cover' }} onError={function(e) { (e.target as HTMLImageElement).style.display = 'none' }} /> : null}
+                          <div style={{ padding: '4px 8px', fontSize: 10, color: 'var(--muted)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{att.filename}</div>
+                        </div>
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             )
           })}
-          <div style={{ display: 'flex', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
-            <input style={S.commentInput} placeholder="Leave a comment..." value={comment}
-              onChange={function(e) { setComment(e.target.value) }}
-              onKeyDown={function(e) { if (e.key === 'Enter') postComment(e) }}
-              onClick={function(e) { e.stopPropagation() }} />
-            <button style={S.commentSubmit} onClick={postComment} disabled={posting}>{posting ? '...' : 'Post'}</button>
+          <div style={{ display: 'flex', gap: 6, marginTop: 8, paddingTop: 8, borderTop: '1px solid var(--border)', flexDirection: 'column' }}>
+            {commentFiles.length > 0 && (
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {commentFiles.map(function(f) {
+                  return <span key={f.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, background: 'var(--bg-subtle)', padding: '2px 6px', borderRadius: 4 }}>
+                    {f.dataUrl.startsWith('data:image') ? <img src={f.dataUrl} style={{ width: 20, height: 20, objectFit: 'cover', borderRadius: 2 }} /> : null}
+                    {f.name.length > 20 ? f.name.slice(0, 17) + '...' : f.name}
+                    <button style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 12, padding: 0, lineHeight: 1 }} onClick={function(e) { e.stopPropagation(); setCommentFiles(function(prev) { return prev.filter(function(x) { return x.id !== f.id }) }) }}>{'\u00d7'}</button>
+                  </span>
+                })}
+              </div>
+            )}
+            <div style={{ display: 'flex', gap: 6 }}>
+              <input style={S.commentInput} placeholder="Comment or paste screenshot..." value={comment}
+                onChange={function(e) { setComment(e.target.value) }}
+                onKeyDown={function(e) { if (e.key === 'Enter' && !e.shiftKey) postComment(e) }}
+                onClick={function(e) { e.stopPropagation() }}
+                onPaste={function(e) {
+                  var items = e.clipboardData && e.clipboardData.items
+                  if (!items) return
+                  for (var i = 0; i < items.length; i++) {
+                    if (items[i].type.indexOf('image') !== -1) {
+                      e.preventDefault()
+                      var file = items[i].getAsFile()
+                      if (!file) continue
+                      var reader = new FileReader()
+                      reader.onload = function(ev) {
+                        commentFileIdRef.current++
+                        setCommentFiles(function(prev) { return prev.concat([{ id: 'catt_' + commentFileIdRef.current + '_' + Date.now(), name: file!.name || 'screenshot.png', dataUrl: ev.target!.result as string, file: file! }]) })
+                      }
+                      reader.readAsDataURL(file)
+                    }
+                  }
+                }} />
+              <input type="file" ref={commentFileInputRef} style={{ display: 'none' }} multiple accept="image/*,.pdf,.doc,.docx,.txt,.csv,.xlsx" onChange={function(e) {
+                var files = e.target.files
+                if (!files) return
+                for (var i = 0; i < files.length; i++) {
+                  (function(f) {
+                    var reader = new FileReader()
+                    reader.onload = function(ev) {
+                      commentFileIdRef.current++
+                      setCommentFiles(function(prev) { return prev.concat([{ id: 'catt_' + commentFileIdRef.current + '_' + Date.now(), name: f.name, dataUrl: ev.target!.result as string, file: f }]) })
+                    }
+                    reader.readAsDataURL(f)
+                  })(files[i])
+                }
+                e.target.value = ''
+              }} />
+              <button style={Object.assign({}, S.commentSubmit, { background: 'var(--bg-subtle)', color: 'var(--muted)', padding: '6px 8px' })} onClick={function(e) { e.stopPropagation(); commentFileInputRef.current?.click() }} title="Attach file">{'\ud83d\udcce'}</button>
+              <button style={S.commentSubmit} onClick={postComment} disabled={posting}>{posting ? '...' : 'Post'}</button>
+            </div>
           </div>
 
           {isAdmin && (
@@ -491,10 +559,13 @@ function BugCard({ bug, isAdmin, expanded, onToggle, onAction, onComment, onDele
                   <button style={S.btnSm('transparent', 'var(--accent)', '1px solid var(--accent)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { status: 'open' }) }}>Re-open</button>
                   {bug.close_reason && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--muted)' }}>{bug.close_reason.replace(/_/g, ' ')}</span>}
                   {onVerify && bug.test_spec && !bug.verified_status && (
-                    <button style={S.btnSm('transparent', 'var(--green)', '1px solid var(--green)')} onClick={function(e) { e.stopPropagation(); onVerify(bug.id) }}>Verify</button>
+                    <button style={S.btnSm('transparent', 'var(--green)', '1px solid var(--green)')} onClick={function(e) { e.stopPropagation(); onVerify(bug.id) }}>PW Verify</button>
                   )}
                   {onVerify && bug.verified_status === 'pw_failed' && bug.test_spec && (
                     <button style={S.btnSm('transparent', '#e67700', '1px solid #e67700')} onClick={function(e) { e.stopPropagation(); onVerify(bug.id) }}>Re-verify</button>
+                  )}
+                  {bug.verified_status !== 'verified' && (
+                    <button style={S.btnSm('transparent', 'var(--green)', '1px solid var(--green)')} onClick={function(e) { e.stopPropagation(); onAction(bug.id, { verified_status: 'verified' }) }}>{'\u2713'} Mark Verified</button>
                   )}
                 </>
               )}
@@ -891,19 +962,45 @@ export function BugPanel(props: BugPanelProps) {
       })
   }
 
-  function handleComment(bugId: string, body: string): Promise<void> {
+  function handleComment(bugId: string, body: string, files?: Array<{ name: string; dataUrl: string; file?: File }>): Promise<void> {
     return apiFetch(apiBase + '/api/bugs/' + bugId + '/comments', {
       method: 'POST', credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ body: body })
-    }).then(function() {
+    }).then(function(r) { return r.json() })
+    .then(function(commentRes: { ok: boolean; data?: { id: string } }) {
+      var commentId = commentRes.ok && commentRes.data ? commentRes.data.id : null
+      // Upload comment-level attachments if any
+      if (files && files.length > 0 && commentId) {
+        var uploads = files.map(function(att) {
+          var fd = new FormData()
+          if (att.file) {
+            fd.append('file', att.file)
+          } else if (att.dataUrl) {
+            var byteString = atob(att.dataUrl.split(',')[1])
+            var ab = new ArrayBuffer(byteString.length)
+            var ia = new Uint8Array(ab)
+            for (var i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i)
+            var mime = att.dataUrl.split(';')[0].split(':')[1] || 'image/png'
+            fd.append('file', new Blob([ab], { type: mime }), att.name)
+          }
+          fd.append('comment_id', commentId!)
+          return apiFetch(apiBase + '/api/bugs/' + bugId + '/attachments', {
+            method: 'POST', credentials: 'include', body: fd
+          })
+        })
+        return Promise.all(uploads).then(function() {})
+      }
+    })
+    .then(function() {
+      // Refresh bug to get updated comments and attachments
       return apiFetch(apiBase + '/api/bugs/' + bugId, { credentials: 'include' })
         .then(function(r) { return r.json() })
         .then(function(d: { ok: boolean; data?: Bug }) {
           if (d.ok && d.data) {
             setBugs(function(prev) {
               return prev.map(function(b) {
-                return b.id === bugId ? Object.assign({}, b, { comments: d.data!.comments }) : b
+                return b.id === bugId ? Object.assign({}, b, { comments: d.data!.comments, attachments: d.data!.attachments }) : b
               })
             })
           }
@@ -1064,8 +1161,13 @@ export function BugPanel(props: BugPanelProps) {
         {isAdmin && source === 'reports' && (
           <div style={S.tabBar}>
             {ADMIN_TABS.map(function(t) {
-              var count = bugs.filter(function(b) { return t.statuses.indexOf(b.status) !== -1 }).length
-              return <button key={t.id} style={S.tabBtn(tab === t.id)} onClick={function() { setTab(t.id); setExpanded(null) }}>{t.label}{count > 0 ? ' ' + count : ''}</button>
+              var count = bugs.filter(function(b) {
+                if (t.statuses.indexOf(b.status) === -1) return false
+                if ((t as any).verified && (b as any).verified_status !== 'verified') return false
+                if ((t as any).excludeVerified && (b as any).verified_status === 'verified') return false
+                return true
+              }).length
+              return <button key={t.id} style={S.tabBtn(tab === t.id)} onClick={function() { setTab(t.id); setExpanded(null) }}>{t.label} {count}</button>
             })}
           </div>
         )}
