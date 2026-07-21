@@ -120,15 +120,14 @@ var PRODUCTS: Record<string, string[]> = {
 }
 
 var ADMIN_TABS = [
-  { id: 'queue',    label: 'Queue',       statuses: ['open'] },
-  { id: 'progress', label: 'In Progress', statuses: ['in_progress'] },
+  { id: 'queue',    label: 'Queue',       statuses: ['open', 'in_progress'] },
   { id: 'closed',   label: 'Closed',      statuses: ['closed'] },
+  { id: 'verified', label: 'Verified',    statuses: ['closed'], verified: true },
 ]
 
 var REPORTER_FILTERS = [
   { id: 'all',      label: 'All' },
-  { id: 'open',     label: 'Open',        statuses: ['open'] },
-  { id: 'progress', label: 'In Progress', statuses: ['in_progress'] },
+  { id: 'open',     label: 'Open',        statuses: ['open', 'in_progress'] },
   { id: 'done',     label: 'Closed',      statuses: ['closed'] },
 ]
 
@@ -1077,8 +1076,12 @@ export function BugPanel(props: BugPanelProps) {
           {!loading && source === 'reports' && bugs.filter(function(b) {
             // Status filter: admin uses tab, reporter uses pill
             if (isAdmin) {
-              var at = ADMIN_TABS.find(function(t) { return t.id === tab })
+              var at = ADMIN_TABS.find(function(t) { return t.id === tab }) as any
               if (at && at.statuses.indexOf(b.status) === -1) return false
+              // Verified tab: only show bugs with verified_status = 'verified'
+              if (at && at.verified && (b as any).verified_status !== 'verified') return false
+              // Closed tab: exclude verified bugs so they only appear in Verified tab
+              if (tab === 'closed' && (b as any).verified_status === 'verified') return false
             } else if (rFilter !== 'all') {
               var rf = REPORTER_FILTERS.find(function(f) { return f.id === rFilter })
               if (rf && rf.statuses && rf.statuses.indexOf(b.status) === -1) return false

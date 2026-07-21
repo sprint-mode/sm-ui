@@ -105982,17 +105982,18 @@ var c9 = {
 	{
 		id: "queue",
 		label: "Queue",
-		statuses: ["open"]
-	},
-	{
-		id: "progress",
-		label: "In Progress",
-		statuses: ["in_progress"]
+		statuses: ["open", "in_progress"]
 	},
 	{
 		id: "closed",
 		label: "Closed",
 		statuses: ["closed"]
+	},
+	{
+		id: "verified",
+		label: "Verified",
+		statuses: ["closed"],
+		verified: !0
 	}
 ], u9 = [
 	{
@@ -106002,12 +106003,7 @@ var c9 = {
 	{
 		id: "open",
 		label: "Open",
-		statuses: ["open"]
-	},
-	{
-		id: "progress",
-		label: "In Progress",
-		statuses: ["in_progress"]
+		statuses: ["open", "in_progress"]
 	},
 	{
 		id: "done",
@@ -108098,7 +108094,7 @@ function h9(e) {
 							var n = l9.find(function(e) {
 								return e.id === L;
 							});
-							if (n && n.statuses.indexOf(e.status) === -1) return !1;
+							if (n && n.statuses.indexOf(e.status) === -1 || n && n.verified && e.verified_status !== "verified" || L === "closed" && e.verified_status === "verified") return !1;
 						} else if (B !== "all") {
 							var r = u9.find(function(e) {
 								return e.id === B;
