@@ -1,5 +1,5 @@
 import { default as React } from 'react';
-import { Attachment } from './UpdateAttachments.js';
+import { Attachment } from './UpdateAttachments.tsx';
 export interface UpdateItem {
     id: string;
     title: string;
