@@ -117,8 +117,7 @@ function priorityBadge(priority: string | undefined) {
 }
 
 var PRODUCTS_FALLBACK: Record<string, string[]> = {
-  'Products': ['studios', 'mode', 'signal', 'privacy', 'safeshepherd'],
-  'Apps': ['admin', 'platform', 'website', 'sm'],
+  'Portals': ['admin', 'studios', 'signal', 'privacyai', 'safeshepherd', 'website'],
 }
 
 var ADMIN_TABS = [
@@ -151,6 +150,14 @@ function CloseIcon() {
   return React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round' },
     React.createElement('line', { x1: 18, y1: 6, x2: 6, y2: 18 }),
     React.createElement('line', { x1: 6, y1: 6, x2: 18, y2: 18 })
+  )
+}
+
+function PopoutIcon() {
+  return React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+    React.createElement('path', { d: 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' }),
+    React.createElement('polyline', { points: '15 3 21 3 21 9' }),
+    React.createElement('line', { x1: 10, y1: 14, x2: 21, y2: 3 })
   )
 }
 
@@ -1112,6 +1119,11 @@ export function BugPanel(props: BugPanelProps) {
           <span style={S.title}>{isAdmin ? 'Bug Catcher' : label}</span>
           <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4, marginLeft: 6, fontFamily: 'var(--font-mono,monospace)' }}>{typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318B' : 'Ctrl+B'}</kbd>
           <span style={{ flex: 1 }} />
+          {!isStandalone && <button style={S.closeBtn} title="Open in new tab" onClick={function() {
+            var url = 'https://admin.sprintmode.ai/bugs?product=' + encodeURIComponent(product)
+            window.open(url, '_blank')
+            closePanel()
+          }}><PopoutIcon /></button>}
           {!isStandalone && <button style={S.closeBtn} onClick={closePanel}><CloseIcon /></button>}
         </div>
 
@@ -1137,7 +1149,7 @@ export function BugPanel(props: BugPanelProps) {
         {source === 'reports' && (
           <div style={S.filterBar}>
             <select style={S.filterSelect} value={filterProduct} onChange={function(e) { setFilterProduct(e.target.value) }}>
-              <option value="all">Products</option>
+              <option value="all">Portals</option>
               {Object.keys(products).map(function(group) {
                 return <optgroup key={group} label={group}>
                   {products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
