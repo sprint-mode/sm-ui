@@ -1098,21 +1098,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   useEffect(function() {
     var handler = function(e: KeyboardEvent) {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); setCmdkOpen(true) }
-      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-        e.preventDefault()
-        if (bugPanelEnabled) {
-          // BUG-PANEL-STANDALONE-1: Open standalone bug panel in new tab
-          var host = typeof window !== 'undefined' ? window.location.hostname : ''
-          var isAdmin = host === 'admin.sprintmode.ai' || host === 'localhost'
-          if (isAdmin) {
-            // On admin, navigate in same tab
-            window.location.href = '/bugs?product=' + encodeURIComponent(bugPanelProduct)
-          } else {
-            // On other portals, open admin in new tab
-            window.open('https://admin.sprintmode.ai/bugs?product=' + encodeURIComponent(bugPanelProduct), '_blank')
-          }
-        }
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') { e.preventDefault(); if (bugPanelEnabled) setBugPanelOpen(function(v) { return !v }) }
       if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
         var tag = (document.activeElement?.tagName || '').toLowerCase()
         if (tag !== 'input' && tag !== 'textarea' && !(document.activeElement as HTMLElement)?.isContentEditable) {
@@ -1513,15 +1499,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       style: { width: 34, height: 34, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'border-color .2s', flexShrink: 0, padding: 0, color: 'var(--foreground)' }
     }, theme.isDark ? React.createElement(IconSun, null) : React.createElement(IconMoon, null)),
     notificationBellEnabled ? React.createElement(NotificationBellNav, { apiBase: notificationApiBase, href: notificationHref, onNavigate: function(href: string) { navigate(href) } }) : null,
-    bugPanelEnabled ? React.createElement(BugPanelHeaderButton, { onClick: function() {
-      var host = typeof window !== 'undefined' ? window.location.hostname : ''
-      var isAdmin = host === 'admin.sprintmode.ai' || host === 'localhost'
-      if (isAdmin) {
-        window.location.href = '/bugs?product=' + encodeURIComponent(bugPanelProduct)
-      } else {
-        window.open('https://admin.sprintmode.ai/bugs?product=' + encodeURIComponent(bugPanelProduct), '_blank')
-      }
-    } }) : null,
+    bugPanelEnabled ? React.createElement(BugPanelHeaderButton, { onClick: function() { setBugPanelOpen(function(v) { return !v }) } }) : null,
     React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra })
   ) : null
 
