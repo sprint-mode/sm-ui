@@ -17,6 +17,8 @@ export interface BugPanelProps {
   onClose?: () => void
   visible?: boolean
   focusBugId?: string | null
+  /** BUG-PANEL-STANDALONE-1: When true, renders as a full-viewport page instead of a side panel */
+  standalone?: boolean
 }
 
 export interface BugPanelHeaderButtonProps {
@@ -114,7 +116,7 @@ function priorityBadge(priority: string | undefined) {
   return { label: m.label, sublabel: m.sublabel, color: m.color, bg: m.bg }
 }
 
-var PRODUCTS: Record<string, string[]> = {
+var PRODUCTS_FALLBACK: Record<string, string[]> = {
   'Products': ['studios', 'mode', 'signal', 'privacy', 'safeshepherd'],
   'Apps': ['admin', 'platform', 'website', 'sm'],
 }
@@ -723,6 +725,8 @@ export function BugPanel(props: BugPanelProps) {
   var _fType = useState('bug'); var fType = _fType[0]; var setFType = _fType[1]
   var _fProduct = useState(product); var fProduct = _fProduct[0]; var setFProduct = _fProduct[1]
   var _submitting = useState(false); var submitting = _submitting[0]; var setSubmitting = _submitting[1]
+  // BUG-PANEL-STANDALONE-1: Dynamic product list from API, with static fallback
+  var _products = useState<Record<string, string[]>>(PRODUCTS_FALLBACK); var products = _products[0]; var setProducts = _products[1]
   var _filterProduct = useState('all'); var filterProduct = _filterProduct[0]; var setFilterProduct = _filterProduct[1]
   var _filterType = useState('all'); var filterType = _filterType[0]; var setFilterType = _filterType[1]
   var _filterPriority = useState('all'); var filterPriority = _filterPriority[0]; var setFilterPriority = _filterPriority[1]
@@ -758,6 +762,16 @@ export function BugPanel(props: BugPanelProps) {
       deepLinkBugId.current = bugId
     }
   }, [open, props.focusBugId])
+
+  // BUG-PANEL-STANDALONE-1: Fetch dynamic product list on mount
+  useEffect(function() {
+    apiFetch(apiBase + '/api/admin/bug-panel/products')
+      .then(function(r) { return r.json() })
+      .then(function(d: { ok: boolean; data?: Record<string, string[]> }) {
+        if (d.ok && d.data) setProducts(d.data)
+      })
+      .catch(function() { /* keep fallback */ })
+  }, [apiBase])
 
   // Scroll to deep-linked bug once it's rendered
   useEffect(function() {
@@ -1082,18 +1096,23 @@ export function BugPanel(props: BugPanelProps) {
   }
 
   var isMobile = typeof window !== 'undefined' && window.innerWidth < 640
+  var isStandalone = props.standalone
   var items = source === 'reports' ? bugs : threads
+
+  var panelStyle = isStandalone
+    ? Object.assign({}, S.panel, { position: 'relative' as const, width: '100%', maxWidth: 720, margin: '0 auto', height: '100vh', borderLeft: 'none', boxShadow: 'none', zIndex: 1 })
+    : Object.assign({}, S.panel, isMobile ? S.panelMobile : {})
 
   return (
     <>
-      <div data-bug-overlay="" style={S.overlay} onClick={closePanel} />
-      <div data-bug-panel="" style={Object.assign({}, S.panel, isMobile ? S.panelMobile : {})}>
+      {!isStandalone && <div data-bug-overlay="" style={S.overlay} onClick={closePanel} />}
+      <div data-bug-panel="" style={panelStyle}>
 
         <div style={S.header}>
           <span style={S.title}>{isAdmin ? 'Bug Catcher' : label}</span>
           <kbd style={{ fontSize: 10, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle,var(--bg))', color: 'var(--muted)', lineHeight: 1.4, marginLeft: 6, fontFamily: 'var(--font-mono,monospace)' }}>{typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318B' : 'Ctrl+B'}</kbd>
           <span style={{ flex: 1 }} />
-          <button style={S.closeBtn} onClick={closePanel}><CloseIcon /></button>
+          {!isStandalone && <button style={S.closeBtn} onClick={closePanel}><CloseIcon /></button>}
         </div>
 
         {isAdmin && (
@@ -1119,9 +1138,9 @@ export function BugPanel(props: BugPanelProps) {
           <div style={S.filterBar}>
             <select style={S.filterSelect} value={filterProduct} onChange={function(e) { setFilterProduct(e.target.value) }}>
               <option value="all">Products</option>
-              {Object.keys(PRODUCTS).map(function(group) {
+              {Object.keys(products).map(function(group) {
                 return <optgroup key={group} label={group}>
-                  {PRODUCTS[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
+                  {products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
                 </optgroup>
               })}
             </select>
@@ -1232,9 +1251,9 @@ export function BugPanel(props: BugPanelProps) {
                 {TYPES.map(function(t) { return <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option> })}
               </select>
               <select style={S.formSelect} value={fProduct} onChange={function(e) { setFProduct(e.target.value) }}>
-                {Object.keys(PRODUCTS).map(function(group) {
+                {Object.keys(products).map(function(group) {
                   return <optgroup key={group} label={group}>
-                    {PRODUCTS[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
+                    {products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
                   </optgroup>
                 })}
               </select>
