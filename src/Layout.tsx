@@ -827,7 +827,7 @@ function canViewProduct(perms: Permissions | null, role: string | null | undefin
 
 // ─── Sidebar Section ────────────────────────────────────────────────────────
 
-function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat }: {
+function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat, railCollapsed, onRailEnter, onRailLeave }: {
   label: string
   sectionIcon?: React.ReactNode
   sectionColor?: string
@@ -839,6 +839,9 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
   collapsed?: boolean
   onToggle?: () => void
   flat?: boolean
+  railCollapsed?: boolean
+  onRailEnter?: (el: HTMLElement, label: string, items: NavItem[]) => void
+  onRailLeave?: () => void
 }) {
   var isExternallyManaged = collapsed !== undefined && onToggle !== undefined
   var _useState = useState(defaultOpen !== false)
@@ -870,7 +873,14 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
   var sectionStyle = { '--section-color': color, '--section-tint': tint } as React.CSSProperties
 
   return (
-    <div className={'ps-section' + (flat ? ' ps-flat' : '') + (flat || open ? '' : ' collapsed')} data-product={product} style={sectionStyle} data-label={label}>
+    <div
+      className={'ps-section' + (flat ? ' ps-flat' : '') + (flat || open ? '' : ' collapsed')}
+      data-product={product}
+      style={sectionStyle}
+      data-label={label}
+      onMouseEnter={railCollapsed && onRailEnter ? function(e: React.MouseEvent<HTMLDivElement>) { onRailEnter(e.currentTarget, label, items) } : undefined}
+      onMouseLeave={railCollapsed && onRailLeave ? onRailLeave : undefined}
+    >
       {!flat && (
         <button className="ps-section-header" onClick={handleToggle}>
           {sectionIcon && (
@@ -1091,6 +1101,18 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
       return nv
     })
   }
+  // Rail flyout: JS-positioned so it escapes the scrolling rail, clamps to the
+  // viewport (flips up near the bottom), and survives the icon->menu hop.
+  var _fly = useState<{ label: string; items: NavItem[]; top: number } | null>(null)
+  var railFlyout = _fly[0]; var setRailFlyout = _fly[1]
+  var flyTimer = useRef<any>(null)
+  function openRailFlyout(el: HTMLElement, label: string, items: NavItem[]) {
+    if (flyTimer.current) { clearTimeout(flyTimer.current); flyTimer.current = null }
+    var r = el.getBoundingClientRect()
+    setRailFlyout({ label: label, items: items, top: r.top })
+  }
+  function keepRailFlyout() { if (flyTimer.current) { clearTimeout(flyTimer.current); flyTimer.current = null } }
+  function closeRailFlyoutSoon() { flyTimer.current = setTimeout(function() { setRailFlyout(null) }, 200) }
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
   var _bugPanelOpen = useState(false); var bugPanelOpen = _bugPanelOpen[0]; var setBugPanelOpen = _bugPanelOpen[1]
   var _portalPicker = useState(false); var portalPickerOpen = _portalPicker[0]; var setPortalPickerOpen = _portalPicker[1]
@@ -1610,6 +1632,9 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                   flat={sections.length === 1 || section.flat || section.nav!.flat}
                   collapsed={navSections ? collapsedState[section.key] : undefined}
                   onToggle={navSections ? function() { toggleCollapse(section.key) } : undefined}
+                  railCollapsed={railCollapsed}
+                  onRailEnter={openRailFlyout}
+                  onRailLeave={closeRailFlyoutSoon}
                 />
               )
             })}
@@ -1665,6 +1690,31 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
             <span className="portal-sidebar-collapse-label">Collapse</span>
           </button>
         </aside>
+
+        {railCollapsed && railFlyout && (
+          <div
+            className="rail-flyout"
+            onMouseEnter={keepRailFlyout}
+            onMouseLeave={closeRailFlyoutSoon}
+            style={{
+              top: Math.max(8, Math.min(
+                railFlyout.top,
+                (typeof window !== 'undefined' ? window.innerHeight : 800) - (railFlyout.items.length * 34 + 52)
+              )),
+            }}
+          >
+            <div className="rail-flyout-label">{railFlyout.label}</div>
+            {railFlyout.items.map(function(item) {
+              if (item.external) {
+                return <a key={item.to || item.href} href={item.to || item.href} target="_blank" rel="noopener noreferrer" className="ps-item">{item.Icon && <item.Icon />}{' '}{item.label}</a>
+              }
+              if (item.disabled) {
+                return <span key={item.to || item.label} className="ps-item disabled">{item.Icon && <item.Icon />}{' '}{item.label}</span>
+              }
+              return <NavLink key={item.to} to={item.to} end={item.exact} className={function(p) { return 'ps-item' + (p.isActive ? ' active' : '') }}>{item.Icon && <item.Icon />}{' '}{item.label}</NavLink>
+            })}
+          </div>
+        )}
 
         <div className="portal-mobile-bar">
           <button onClick={function() { setMobileOpen(!mobileOpen) }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
