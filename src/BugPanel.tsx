@@ -932,6 +932,9 @@ export function BugPanel(props: BugPanelProps) {
       .catch(function() {})
   }, [expanded, apiBase, source])
 
+  // BUG-PANEL-STANDALONE-1: Set browser tab title in standalone mode
+  useEffect(function() { if (props.standalone) document.title = 'Bug Catcher' }, [props.standalone])
+
   function handleAction(bugId: string, updates: Record<string, string>) {
     apiFetch(apiBase + '/api/bugs/' + bugId, {
       method: 'PATCH', credentials: 'include',
@@ -1151,9 +1154,7 @@ export function BugPanel(props: BugPanelProps) {
             <select style={S.filterSelect} value={filterProduct} onChange={function(e) { setFilterProduct(e.target.value) }}>
               <option value="all">Portals</option>
               {Object.keys(products).map(function(group) {
-                return <optgroup key={group} label={group}>
-                  {products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
-                </optgroup>
+                return products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })
               })}
             </select>
             <select style={S.filterSelect} value={filterType} onChange={function(e) { setFilterType(e.target.value) }}>
@@ -1264,9 +1265,7 @@ export function BugPanel(props: BugPanelProps) {
               </select>
               <select style={S.formSelect} value={fProduct} onChange={function(e) { setFProduct(e.target.value) }}>
                 {Object.keys(products).map(function(group) {
-                  return <optgroup key={group} label={group}>
-                    {products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })}
-                  </optgroup>
+                  return products[group].map(function(p) { return <option key={p} value={p}>{p}</option> })
                 })}
               </select>
             </div>
