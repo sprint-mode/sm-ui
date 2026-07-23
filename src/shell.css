@@ -110,3 +110,53 @@
   .portal-main { padding: 20px 16px 80px; }
   .shell-with-header .portal-sidebar { top: 56px; }
 }
+
+/* ======= SIDEBAR RAIL (desktop collapsed) ======= */
+/* Additive: everything below only applies when .portal-sidebar has .rail.
+   Default (expanded) layout is untouched. font-size:0 hides bare label text
+   nodes; SVG icons have fixed dimensions and are unaffected. */
+.portal-sidebar.rail { width: 60px; overflow: visible; }
+.portal-sidebar.rail .portal-sidebar-nav { overflow: visible; padding: 8px 6px; }
+
+/* Collapse toggle button (always present, at the sidebar bottom) */
+.portal-sidebar-collapse { display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 14px; border: none; border-top: 1px solid var(--border); background: none; color: var(--muted); font-size: 12px; font-weight: 600; font-family: var(--font); cursor: pointer; flex-shrink: 0; }
+.portal-sidebar-collapse:hover { background: var(--bg-subtle); color: var(--foreground); }
+.portal-sidebar.rail .portal-sidebar-collapse { justify-content: center; padding: 10px 0; }
+.portal-sidebar.rail .portal-sidebar-collapse-label { display: none; }
+
+/* Group headings -> thin divider */
+.portal-sidebar.rail .ps-heading { font-size: 0 !important; padding: 0 !important; margin: 8px 12px; height: 1px; border-top: 1px solid var(--border); overflow: hidden; }
+
+/* Section header: icon only, centered */
+.portal-sidebar.rail .ps-section-header { justify-content: center; gap: 0; padding: 9px 8px; font-size: 0; }
+.portal-sidebar.rail .ps-section-chevron { display: none; }
+.portal-sidebar.rail .ps-section-header:hover { background: var(--bg-subtle); }
+
+/* Flat sections (e.g. Dashboard) + bottom nav: item icons centered, labels hidden */
+.portal-sidebar.rail .ps-flat .ps-item,
+.portal-sidebar.rail .portal-sidebar-bottom-nav .ps-item { justify-content: center; gap: 0; padding: 9px 8px; font-size: 0; }
+
+/* Non-flat sections: hide inline items; reveal a flyout on hover/focus */
+.portal-sidebar.rail .ps-section:not(.ps-flat) { position: relative; }
+.portal-sidebar.rail .ps-section:not(.ps-flat) .ps-section-items { display: none; }
+.portal-sidebar.rail .ps-section:not(.ps-flat):hover > .ps-section-items,
+.portal-sidebar.rail .ps-section:not(.ps-flat):focus-within > .ps-section-items {
+  display: block; position: absolute; left: 54px; top: -4px; min-width: 200px;
+  background: var(--bg-card, var(--bg)); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: 0 10px 34px rgba(0,0,0,0.16);
+  padding: 8px; z-index: 200;
+}
+/* Flyout title from the section label */
+.portal-sidebar.rail .ps-section:not(.ps-flat):hover > .ps-section-items::before,
+.portal-sidebar.rail .ps-section:not(.ps-flat):focus-within > .ps-section-items::before {
+  content: attr(data-label); display: block; font-size: 10px; font-weight: 700;
+  letter-spacing: 1.1px; text-transform: uppercase; color: var(--muted); padding: 2px 8px 8px;
+}
+/* Items inside the flyout render full (icon + label) */
+.portal-sidebar.rail .ps-section:not(.ps-flat) .ps-section-items .ps-item { font-size: 13px; justify-content: flex-start; gap: 10px; padding: 7px 10px; }
+
+/* Logo + user compact in rail */
+.portal-sidebar.rail .portal-sidebar-logo { justify-content: center; padding: 16px 0; }
+.portal-sidebar.rail .portal-sidebar-logo kbd { display: none; }
+.portal-sidebar.rail .portal-sidebar-user { justify-content: center; padding: 12px 0; }
+.portal-sidebar.rail .portal-sidebar-user > div { display: none; }

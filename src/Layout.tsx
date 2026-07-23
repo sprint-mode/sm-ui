@@ -870,7 +870,7 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
   var sectionStyle = { '--section-color': color, '--section-tint': tint } as React.CSSProperties
 
   return (
-    <div className={'ps-section' + (flat || open ? '' : ' collapsed')} data-product={product} style={sectionStyle}>
+    <div className={'ps-section' + (flat ? ' ps-flat' : '') + (flat || open ? '' : ' collapsed')} data-product={product} style={sectionStyle} data-label={label}>
       {!flat && (
         <button className="ps-section-header" onClick={handleToggle}>
           {sectionIcon && (
@@ -885,8 +885,8 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
           <svg className="ps-section-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="6 9 12 15 18 9"/></svg>
         </button>
       )}
-      {(flat || open) && (
-        <div className="ps-section-items">
+      {(
+        <div className="ps-section-items" data-label={label}>
           {items.map(function(item) {
             if (item.external) {
               return (
@@ -1080,6 +1080,17 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var bugPanelAdmin = props.bugPanelAdmin || !!(_bugPerms && _bugPerms.edit)
   var _m = useState(false); var mobileOpen = _m[0]; var setMobileOpen = _m[1]
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
+  // Sidebar rail collapse (desktop): narrow to icons; sections reveal a flyout on
+  // hover. Persisted to localStorage so it survives navigation/reload.
+  var _rail = useState(function() { try { return localStorage.getItem('sm-sidebar-rail') === '1' } catch { return false } })
+  var railCollapsed = _rail[0]; var setRailCollapsed = _rail[1]
+  function toggleRail() {
+    setRailCollapsed(function(v) {
+      var nv = !v
+      try { localStorage.setItem('sm-sidebar-rail', nv ? '1' : '0') } catch { /* ignore */ }
+      return nv
+    })
+  }
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
   var _bugPanelOpen = useState(false); var bugPanelOpen = _bugPanelOpen[0]; var setBugPanelOpen = _bugPanelOpen[1]
   var _portalPicker = useState(false); var portalPickerOpen = _portalPicker[0]; var setPortalPickerOpen = _portalPicker[1]
@@ -1562,7 +1573,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
         <div className="shell-body">
 
-        <aside className={'portal-sidebar' + (mobileOpen ? ' open' : '')} id="portalSidebar">
+        <aside className={'portal-sidebar' + (mobileOpen ? ' open' : '') + (railCollapsed ? ' rail' : '')} id="portalSidebar">
           {!hasHeader && (
             <div className="portal-sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
@@ -1642,6 +1653,17 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               <a href={logoutHref}>Sign out</a>
             </div>
           )}
+          <button
+            className="portal-sidebar-collapse"
+            onClick={toggleRail}
+            title={railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={railCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points={railCollapsed ? '9 6 15 12 9 18' : '15 6 9 12 15 18'} />
+            </svg>
+            <span className="portal-sidebar-collapse-label">Collapse</span>
+          </button>
         </aside>
 
         <div className="portal-mobile-bar">
