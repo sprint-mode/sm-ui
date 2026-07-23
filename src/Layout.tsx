@@ -1082,12 +1082,12 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
   // Sidebar rail collapse (desktop): narrow to icons; sections reveal a flyout on
   // hover. Persisted to localStorage so it survives navigation/reload.
-  var _rail = useState(function() { try { return localStorage.getItem('sm-sidebar-rail') === '1' } catch (e) { return false } })
+  var _rail = useState(function() { try { return localStorage.getItem('sm-sidebar-rail') === '1' } catch { return false } })
   var railCollapsed = _rail[0]; var setRailCollapsed = _rail[1]
   function toggleRail() {
     setRailCollapsed(function(v) {
       var nv = !v
-      try { localStorage.setItem('sm-sidebar-rail', nv ? '1' : '0') } catch (e) { /* ignore */ }
+      try { localStorage.setItem('sm-sidebar-rail', nv ? '1' : '0') } catch { /* ignore */ }
       return nv
     })
   }
