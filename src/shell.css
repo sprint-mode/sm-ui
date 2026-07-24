@@ -127,8 +127,30 @@
 .portal-sidebar.rail .portal-sidebar-collapse { justify-content: center; padding: 10px 0; }
 .portal-sidebar.rail .portal-sidebar-collapse-label { display: none; }
 
-/* Group headings -> thin divider */
-.portal-sidebar.rail .ps-heading { font-size: 0 !important; padding: 0 !important; margin: 8px 12px; height: 1px; border-top: 1px solid var(--border); overflow: hidden; }
+/* Group headings in the rail: reveal the clickable title (App.tsx wires the
+   onClick=toggleGroup) as a compact, centered label so groups can be collapsed
+   from the rail the same way as the expanded sidebar. The short labels
+   (Ops / Apps / Tools) fit comfortably in 60px; long custom labels
+   ellipsis-truncate rather than overflow. */
+.portal-sidebar.rail .ps-heading {
+  font-size: 8px !important;
+  font-weight: 700;
+  letter-spacing: 0.3px !important;
+  padding: 16px 4px 5px !important;
+  margin: 0;
+  text-align: center;
+  overflow: hidden;
+  height: auto;
+}
+.portal-sidebar.rail .ps-heading > span {
+  display: block !important;
+  width: 100% !important;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.portal-sidebar.rail .ps-heading > span:hover { color: var(--foreground); }
 
 /* Section header: icon only, centered */
 .portal-sidebar.rail .ps-section-header { justify-content: center; gap: 0; padding: 9px 8px; font-size: 0; }
