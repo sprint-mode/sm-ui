@@ -935,6 +935,25 @@ export function BugPanel(props: BugPanelProps) {
   // BUG-PANEL-STANDALONE-1: Set browser tab title in standalone mode
   useEffect(function() { if (props.standalone) document.title = 'Bug Catcher' }, [props.standalone])
 
+  // BUG-PANEL-STANDALONE-1: Apply theme in standalone mode (no Layout to do it)
+  useEffect(function() {
+    if (!props.standalone) return
+    function applyTheme() {
+      var stored: string | null = null
+      try { stored = localStorage.getItem('sm-theme') } catch (_e) { /* noop */ }
+      var isDark = stored ? stored === 'dark' : (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light')
+    }
+    applyTheme()
+    var mq = typeof window !== 'undefined' ? window.matchMedia('(prefers-color-scheme: dark)') : null
+    if (mq) mq.addEventListener('change', applyTheme)
+    window.addEventListener('storage', applyTheme)
+    return function() {
+      if (mq) mq.removeEventListener('change', applyTheme)
+      window.removeEventListener('storage', applyTheme)
+    }
+  }, [props.standalone])
+
   function handleAction(bugId: string, updates: Record<string, string>) {
     apiFetch(apiBase + '/api/bugs/' + bugId, {
       method: 'PATCH', credentials: 'include',
