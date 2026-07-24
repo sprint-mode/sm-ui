@@ -127,8 +127,38 @@
 .portal-sidebar.rail .portal-sidebar-collapse { justify-content: center; padding: 10px 0; }
 .portal-sidebar.rail .portal-sidebar-collapse-label { display: none; }
 
-/* Group headings -> thin divider */
-.portal-sidebar.rail .ps-heading { font-size: 0 !important; padding: 0 !important; margin: 8px 12px; height: 1px; border-top: 1px solid var(--border); overflow: hidden; }
+/* Group headings in the rail: keep the clickable title + chevron (App.tsx wires
+   the onClick=toggleGroup and the rotation) but render it compact and centered,
+   so groups can be collapsed from the rail the same way as the expanded sidebar.
+   The short renamed labels (Operations / Products / Apps) are what make this fit
+   in 60px. Long titles ellipsis-truncate rather than overflow the rail. */
+.portal-sidebar.rail .ps-heading {
+  font-size: 7px !important;
+  font-weight: 700;
+  letter-spacing: 0 !important;
+  padding: 11px 2px 5px !important;
+  /* bleed to the full rail width (cancel the nav's 6px side padding) so the
+     longest label, OPERATIONS, fits without shrinking the font further */
+  margin: 0 -6px !important;
+  text-align: center;
+  border-top: 1px solid var(--border);
+  overflow: visible;
+  height: auto;
+}
+.portal-sidebar.rail .ps-heading > span {
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px;
+  width: 100% !important;
+}
+.portal-sidebar.rail .ps-heading > span > span:first-child {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.portal-sidebar.rail .ps-heading > span:hover { color: var(--foreground); }
 
 /* Section header: icon only, centered */
 .portal-sidebar.rail .ps-section-header { justify-content: center; gap: 0; padding: 9px 8px; font-size: 0; }
