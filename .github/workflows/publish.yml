@@ -48,16 +48,21 @@ jobs:
             PUBLISH_VERSION="$CURRENT"
           else
             LAST_VERSION="${LAST_TAG#v}"
-            if [ "$CURRENT" != "$LAST_VERSION" ]; then
-              # PR author explicitly set a new version (minor/major bump) — use it
-              PUBLISH_VERSION="$CURRENT"
-            else
-              # Auto-bump patch
-              PUBLISH_VERSION=$(node -p "
-                const [maj, min, pat] = '$CURRENT'.split('.').map(Number);
-                \`\${maj}.\${min}.\${pat + 1}\`
-              ")
-            fi
+            # Use package.json ONLY if it is strictly ahead of the latest tag
+            # (author intentionally bumped minor/major). Otherwise auto-bump the
+            # patch from the latest published tag. This is correct even when
+            # package.json trails the tag (the common case, since the version is
+            # never committed back after an auto-bump) — the old "!=" check
+            # published the stale package.json version and 409'd.
+            PUBLISH_VERSION=$(node -p "
+              const cur = '$CURRENT'.split('.').map(Number);
+              const last = '$LAST_VERSION'.split('.').map(Number);
+              const ahead =
+                cur[0] > last[0] ||
+                (cur[0] === last[0] && cur[1] > last[1]) ||
+                (cur[0] === last[0] && cur[1] === last[1] && cur[2] > last[2]);
+              ahead ? cur.join('.') : [last[0], last[1], last[2] + 1].join('.');
+            ")
           fi
 
           echo "publish_version=$PUBLISH_VERSION" >> $GITHUB_OUTPUT
