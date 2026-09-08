@@ -1,6 +1,6 @@
 {
   "$schema": "./portal-standard.schema.json",
-  "standard_version": "1.2.0",
+  "standard_version": "1.3.0",
   "required_exports": [
     "Layout",
     "Login",
@@ -43,7 +43,32 @@
       "type",
       "modules"
     ],
+    "optional_fields": [
+      "backend",
+      "api_base",
+      "public_routes",
+      "public_routes_shape"
+    ],
+    "backend_values": ["sm-api", "own-worker"],
     "min_template_version": "0.1.0"
+  },
+  "backend_profiles": {
+    "sm-api": {
+      "description": "Default. Auth and API calls route through api.sprintmode.ai (the spine). Uses functions/ passthrough for X-SM-Product forwarding. Login via sm-ui Login component. api_base not required.",
+      "checks_unchanged": [5, 9, 26, 27, 28, 29]
+    },
+    "own-worker": {
+      "description": "CF Pages Advanced Mode: root _worker.js handles auth and API proxying. Requires api_base (the worker's own origin, e.g. https://my-worker.example.workers.dev). Checks 5/9/26/27/28/29 branch for this profile.",
+      "api_base_required": true,
+      "check_branches": {
+        "5": "PACKAGES always required; SM_API_KEY required only when a sections-sync workflow exists in the repo",
+        "9": "sm-ui <Login portal=...> or SSO handoff via /auth/sso/exchange both accepted",
+        "26": "root _worker.js accepted if it sets X-SM-Product; functions/ passthrough not required",
+        "27": "_worker.js is scanned for the session-verify endpoint shape ({ ok, user }); data.data is a deviation",
+        "28": "api_base is probed for /api/portal/config instead of api.sprintmode.ai",
+        "29": "api_base host is whitelisted alongside api.sprintmode.ai"
+      }
+    }
   },
   "brand_override_variables": [
     "--accent",
@@ -124,7 +149,7 @@
     {
       "id": 5,
       "key": "workflow-secrets-present",
-      "title": "Secrets the workflows reference exist on the repo (PACKAGES, SM_API_KEY). [N, S]",
+      "title": "Secrets the workflows reference exist on the repo (PACKAGES always; SM_API_KEY always for sm-api backend, or when a sections-sync workflow exists for own-worker). [N, S]",
       "gates": [
         "N",
         "S"
@@ -169,7 +194,7 @@
     {
       "id": 9,
       "key": "login-uses-sm-ui",
-      "title": "The login route renders sm-ui Login with portal=\"<slug>\"; no local call to /auth/magic or /auth/verify-code. [A, N, S]",
+      "title": "The login route renders sm-ui Login with portal=\"<slug>\" or uses SSO handoff via /auth/sso/exchange (own-worker only); no local call to /auth/magic or /auth/verify-code. [A, N, S]",
       "gates": [
         "A",
         "N",
@@ -353,7 +378,7 @@
     {
       "id": 26,
       "key": "functions-passthrough-product-header",
-      "title": "The functions/ passthrough sets X-SM-Product to the slug; no root or public _worker.js. [A, N]",
+      "title": "The functions/ passthrough sets X-SM-Product to the slug; no root or public _worker.js. When backend is own-worker, root _worker.js is accepted if it forwards X-SM-Product; functions/ not required. [A, N]",
       "gates": [
         "A",
         "N"
@@ -364,7 +389,7 @@
     {
       "id": 27,
       "key": "auth-me-shape-correct",
-      "title": "The portal's page gate reads the /auth/me shape the spine actually returns ({ ok, user }); a gate that tests data.data alone is a deviation. [A, N, S]",
+      "title": "The portal's page gate reads the /auth/me shape the spine actually returns ({ ok, user }); a gate that tests data.data alone is a deviation. When backend is own-worker, the _worker.js session-verify endpoint is also scanned. [A, N, S]",
       "gates": [
         "A",
         "N",
@@ -376,7 +401,7 @@
     {
       "id": 28,
       "key": "portal-config-resolves",
-      "title": "/api/portal/config resolves for the portal's own origins (each allowed domain plus the sprintmode.ai host): ok=true and config.name equals the portal name [N, and the sm-api deploy smoke; today's Safe Shepherd logo regression]",
+      "title": "/api/portal/config resolves for the portal's own origins: ok=true and config.name equals the portal name. When backend is own-worker, api_base is probed instead of api.sprintmode.ai. [N]",
       "gates": [
         "N"
       ],
@@ -386,7 +411,7 @@
     {
       "id": 29,
       "key": "no-non-spine-auth-calls",
-      "title": "No browser-side call to an auth host other than the spine (api.sprintmode.ai or the portal's own /api/sm proxy); a page that calls another origin for a session is a deviation [A warns, N]",
+      "title": "No browser-side call to an auth host other than the spine (api.sprintmode.ai or the portal's own /api proxy); a page that calls another origin for a session is a deviation. When backend is own-worker, the api_base host is also whitelisted. [A warns, N]",
       "gates": [
         "A",
         "N"
