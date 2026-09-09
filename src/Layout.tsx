@@ -207,6 +207,12 @@ export interface LayoutProps {
    *  AccountSwitcher for the linked-accounts read. Omit to keep the v1.2.3
    *  default (direct to https://api.sprintmode.ai). */
   apiBase?: string
+  /** FEAT-3267: nav orientation. 'side' (default) keeps the sidebar rail.
+   *  'top' moves navSections into a horizontal header bar; the sidebar is not
+   *  rendered; sidebarTop/sidebarBottom are side-only and are not rendered.
+   *  The portal.json optional field nav_orientation feeds this; no portal opts
+   *  in without Aaron's word. */
+  nav?: 'side' | 'top'
 }
 
 // ─── Session Context ────────────────────────────────────────────────────────
@@ -1412,8 +1418,10 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var _bugsAccess = session ? (session as any).bugs_access : undefined
   var _bugPerms = session && (session as any).permissions && (session as any).permissions.bugs
   var bugPanelAdmin = (_bugsAccess !== undefined ? _bugsAccess >= 2 : !!(_bugPerms && _bugPerms.edit))
+  var isTopNav = props.nav === 'top'
   var _m = useState(false); var mobileOpen = _m[0]; var setMobileOpen = _m[1]
   var _d = useState(false); var dropdownOpen = _d[0]; var setDropdownOpen = _d[1]
+  var _tn = useState<string | null>(null); var topNavOpen = _tn[0]; var setTopNavOpen = _tn[1]
   // Sidebar rail collapse (desktop): narrow to icons; sections reveal a flyout on
   // hover. Persisted to localStorage so it survives navigation/reload.
   var _rail = useState(function() { try { return localStorage.getItem('sm-sidebar-rail') === '1' } catch { return false } })
@@ -1437,6 +1445,15 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   }
   function keepRailFlyout() { if (flyTimer.current) { clearTimeout(flyTimer.current); flyTimer.current = null } }
   function closeRailFlyoutSoon() { flyTimer.current = setTimeout(function() { setRailFlyout(null) }, 200) }
+  useEffect(function() {
+    if (!isTopNav) return
+    function closeTopNav(e: MouseEvent) {
+      if (!(e.target as Element).closest('.shell-header-nav-dropdown')) setTopNavOpen(null)
+    }
+    document.addEventListener('click', closeTopNav)
+    return function() { document.removeEventListener('click', closeTopNav) }
+  }, [isTopNav])
+
   var _cmdkOpen = useState(false); var cmdkOpen = _cmdkOpen[0]; var setCmdkOpen = _cmdkOpen[1]
   var _portalPicker = useState(false); var portalPickerOpen = _portalPicker[0]; var setPortalPickerOpen = _portalPicker[1]
   // BUG-2277: shared stale-tab banner. Auto-reload fires inside the hook when
@@ -2121,7 +2138,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     <SessionContext.Provider value={session}>
     <ViewAsTeamContext.Provider value={viewAsTeam}>
     <ViewAsContext.Provider value={viewAsCustomer}>
-      <div className={'shell' + (hasHeader ? ' shell-with-header' : '')}>
+      <div
+        className={'shell' + (hasHeader ? ' shell-with-header' : '')}
+        data-sm-theme={portalCfg.config ? portalCfg.config.subdomain : undefined}
+        style={isTopNav ? { '--sidebar-w': '0px' } as React.CSSProperties : undefined}
+      >
 
         {hasHeader && (
           <header className={'shell-header' + (serverLens ? ' shell-header-lens' : '')}>
@@ -2157,6 +2178,83 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                 onMouseLeave: function(e: React.MouseEvent<HTMLElement>) { (e.currentTarget as HTMLElement).style.borderColor = ''; (e.currentTarget as HTMLElement).style.color = 'var(--muted)' },
               }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1 ? '\u2318C' : 'Ctrl+C')) : null}
               </div>
+              {isTopNav && (
+                <nav className="shell-header-nav">
+                  {sections.map(function(section, si) {
+                    if (section.heading || !section.nav) return null
+                    var items = section.nav.items
+                    if (items.length === 0) return null
+                    var isFlat = sections.length === 1 || section.flat || (section.nav as any).flat
+                    if (isFlat) {
+                      return items.map(function(item) {
+                        return (
+                          <NavLink key={item.to} to={item.to}
+                            className={function(p: { isActive: boolean }) { return 'shell-header-nav-item' + (p.isActive ? ' active' : '') }}>
+                            {item.Icon && <item.Icon />}{' '}{item.label}
+                          </NavLink>
+                        )
+                      })
+                    }
+                    var dk = section.key || ('sec-' + si)
+                    return (
+                      <div key={dk} className="shell-header-nav-dropdown">
+                        <button
+                          className={'shell-header-nav-trigger' + (topNavOpen === dk ? ' open' : '')}
+                          onClick={function(e) { e.stopPropagation(); setTopNavOpen(topNavOpen === dk ? null : dk) }}>
+                          {section.nav.label}
+                          <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shell-hn-chevron">
+                            <path d="M6 9l6 6 6-6"/>
+                          </svg>
+                        </button>
+                        {topNavOpen === dk && (
+                          <div className="shell-header-nav-panel">
+                            {items.map(function(item) {
+                              return (
+                                <NavLink key={item.to} to={item.to}
+                                  className={function(p: { isActive: boolean }) { return 'shell-header-nav-panel-item' + (p.isActive ? ' active' : '') }}
+                                  onClick={function() { setTopNavOpen(null) }}>
+                                  {item.Icon && <item.Icon />}{' '}{item.label}
+                                </NavLink>
+                              )
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  {navBottom && navBottom.filter(function(item) { return canViewSection(effectivePerms, effectiveRole, item.permKey) }).length > 0 && (() => {
+                    var filtered = navBottom.filter(function(item) { return canViewSection(effectivePerms, effectiveRole, item.permKey) })
+                    return (
+                      <>
+                        <div className="shell-header-nav-divider" />
+                        <div className="shell-header-nav-dropdown">
+                          <button
+                            className={'shell-header-nav-trigger' + (topNavOpen === '__settings' ? ' open' : '')}
+                            onClick={function(e) { e.stopPropagation(); setTopNavOpen(topNavOpen === '__settings' ? null : '__settings') }}>
+                            Settings
+                            <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shell-hn-chevron">
+                              <path d="M6 9l6 6 6-6"/>
+                            </svg>
+                          </button>
+                          {topNavOpen === '__settings' && (
+                            <div className="shell-header-nav-panel" style={{ right: 0, left: 'auto' }}>
+                              {filtered.map(function(item) {
+                                return (
+                                  <NavLink key={item.to} to={item.to}
+                                    className={function(p: { isActive: boolean }) { return 'shell-header-nav-panel-item' + (p.isActive ? ' active' : '') }}
+                                    onClick={function() { setTopNavOpen(null) }}>
+                                    {item.Icon && <item.Icon />}{' '}{item.label}
+                                  </NavLink>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )
+                  })()}
+                </nav>
+              )}
               {(viewAsSelect || lensChip || headerCta || headerRight || standardHeaderRight) && (
                 <div className="shell-header-right">
                   {lensChip}
@@ -2184,7 +2282,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
 
         <div className="shell-body">
 
-        <aside className={'portal-sidebar' + (mobileOpen ? ' open' : '') + (railCollapsed ? ' rail' : '')} id="portalSidebar">
+        {!isTopNav && <aside className={'portal-sidebar' + (mobileOpen ? ' open' : '') + (railCollapsed ? ' rail' : '')} id="portalSidebar">
           {!hasHeader && (
             <div className="portal-sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <img src={themeLogo} alt={alt} style={{ height: 24, width: 'auto' }} />
@@ -2287,9 +2385,9 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
             </svg>
             <span className="portal-sidebar-collapse-label">Collapse</span>
           </button>
-        </aside>
+        </aside>}
 
-        {railCollapsed && railFlyout && (
+        {!isTopNav && railCollapsed && railFlyout && (
           <div
             className="rail-flyout"
             onMouseEnter={keepRailFlyout}
