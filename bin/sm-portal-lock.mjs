@@ -592,6 +592,24 @@ function checkFunctionsPassthrough(root, standard, ctx) {
   return { status: 'pass', found: `X-SM-Product set in ${named.map((f) => relative(root, f)).join(', ')}; no _worker.js`, expected: 'same', fix_where: fixWhere }
 }
 
+function checkNoPortalCssFrameworkOverrides(root) {
+  const fixWhere = 'portal CSS'
+  const CSS_EXTENSIONS = ['.css', '.scss', '.sass', '.less']
+  const FORBIDDEN_SELECTORS = /\.(sm-|portal-)[\w-]/
+  const FORBIDDEN_TOKENS = /--(?:bg|foreground|border|sidebar-w)\s*:/
+  const files = walk(root).filter((f) => CSS_EXTENSIONS.includes(extname(f)) && !f.includes('node_modules'))
+  const violations = []
+  for (const f of files) {
+    const raw = readSafe(f) || ''
+    if (FORBIDDEN_SELECTORS.test(raw)) violations.push(`${relative(root, f)}: .sm-* or .portal-* selector`)
+    else if (FORBIDDEN_TOKENS.test(raw)) violations.push(`${relative(root, f)}: --bg/--foreground/--border/--sidebar-w override`)
+  }
+  if (violations.length) {
+    return { status: 'deviation', found: violations.join('; '), expected: 'no component-selector or layout-token overrides', fix_where: fixWhere }
+  }
+  return { status: 'pass', found: 'no forbidden CSS overrides', expected: 'same', fix_where: fixWhere }
+}
+
 const CHECK_IMPLS = {
   'sm-ui-pinned-exact': (root, standard, ctx) => ctx.pin,
   'sm-ui-pin-matches-newest-tag': checkSmUiPinMatchesNewestTag,
@@ -609,6 +627,7 @@ const CHECK_IMPLS = {
   'auth-me-shape-correct': checkAuthMeShape,
   'no-non-spine-auth-calls': checkNoNonSpineAuthCalls,
   'functions-passthrough-product-header': checkFunctionsPassthrough,
+  'no-portal-css-framework-overrides': checkNoPortalCssFrameworkOverrides,
 }
 
 export function runChecks(root, standard, opts = {}) {

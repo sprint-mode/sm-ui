@@ -28,7 +28,7 @@ describe('sm-portal-lock stays green on the standard fixture', () => {
 
   it('reports every repo-side check as pass on the untouched fixture', () => {
     const results = runChecks(dir, standard, { newestTag: '1.2.0' })
-    expect(results).toHaveLength(15) // ids 1,2,3,4,6,7,8,9,10,11,12,13,26,27,29
+    expect(results).toHaveLength(16) // ids 1,2,3,4,6,7,8,9,10,11,12,13,26,27,29,30
     for (const r of results) {
       expect(r.status).toBe('pass')
     }

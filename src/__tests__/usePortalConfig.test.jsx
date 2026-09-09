@@ -95,9 +95,12 @@ describe('PortalConfigProvider', function() {
     expect(globalThis.fetch).not.toHaveBeenCalled()
   })
 
-  // BUG-2883 regression guard: brand tokens must be applied to :root on every
-  // route — including /auth/login — not only inside the authed AppShell.
-  it('sets --accent and --accent-10 on documentElement when config has brand fields', async function() {
+  // BUG-2883 regression guard: brand tokens must be applied on every route —
+  // including /auth/login — not only inside the authed AppShell.
+  // FEAT-3283: tokens are now injected via <style id="sm-theme-inject"> targeting
+  // [data-sm-theme=<subdomain>] rather than document.documentElement.style.setProperty.
+  it('injects sm-theme-inject style tag with --accent when config has brand_color', async function() {
+    document.getElementById('sm-theme-inject')?.remove()
     globalThis.fetch.mockResolvedValue({
       json: function() {
         return Promise.resolve({
@@ -114,8 +117,10 @@ describe('PortalConfigProvider', function() {
     await waitFor(function() {
       expect(screen.getByText('config: Capital')).toBeInTheDocument()
     })
-    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('#1fac6a')
-    expect(document.documentElement.style.getPropertyValue('--accent-10')).toBe('#e8f6f0')
+    const styleEl = document.getElementById('sm-theme-inject')
+    expect(styleEl).toBeTruthy()
+    expect(styleEl.textContent).toContain('--accent:#1fac6a')
+    expect(styleEl.textContent).toContain('[data-sm-theme="capital"]')
   })
 
   it('does not set --accent when config has no brand_color', async function() {
