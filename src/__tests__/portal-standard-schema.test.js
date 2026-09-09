@@ -93,15 +93,15 @@ describe('portal-standard.json validates against portal-standard.schema.json', (
     expect(errors).toEqual([])
   })
 
-  it('carries exactly 29 checks with ids 1..29 and unique keys', () => {
-    expect(standard.checks).toHaveLength(29)
-    expect(standard.checks.map((c) => c.id)).toEqual(Array.from({ length: 29 }, (_, i) => i + 1))
-    expect(new Set(standard.checks.map((c) => c.key)).size).toBe(29)
+  it('carries exactly 30 checks with ids 1..30 and unique keys', () => {
+    expect(standard.checks).toHaveLength(30)
+    expect(standard.checks.map((c) => c.id)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1))
+    expect(new Set(standard.checks.map((c) => c.key)).size).toBe(30)
   })
 
-  it('marks only checks 2, 14 and 29 as a_warns_only, per the approved lines', () => {
+  it('marks only checks 2, 14, 29 and 30 as a_warns_only, per the approved lines', () => {
     const warnOnly = standard.checks.filter((c) => c.a_warns_only).map((c) => c.id)
-    expect(warnOnly).toEqual([2, 14, 29])
+    expect(warnOnly).toEqual([2, 14, 29, 30])
   })
 
   it('derives a_warns_only and gates from each approved title annotation', () => {

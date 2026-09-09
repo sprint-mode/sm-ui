@@ -191,6 +191,12 @@ export interface LayoutProps {
      *  AccountSwitcher for the linked-accounts read. Omit to keep the v1.2.3
      *  default (direct to https://api.sprintmode.ai). */
     apiBase?: string;
+    /** FEAT-3267: nav orientation. 'side' (default) keeps the sidebar rail.
+     *  'top' moves navSections into a horizontal header bar; the sidebar is not
+     *  rendered; sidebarTop/sidebarBottom are side-only and are not rendered.
+     *  The portal.json optional field nav_orientation feeds this; no portal opts
+     *  in without Aaron's word. */
+    nav?: 'side' | 'top';
 }
 export declare function useSession(): SessionData | null;
 export interface ViewAsUser {

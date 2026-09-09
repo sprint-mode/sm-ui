@@ -5,6 +5,15 @@ export interface PortalConfig {
     name?: string;
     brand_color?: string | null;
     brand_tint?: string | null;
+    /** FEAT-3283: dark-mode accent override. When present, injected under
+     *  prefers-color-scheme:dark and [data-theme="dark"]. */
+    brand_color_dark?: string | null;
+    /** FEAT-3283: optional token overrides — only --radius and --font are
+     *  in the published set; anything else is ignored by the injector. */
+    theme_overrides?: {
+        '--radius'?: string;
+        '--font'?: string;
+    } | null;
     logo_url?: string | null;
     favicon_url?: string | null;
     icon_key?: string | null;
