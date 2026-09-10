@@ -1,6 +1,6 @@
 {
   "name": "@sprint-mode/sm-ui",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Sprint Mode shared platform UI — components, design tokens, auth helpers, login",
   "repository": {
     "type": "git",
