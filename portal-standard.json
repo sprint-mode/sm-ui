@@ -1,6 +1,6 @@
 {
   "$schema": "./portal-standard.schema.json",
-  "standard_version": "1.4.0",
+  "standard_version": "1.5.0",
   "required_exports": [
     "Layout",
     "Login",
@@ -267,7 +267,7 @@
     {
       "id": 15,
       "key": "portal-configs-brand-assets",
-      "title": "portal_configs has brand_color, brand_tint and the five logo URLs, and the five R2 objects answer HEAD 200. [N, S]",
+      "title": "portal_configs has brand_color, brand_tint and the logo fields; the brand-kit manifest in R2 is fetched and each asset it declares answers HEAD 200. [N, S]",
       "gates": [
         "N",
         "S"
@@ -298,7 +298,7 @@
     {
       "id": 18,
       "key": "portal-roles-standard",
-      "title": "portal_roles carries the nine team roles including super_admin with the fleet display names, and the customer roles match the type's list or a declared list. [N, S]",
+      "title": "portal_roles has super_admin with its grants; other team roles are toggled per portal in Portal Manager > Roles and are never audited as missing; customer roles match the type's list or a declared list. [N, S]",
       "gates": [
         "N",
         "S"
@@ -351,7 +351,7 @@
     {
       "id": 23,
       "key": "production-bundle",
-      "title": "The production main JS asset is application/javascript and larger than 100 KB. [N]",
+      "title": "The production bundle is present and substantial: for Vike-prerendered portals measure total shipped JS or the largest chunk; for SPA portals the main JS asset is application/javascript and larger than 100 KB. [N]",
       "gates": [
         "N"
       ],
@@ -432,5 +432,12 @@
       "a_warns_only": true
     }
   ],
-  "brand_override_dark_rule": "html[data-product=<slug>][data-theme=dark] must redefine --accent-tint"
+  "brand_override_dark_rule": "html[data-product=<slug>][data-theme=dark] must redefine --accent-tint",
+  "declared_exceptions": [
+    {"check_id": 21, "portals": ["admin"], "reason": "admin deploys from the production branch via deploy-prod.yml by design; production branch is not main"},
+    {"check_id": 20, "portals": ["capital-site", "website", "privacyai-docs"], "reason": "static sites: no portal_roles, no permissioned pages"},
+    {"check_id": 25, "portals": ["capital-site", "website", "privacyai-docs"], "reason": "static sites: no portal_sections (no permissioned pages)"},
+    {"check_id": 22, "portals": ["safeshepherd"], "reason": "safeshepherd pending Cloudflare cutover; currently served from Vercel"},
+    {"check_id": 23, "portals": ["safeshepherd"], "reason": "safeshepherd pending Cloudflare cutover; currently served from Vercel"}
+  ]
 }
