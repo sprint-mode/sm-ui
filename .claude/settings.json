@@ -9,7 +9,12 @@
       "mcp__waffle__claimWorkItem",
       "mcp__waffle__editComment",
       "mcp__waffle__linkBlocker",
-      "mcp__waffle__unlinkBlocker"
+      "mcp__waffle__unlinkBlocker",
+      "Bash(gh pr merge --auto --squash*)",
+      "Bash(gh pr create*)",
+      "Bash(gh pr view*)",
+      "Bash(gh pr checks*)",
+      "Bash(gh pr comment*)"
     ]
   },
   "hooks": {
