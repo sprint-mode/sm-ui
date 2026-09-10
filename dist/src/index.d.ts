@@ -35,3 +35,7 @@ export { DocumentDetail, TermCards, PipelineBar } from './DocumentDetail.jsx';
 export { FileViewer, isViewableFile } from './FileViewer.jsx';
 export { ProposalViewer } from './ProposalViewer.js';
 export type { ProposalViewerProps, ProposalViewerSection, ProposalViewerComment } from './ProposalViewer.js';
+export { WhatsNew } from './WhatsNew.js';
+export type { WhatsNewRelease } from './WhatsNew.js';
+export { Tour, triggerTour } from './Tour.js';
+export type { TourStep } from './Tour.js';

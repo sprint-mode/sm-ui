@@ -186,6 +186,11 @@ export interface LayoutProps {
      *  Omit to keep the v1.2.3 default (direct to https://api.sprintmode.ai
      *  on *.sprintmode.ai hosts, same-origin proxy elsewhere). */
     authBase?: string;
+    /** FEAT-3431: release notes shown once per release per browser after sign-in.
+     *  Mounts <WhatsNew> when the portal passes this array. */
+    releases?: import('./WhatsNew.tsx').WhatsNewRelease[];
+    /** FEAT-3431: spotlight tour steps. Mounts <Tour> when the portal passes this array. */
+    tourSteps?: import('./Tour.tsx').TourStep[];
     /** TASK-3229 (D2 one door shape): the prefix in front of the spine's
      *  /api/* routes -- "" means the portal's own origin (proxy). Threaded to
      *  AccountSwitcher for the linked-accounts read. Omit to keep the v1.2.3

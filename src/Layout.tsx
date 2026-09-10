@@ -6,6 +6,8 @@ import { AccountSwitcher } from './AccountSwitcher.tsx'
 import { ActingRoleChip } from './ActingRoleChip.tsx'
 import { NoAccessScreen } from './NoAccessScreen.tsx'
 import { usePortalConfig } from './usePortalConfig.jsx'
+import { WhatsNew } from './WhatsNew.tsx'
+import { Tour, triggerTour } from './Tour.tsx'
 
 // ─── Global augmentation for window.__SM_SESSION ───────────────────────────
 
@@ -202,6 +204,11 @@ export interface LayoutProps {
    *  Omit to keep the v1.2.3 default (direct to https://api.sprintmode.ai
    *  on *.sprintmode.ai hosts, same-origin proxy elsewhere). */
   authBase?: string
+  /** FEAT-3431: release notes shown once per release per browser after sign-in.
+   *  Mounts <WhatsNew> when the portal passes this array. */
+  releases?: import('./WhatsNew.tsx').WhatsNewRelease[]
+  /** FEAT-3431: spotlight tour steps. Mounts <Tour> when the portal passes this array. */
+  tourSteps?: import('./Tour.tsx').TourStep[]
   /** TASK-3229 (D2 one door shape): the prefix in front of the spine's
    *  /api/* routes -- "" means the portal's own origin (proxy). Threaded to
    *  AccountSwitcher for the linked-accounts read. Omit to keep the v1.2.3
@@ -1409,6 +1416,11 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     : (portalCfg.config ? (portalCfg.config as any).cmdk !== 0 : true)
   // BUG-2220: bug_panel flag removed — panel feature killed cross-portal
 
+  var releases = props.releases
+  var tourSteps = props.tourSteps
+  var _td = useState(function () { try { return !!localStorage.getItem((props.portalSubdomain || 'sm') + '_tour_done') } catch { return false } })
+  var tourDone = _td[0]; var setTourDone = _td[1]
+
   var _s = useState<SessionData | null>(sessionProp || null); var session = _s[0]; var setSession = _s[1]
   var _l = useState(!sessionProp); var loading = _l[0]; var setLoading = _l[1]
   var _ad = useState(false); var accessDenied = _ad[0]; var setAccessDenied = _ad[1]
@@ -2572,6 +2584,24 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
           }, 'Reload')
         )}
       </div>
+      {session && releases && releases.length > 0 ? (
+        <WhatsNew
+          releases={releases}
+          storageKey={props.portalSubdomain || 'sm'}
+          tourDone={tourDone}
+          onTour={tourSteps && tourSteps.length > 0 ? function () {
+            setTourDone(false)
+            triggerTour(props.portalSubdomain || 'sm')
+          } : undefined}
+        />
+      ) : null}
+      {session && tourSteps && tourSteps.length > 0 ? (
+        <Tour
+          steps={tourSteps}
+          storageKey={props.portalSubdomain || 'sm'}
+          autoStart={true}
+        />
+      ) : null}
     </ViewAsContext.Provider>
     </ViewAsTeamContext.Provider>
     </SessionContext.Provider>

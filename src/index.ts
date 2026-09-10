@@ -108,3 +108,9 @@ export { FileViewer, isViewableFile } from './FileViewer.jsx'
 // Proposal viewer — continuous scroll viewer for client portals (studios, mode, signal)
 export { ProposalViewer } from './ProposalViewer.tsx'
 export type { ProposalViewerProps, ProposalViewerSection, ProposalViewerComment } from './ProposalViewer.tsx'
+
+// FEAT-3431: fleet onboarding components — WhatsNew (once-per-release card on login) and Tour (spotlight walkthrough)
+export { WhatsNew } from './WhatsNew.tsx'
+export type { WhatsNewRelease } from './WhatsNew.tsx'
+export { Tour, triggerTour } from './Tour.tsx'
+export type { TourStep } from './Tour.tsx'
