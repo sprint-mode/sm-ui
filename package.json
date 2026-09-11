@@ -25,7 +25,10 @@
     "./css/components": "./src/components.css",
     "./brands": "./brands/",
     "./portal-standard": "./portal-standard.json",
-    "./module-manifest": "./module-manifest.schema.json",
+    "./module-manifest": {
+      "types": "./dist/src/module-manifest.d.ts",
+      "default": "./module-manifest.schema.json"
+    },
     "./runtime": {
       "types": "./runtime/index.d.ts",
       "default": "./runtime/index.js"
