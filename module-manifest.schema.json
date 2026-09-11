@@ -160,12 +160,14 @@
     },
     "ModuleMeteringKey": {
       "type": "object",
-      "required": ["key", "unit_label"],
+      "required": ["cost_type", "unit_label"],
       "additionalProperties": false,
       "properties": {
-        "key": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+        "cost_type": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z][a-z0-9_-]*)*$", "description": "Namespaced meter id (e.g. \"dex.email_sent\"). Module prefix prevents collision across modules." },
         "unit_label": { "type": "string", "minLength": 1 },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "sm_cost_per_unit": { "type": "number", "minimum": 0, "description": "Default SM vendor cost per unit (seed value; editable post-install)." },
+        "client_price_per_unit": { "type": "number", "minimum": 0, "description": "Default client price per unit (seed value; editable post-install)." }
       }
     },
     "ModuleBindings": {

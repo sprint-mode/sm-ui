@@ -98,10 +98,14 @@ export interface ModuleMcpTool {
 }
 
 export interface ModuleMeteringKey {
-  /** Slug passed as `cost_type` to meter() (e.g. "enrichment"). */
-  key: string;
+  /** Namespaced meter id passed as `cost_type` to meter() (e.g. "dex.email_sent"). */
+  cost_type: string;
   unit_label: string;
   description?: string;
+  /** Default SM vendor cost per unit (seed; editable post-install). */
+  sm_cost_per_unit?: number;
+  /** Default client price per unit (seed; editable post-install). */
+  client_price_per_unit?: number;
 }
 
 export interface ModuleBindings {

@@ -1,7 +1,7 @@
 {
   "id": "dex-engine",
   "manifest_version": "1.0.0",
-  "module_version": "0.2.7",
+  "module_version": "0.2.9",
   "engine_version_range": "^1.0.0",
   "name": "Dex Engine",
   "description": "Engagement engine: inbound routing, play-driven outreach, MCP, booking, personal pages, and the full Dex API surface for one product.",
@@ -111,13 +111,14 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "intro":           { "type": "string" },
-          "classes":         { "type": "array", "items": { "type": "string" } },
-          "priorityClasses": { "type": "array", "items": { "type": "string" } },
-          "pullIn":          { "type": "array", "items": { "type": "string" } },
-          "intelFor":        { "type": "array", "items": { "type": "string" } },
-          "optionKeys":      { "type": "array", "items": { "type": "string" } },
-          "defaultLinks":    { "type": "string" }
+          "intro":            { "type": "string" },
+          "classes":          { "type": "array", "items": { "type": "string" } },
+          "priorityClasses":  { "type": "array", "items": { "type": "string" } },
+          "pullIn":           { "type": "array", "items": { "type": "string" } },
+          "intelFor":         { "type": "array", "items": { "type": "string" } },
+          "optionKeys":       { "type": "array", "items": { "type": "string" } },
+          "defaultLinks":     { "type": "string" },
+          "autoAckUnknown":   { "type": "boolean", "default": false, "description": "When false (default), auto-replies are not sent to senders with no contact row; the card stays actionable with the draft attached (0.2.8)." }
         }
       },
       "docs": {
@@ -187,6 +188,20 @@
           "domains": { "type": "object", "description": "Firm name → domain hints for Apollo." }
         }
       },
+      "extension": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Browser extension configuration (0.1.5). Portal code for note-drafting prompt.",
+        "properties": {
+          "notePrompt": { "type": "string", "description": "Extension note-drafting prompt. {owner} and {name} are replaced." }
+        }
+      },
+      "teamDomains": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "default": [],
+        "description": "Email domains treated as team in addition to individual people[].emails entries (0.2.8). Each entry is a lowercase domain with no '@' and at least one dot."
+      },
       "booking":  { "type": "object", "properties": { "slugPrefix": { "type": "string" } } },
       "kb":       { "type": "array", "items": { "type": "object", "required": ["title", "text"], "properties": { "title": { "type": "string" }, "url": { "type": "string" }, "text": { "type": "string" } } } },
       "publicAsk": { "type": "object", "required": ["system"], "properties": { "system": { "type": "string" }, "buckets": { "type": "object" } } },
@@ -201,7 +216,8 @@
           "twilio":        { "type": "boolean", "default": false },
           "bookingProxy":  { "type": "boolean", "default": false },
           "mcp":           { "type": "boolean", "default": true },
-          "extension":     { "type": "boolean", "default": true }
+          "extension":     { "type": "boolean", "default": true },
+          "files":         { "type": "boolean", "default": false, "description": "Enable inbound-mail attachment filing to R2. Requires FILES binding." }
         }
       },
       "auth": {
@@ -306,6 +322,7 @@
           "publicAskContext":  { "type": ["string", "null"] },
           "autopilotAllowed":  { "type": ["string", "null"] },
           "playForContact":    { "type": ["string", "null"] },
+          "personalPage":      { "type": ["string", "null"], "description": "Portal code for a product-rendered personal page (0.2.8). null falls back to the package layout." },
           "noEmailRule":       { "type": ["string", "null"] },
           "legacySession":     { "type": ["string", "null"] },
           "funnelExtra":       { "type": ["string", "null"] },
@@ -413,17 +430,21 @@
     }
   ],
   "mcp_tools": [
-    { "name": "actions_list",       "description": "List pending cards for a person." },
-    { "name": "contact_lookup",     "description": "Look up a contact by email or name." },
-    { "name": "send_draft",         "description": "Stage and optionally send a drafted reply." },
-    { "name": "hot_leads",          "description": "Top leads by score." },
-    { "name": "network_value",      "description": "Current network-value model." }
+    { "name": "actions_list",    "description": "Open cards on Home (replies, follow-ups, signals, leads, bookings, plan checks) with drafts and moves. Priority 1 first." },
+    { "name": "actions_act",     "description": "Take a move on a card: send (with the draft or an edited body), snooze, dismiss, done, or any button the card offers." },
+    { "name": "people_search",   "description": "Find people in RoloDEX by name, firm, title, or email." },
+    { "name": "person_get",      "description": "Everything on a person: next action, conversation, notes, signed documents, their pages." },
+    { "name": "people_add",      "description": "Add a person to RoloDEX and start them on a play." },
+    { "name": "messages_search", "description": "Search the record of every email in and out." },
+    { "name": "schedule_list",   "description": "Upcoming bookings by host." },
+    { "name": "funnel",          "description": "Where every play stands, people to won." },
+    { "name": "hot_leads",       "description": "Who is closest to a deal right now, by name, with why." }
   ],
   "metering_keys": [
-    { "key": "enrichment",        "unit_label": "contact",   "description": "Apollo enrichment call." },
-    { "key": "transcript_mining", "unit_label": "call",      "description": "Twilio transcript analysis." },
-    { "key": "inbound_triage",    "unit_label": "message",   "description": "Inbound email classification." },
-    { "key": "autopilot_send",    "unit_label": "send",      "description": "Autopilot-initiated send." }
+    { "cost_type": "dex.enrichment",        "unit_label": "contact",  "description": "Apollo enrichment call.",          "sm_cost_per_unit": 0.10, "client_price_per_unit": 0.10 },
+    { "cost_type": "dex.transcript_mining", "unit_label": "call",     "description": "Twilio transcript analysis.",       "sm_cost_per_unit": 0.05, "client_price_per_unit": 0.05 },
+    { "cost_type": "dex.inbound_triage",    "unit_label": "message",  "description": "Inbound email classification.",    "sm_cost_per_unit": 0.01, "client_price_per_unit": 0.01 },
+    { "cost_type": "dex.autopilot_send",    "unit_label": "send",     "description": "Autopilot-initiated send.",        "sm_cost_per_unit": 0.02, "client_price_per_unit": 0.02 }
   ],
   "bindings_required": {
     "d1": [
@@ -444,6 +465,7 @@
       { "name": "CAL_WEBHOOK_SECRET",    "required": false, "description": "Cal.com webhook secret. Required when surfaces.bookingProxy is on." },
       { "name": "TURNSTILE_SECRET",      "required": false, "description": "Cloudflare Turnstile secret for public-facing pages." },
       { "name": "SM_API_KEY",            "required": false, "description": "Sprint Mode API key for Platform metering. Required for metering_keys to POST costs." },
+      { "name": "RESEND_API_KEY",         "required": false, "description": "Resend API key for outbound mail transport. Required when mail.transport is resend().", "when": "mail.transport === 'resend'" },
       { "name": "TWILIO_ACCOUNT_SID",    "required": false, "description": "Required when surfaces.twilio is on.", "when": "surfaces.twilio" },
       { "name": "TWILIO_AUTH_TOKEN",     "required": false, "description": "Required when surfaces.twilio is on.", "when": "surfaces.twilio" }
     ],
