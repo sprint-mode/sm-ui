@@ -79,7 +79,7 @@ export interface ModuleRole {
 
 export interface ModuleRoute {
   /** HTTP method, or "*" for all. */
-  method: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'OPTIONS' | '*';
   path: string;
   description?: string;
   auth_required?: boolean;
