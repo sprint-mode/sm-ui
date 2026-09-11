@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
   "$id": "https://github.com/sprint-mode/sm-ui/module-manifest.schema.json",
   "title": "ModuleManifest",
   "description": "Versioned contract between a growth-stack module and the Portal Manager installer (FEAT-3530). A module author publishes one of these; Portal Manager reads it to drive the install cascade.",
