@@ -1,0 +1,479 @@
+{
+  "id": "dex-engine",
+  "manifest_version": "1.0.0",
+  "module_version": "0.2.9",
+  "engine_version_range": "^1.0.0",
+  "name": "Dex Engine",
+  "description": "Engagement engine: inbound routing, play-driven outreach, MCP, booking, personal pages, and the full Dex API surface for one product.",
+  "config_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "description": "Config the operator provides when installing Dex Engine into a portal. Corresponds to the keys createDex(config) consumes. Hooks are portal code — they are named here so Portal Manager can prompt the operator to wire them; they must never be inlined.",
+    "type": "object",
+    "required": ["product", "people", "plays", "defaultPlay", "mail"],
+    "additionalProperties": false,
+    "properties": {
+      "product": {
+        "type": "object",
+        "required": ["key", "name", "portal", "domain", "site", "api", "app"],
+        "additionalProperties": false,
+        "properties": {
+          "key":      { "type": "string", "pattern": "^[a-z][a-z0-9-]*$", "description": "Lowercase slug; used in worker names, metering product, IP-hash salt." },
+          "name":     { "type": "string", "minLength": 1, "description": "Display name used in prompts and pages." },
+          "portal":   { "type": "string", "description": "sm-api portal slug the session token is minted for." },
+          "domain":   { "type": "string", "description": "Sender domain." },
+          "site":     { "type": "string", "format": "uri", "description": "Public site origin for tracked links, personal pages, flow pages." },
+          "api":      { "type": "string", "format": "uri", "description": "This worker's own origin (internal calls)." },
+          "app":      { "type": "string", "format": "uri", "description": "The dashboard origin; MCP Origin header; OAuth consent page." },
+          "timezone": { "type": "string", "description": "IANA timezone for booking card times (e.g. America/Chicago)." },
+          "allowedOrigins": { "type": "array", "items": { "type": "string", "format": "uri" } }
+        }
+      },
+      "people": {
+        "type": "array",
+        "minItems": 1,
+        "description": "The humans cards are addressed to. Order matters: people[0] is the default for_who and host/organizer; the last entry receives 'opportunity' cards unless routing.opportunity overrides.",
+        "items": {
+          "type": "object",
+          "required": ["key", "initials", "emails", "sender"],
+          "additionalProperties": false,
+          "properties": {
+            "key":      { "type": "string" },
+            "name":     { "type": "string" },
+            "initials": { "type": "string", "pattern": "^[A-Z]{2}$" },
+            "role":     { "type": "string" },
+            "emails":   { "type": "array", "minItems": 1, "items": { "type": "string", "format": "email" } },
+            "notify":   { "type": "boolean" },
+            "sender": {
+              "type": "object",
+              "required": ["id", "address", "fromName"],
+              "additionalProperties": false,
+              "properties": {
+                "id":        { "type": "string" },
+                "address":   { "type": "string", "format": "email" },
+                "fromName":  { "type": "string" },
+                "signature": { "type": "string" }
+              }
+            },
+            "cal":       { "type": "object", "properties": { "keyEnv": { "type": "string" } } },
+            "twilio":    { "type": "object", "properties": { "numberEnv": { "type": "string" }, "forwardEnv": { "type": "string" } } },
+            "mail":      { "type": "object", "properties": { "copyEnv": { "type": "string" } } },
+            "extension": { "type": "object", "properties": { "salesNav": { "type": "boolean" }, "signals": { "type": "boolean" } } }
+          }
+        }
+      },
+      "routing": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "inbound":     { "type": "string", "description": "Person key for for_who on reply/followup/signal cards." },
+          "opportunity": { "type": "string", "description": "Person key for for_who on new-opportunity cards." }
+        }
+      },
+      "mail": {
+        "type": "object",
+        "required": ["transport", "defaultSender", "systemSender"],
+        "additionalProperties": false,
+        "description": "See MAIL-TRANSPORT.md for the transport interface.",
+        "properties": {
+          "transport":       { "type": "string", "description": "Transport constructor reference (e.g. 'resend' or 'gmail'). Portal Manager resolves this to the transport factory." },
+          "defaultSender":   { "type": "string", "description": "sender.id of the default sending person." },
+          "sendAsSelf":      { "type": "boolean" },
+          "systemSender": {
+            "type": "object",
+            "required": ["id", "address", "fromName"],
+            "additionalProperties": false,
+            "properties": {
+              "id":       { "type": "string" },
+              "address":  { "type": "string", "format": "email" },
+              "fromName": { "type": "string" }
+            }
+          },
+          "replyTo":        { "type": "string", "format": "email" },
+          "inboundAddress": { "type": "string", "format": "email" }
+        }
+      },
+      "plays": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "Campaign plays keyed by play id. Product content, not engine content.",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string" },
+            "who":  { "type": "string" },
+            "want": { "type": "string" }
+          }
+        }
+      },
+      "defaultPlay": { "type": "string", "description": "Must be a key of plays." },
+      "inbound": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "intro":            { "type": "string" },
+          "classes":          { "type": "array", "items": { "type": "string" } },
+          "priorityClasses":  { "type": "array", "items": { "type": "string" } },
+          "pullIn":           { "type": "array", "items": { "type": "string" } },
+          "intelFor":         { "type": "array", "items": { "type": "string" } },
+          "optionKeys":       { "type": "array", "items": { "type": "string" } },
+          "defaultLinks":     { "type": "string" },
+          "autoAckUnknown":   { "type": "boolean", "default": false, "description": "When false (default), auto-replies are not sent to senders with no contact row; the card stays actionable with the draft attached (0.2.8)." }
+        }
+      },
+      "docs": {
+        "type": "object",
+        "description": "Documents Dex may reference, minted as tracked links per person.",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["path", "name"],
+          "properties": {
+            "path": { "type": "string" },
+            "name": { "type": "string" }
+          }
+        }
+      },
+      "flows": {
+        "type": "object",
+        "description": "Tokenized progressions.",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["title", "steps"],
+          "properties": {
+            "title":    { "type": "string" },
+            "steps":    { "type": "array", "items": { "type": "string" } },
+            "doc":      { "type": "string" },
+            "pageName": { "type": "string" }
+          }
+        }
+      },
+      "documents": {
+        "type": "object",
+        "description": "E-sign documents by key. The html and fill functions must be portal code (hooks), named here for documentation only.",
+        "additionalProperties": {
+          "type": "object",
+          "required": ["title"],
+          "properties": {
+            "title":       { "type": "string" },
+            "countersign": { "type": "string" }
+          }
+        }
+      },
+      "personalPages": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "copy":   { "type": "object" },
+          "assets": {
+            "type": "object",
+            "properties": {
+              "css": { "type": "string" },
+              "nav": { "type": "string" }
+            }
+          }
+        }
+      },
+      "rolo": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "triagePrompt":  { "type": "string" },
+          "analyzePrompt": { "type": "string" }
+        }
+      },
+      "enrich": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "domains": { "type": "object", "description": "Firm name → domain hints for Apollo." }
+        }
+      },
+      "extension": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "Browser extension configuration (0.1.5). Portal code for note-drafting prompt.",
+        "properties": {
+          "notePrompt": { "type": "string", "description": "Extension note-drafting prompt. {owner} and {name} are replaced." }
+        }
+      },
+      "teamDomains": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "default": [],
+        "description": "Email domains treated as team in addition to individual people[].emails entries (0.2.8). Each entry is a lowercase domain with no '@' and at least one dot."
+      },
+      "booking":  { "type": "object", "properties": { "slugPrefix": { "type": "string" } } },
+      "kb":       { "type": "array", "items": { "type": "object", "required": ["title", "text"], "properties": { "title": { "type": "string" }, "url": { "type": "string" }, "text": { "type": "string" } } } },
+      "publicAsk": { "type": "object", "required": ["system"], "properties": { "system": { "type": "string" }, "buckets": { "type": "object" } } },
+      "surfaces": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "publicAsk":     { "type": "boolean", "default": false },
+          "personalPages": { "type": "boolean", "default": true },
+          "flows":         { "type": "boolean", "default": true },
+          "share":         { "type": "boolean", "default": true },
+          "twilio":        { "type": "boolean", "default": false },
+          "bookingProxy":  { "type": "boolean", "default": false },
+          "mcp":           { "type": "boolean", "default": true },
+          "extension":     { "type": "boolean", "default": true },
+          "files":         { "type": "boolean", "default": false, "description": "Enable inbound-mail attachment filing to R2. Requires FILES binding." }
+        }
+      },
+      "auth": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "ownerOnly": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "crons": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "hourly":  { "type": "string", "description": "Cron expression. Must match wrangler.toml trigger." },
+          "monthly": { "type": "string", "description": "Cron expression. Must match wrangler.toml trigger." },
+          "custom":  {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["cron", "path"],
+              "properties": {
+                "cron": { "type": "string" },
+                "path": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "models": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "sonnet": { "type": "string" },
+          "haiku":  { "type": "string" }
+        }
+      },
+      "leads":        { "type": "object" },
+      "experiments": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "autoSelect": { "type": "boolean", "default": true },
+          "minSends":   { "type": "number", "exclusiveMinimum": 0 },
+          "confidence": { "type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 1 }
+        }
+      },
+      "plan": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "enabled":         { "type": "boolean", "default": false },
+          "forWho":          { "type": ["string", "null"] },
+          "peoplePerMonth":  { "type": ["number", "null"] },
+          "winsPerMonth":    { "type": ["number", "null"] }
+        }
+      },
+      "transcripts": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mine":   { "type": "boolean", "default": true },
+          "prompt": { "type": "string" }
+        }
+      },
+      "costs": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "receipts":        { "type": "boolean", "default": true },
+          "unusualAmount":   { "type": "number", "exclusiveMinimum": 0 },
+          "reimbursePattern":{ "type": "string", "minLength": 1 },
+          "receiptHint":     { "type": "string", "description": "Regex string (compiled with 'i' flag) or an empty string to use the engine default." }
+        }
+      },
+      "files": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "inboxPrefix":   { "type": "string", "pattern": ".*/$" },
+          "cabinetName":   { "type": "string", "minLength": 1 },
+          "maxPerMessage": { "type": "integer", "minimum": 1 }
+        }
+      },
+      "hooks": {
+        "type": "object",
+        "description": "Hook names the portal must implement. Values are the NAMES of the portal code exports — never inline function bodies. Portal Manager shows these to the operator as wiring instructions.",
+        "additionalProperties": false,
+        "properties": {
+          "routes":            { "type": ["string", "null"] },
+          "inboundClaim":      { "type": ["string", "null"] },
+          "offerFlow":         { "type": ["string", "null"] },
+          "cron":              { "type": ["string", "null"] },
+          "monthly":           { "type": ["string", "null"] },
+          "monthlyEnabled":    { "type": ["string", "null"] },
+          "flowExtras":        { "type": ["string", "null"] },
+          "flowStep":          { "type": ["string", "null"] },
+          "flowSigned":        { "type": ["string", "null"] },
+          "decorateActions":   { "type": ["string", "null"] },
+          "decorateHotLeads":  { "type": ["string", "null"] },
+          "fileToken":         { "type": ["string", "null"] },
+          "onLead":            { "type": ["string", "null"] },
+          "publicAskContext":  { "type": ["string", "null"] },
+          "autopilotAllowed":  { "type": ["string", "null"] },
+          "playForContact":    { "type": ["string", "null"] },
+          "personalPage":      { "type": ["string", "null"], "description": "Portal code for a product-rendered personal page (0.2.8). null falls back to the package layout." },
+          "noEmailRule":       { "type": ["string", "null"] },
+          "legacySession":     { "type": ["string", "null"] },
+          "funnelExtra":       { "type": ["string", "null"] },
+          "sinceExtra":        { "type": ["string", "null"] },
+          "personStatsExtra":  { "type": ["string", "null"] },
+          "personGoal":        { "type": ["string", "null"] },
+          "campaignPlayKeys":  { "type": ["string", "null"] },
+          "costsPerDeal":      { "type": ["string", "null"] },
+          "kindFor":           { "type": ["string", "null"] }
+        }
+      }
+    }
+  },
+  "sections": [
+    {
+      "key": "dex_inbound",
+      "name": "Inbound",
+      "description": "Cards from inbound email routing and triage.",
+      "default_grants": {
+        "owner": "admin",
+        "team":  "write",
+        "viewer": "read"
+      }
+    },
+    {
+      "key": "dex_outreach",
+      "name": "Outreach",
+      "description": "Play-driven send queue, autopilot, and drip cadence.",
+      "default_grants": {
+        "owner": "admin",
+        "team":  "write",
+        "viewer": "none"
+      }
+    },
+    {
+      "key": "dex_contacts",
+      "name": "Contacts",
+      "description": "Contact records, enrichment, and person stats.",
+      "default_grants": {
+        "owner": "admin",
+        "team":  "write",
+        "viewer": "read"
+      }
+    },
+    {
+      "key": "dex_flows",
+      "name": "Flows",
+      "description": "Tokenized progressions and e-sign documents.",
+      "default_grants": {
+        "owner": "admin",
+        "team":  "write",
+        "viewer": "none"
+      }
+    },
+    {
+      "key": "dex_costs",
+      "name": "Costs",
+      "description": "Receipt capture and cost attribution.",
+      "default_grants": {
+        "owner": "admin",
+        "team":  "read",
+        "viewer": "none"
+      }
+    },
+    {
+      "key": "dex_files",
+      "name": "Filed attachments",
+      "description": "Inbound-mail attachments filed to R2.",
+      "default_grants": {
+        "owner": "admin",
+        "team":  "write",
+        "viewer": "none"
+      }
+    }
+  ],
+  "roles": [],
+  "routes": [
+    { "method": "POST", "path": "/api/inbound",               "description": "Inbound email webhook (INBOUND_SECRET bearer).",    "auth_required": false },
+    { "method": "POST", "path": "/api/twilio/transcript",     "description": "Twilio call-transcript webhook.",                   "auth_required": false },
+    { "method": "POST", "path": "/api/send",                  "description": "Manual send (owner).",                             "auth_required": true },
+    { "method": "POST", "path": "/api/autopilot",             "description": "Autopilot batch (owner only).",                    "auth_required": true },
+    { "method": "GET",  "path": "/api/actions",               "description": "Pending card queue.",                              "auth_required": true },
+    { "method": "GET",  "path": "/api/hot-leads",             "description": "Lead scoring.",                                    "auth_required": true },
+    { "method": "GET",  "path": "/api/person-stats",          "description": "Contact stats.",                                   "auth_required": true },
+    { "method": "GET",  "path": "/api/campaign",              "description": "Campaign view.",                                   "auth_required": true },
+    { "method": "GET",  "path": "/api/network-value",         "description": "Network-value model.",                             "auth_required": true },
+    { "method": "POST", "path": "/api/plays/seed",            "description": "Seed play rows from config (owner only).",         "auth_required": true },
+    { "method": "POST", "path": "/api/cron/monthly",          "description": "Monthly loop (INBOUND_SECRET bearer).",           "auth_required": false },
+    { "method": "*",    "path": "/api/share/*",               "description": "Share link surface (gated by surfaces.share).",    "auth_required": false },
+    { "method": "*",    "path": "/api/extension/*",           "description": "Browser extension API (gated by surfaces.extension).", "auth_required": false },
+    { "method": "*",    "path": "/mcp",                       "description": "MCP endpoint (gated by surfaces.mcp).",            "auth_required": false },
+    { "method": "GET",  "path": "/api/ops",                   "description": "Ops/health loop status.",                         "auth_required": true },
+    { "method": "GET",  "path": "/api/costs/ticker",          "description": "Cost ticker.",                                     "auth_required": true }
+  ],
+  "crons": [
+    {
+      "cron": "17 * * * *",
+      "path": "/api/cron/hourly",
+      "description": "Hourly loop: snoozed cards, autopilot, variant auto-select, plan check."
+    },
+    {
+      "cron": "0 13 1 * *",
+      "path": "/api/cron/monthly",
+      "description": "Monthly loop: monthly cards and hooks.monthly."
+    }
+  ],
+  "mcp_tools": [
+    { "name": "actions_list",    "description": "Open cards on Home (replies, follow-ups, signals, leads, bookings, plan checks) with drafts and moves. Priority 1 first." },
+    { "name": "actions_act",     "description": "Take a move on a card: send (with the draft or an edited body), snooze, dismiss, done, or any button the card offers." },
+    { "name": "people_search",   "description": "Find people in RoloDEX by name, firm, title, or email." },
+    { "name": "person_get",      "description": "Everything on a person: next action, conversation, notes, signed documents, their pages." },
+    { "name": "people_add",      "description": "Add a person to RoloDEX and start them on a play." },
+    { "name": "messages_search", "description": "Search the record of every email in and out." },
+    { "name": "schedule_list",   "description": "Upcoming bookings by host." },
+    { "name": "funnel",          "description": "Where every play stands, people to won." },
+    { "name": "hot_leads",       "description": "Who is closest to a deal right now, by name, with why." }
+  ],
+  "metering_keys": [
+    { "cost_type": "dex.enrichment",        "unit_label": "contact",  "description": "Apollo enrichment call.",          "sm_cost_per_unit": 0.10, "client_price_per_unit": 0.10 },
+    { "cost_type": "dex.transcript_mining", "unit_label": "call",     "description": "Twilio transcript analysis.",       "sm_cost_per_unit": 0.05, "client_price_per_unit": 0.05 },
+    { "cost_type": "dex.inbound_triage",    "unit_label": "message",  "description": "Inbound email classification.",    "sm_cost_per_unit": 0.01, "client_price_per_unit": 0.01 },
+    { "cost_type": "dex.autopilot_send",    "unit_label": "send",     "description": "Autopilot-initiated send.",        "sm_cost_per_unit": 0.02, "client_price_per_unit": 0.02 }
+  ],
+  "bindings_required": {
+    "d1": [
+      { "binding": "DB", "can_share": false, "description": "Primary database. Migrations at migrations_path must be applied in order before first run." }
+    ],
+    "r2": [
+      { "binding": "FILES", "description": "R2 bucket for filed attachments (surfaces.files) and file-cabinet assets." }
+    ],
+    "secrets": [
+      { "name": "PORTAL_SESSION_SECRET", "required": true,  "description": "Session cookie signing key." },
+      { "name": "ANTHROPIC_API_KEY",     "required": true,  "description": "Anthropic API key for triage, autopilot, transcript mining." },
+      { "name": "INBOUND_SECRET",        "required": true,  "description": "Bearer secret for inbound webhook and cron POSTs." },
+      { "name": "DEX_KEY",               "required": false, "description": "MCP key seed. Required when surfaces.mcp is on." },
+      { "name": "DEX_SAFE_TO",           "required": false, "description": "Safe mode: redirect all sends here. No config can disable safe mode once this is set." },
+      { "name": "DEX_SAFE_CC",           "required": false, "description": "Safe mode: CC address." },
+      { "name": "FORWARD_TO",            "required": false, "description": "Global inbound forward address." },
+      { "name": "APOLLO_API_KEY",        "required": false, "description": "Apollo enrichment API key. Required when enrich is configured." },
+      { "name": "CAL_WEBHOOK_SECRET",    "required": false, "description": "Cal.com webhook secret. Required when surfaces.bookingProxy is on." },
+      { "name": "TURNSTILE_SECRET",      "required": false, "description": "Cloudflare Turnstile secret for public-facing pages." },
+      { "name": "SM_API_KEY",            "required": false, "description": "Sprint Mode API key for Platform metering. Required for metering_keys to POST costs." },
+      { "name": "RESEND_API_KEY",         "required": false, "description": "Resend API key for outbound mail transport. Required when mail.transport is resend().", "when": "mail.transport === 'resend'" },
+      { "name": "TWILIO_ACCOUNT_SID",    "required": false, "description": "Required when surfaces.twilio is on.", "when": "surfaces.twilio" },
+      { "name": "TWILIO_AUTH_TOKEN",     "required": false, "description": "Required when surfaces.twilio is on.", "when": "surfaces.twilio" }
+    ],
+    "vars": [
+      { "name": "PORTAL_URL", "required": true,  "description": "Public URL of the portal (e.g. https://app.switchpointgear.com).", "example": "https://app.example.com" },
+      { "name": "API_URL",    "required": true,  "description": "Public URL of the worker API origin.", "example": "https://api.example.com" },
+      { "name": "SM_COMPANY_ID", "required": false, "description": "Sprint Mode company ID for metering. Required when SM_API_KEY is set." }
+    ]
+  },
+  "migrations_path": "schema"
+}

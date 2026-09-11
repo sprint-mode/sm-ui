@@ -25,6 +25,10 @@
     "./css/components": "./src/components.css",
     "./brands": "./brands/",
     "./portal-standard": "./portal-standard.json",
+    "./module-manifest": {
+      "types": "./dist/src/module-manifest.d.ts",
+      "default": "./module-manifest.schema.json"
+    },
     "./runtime": {
       "types": "./runtime/index.d.ts",
       "default": "./runtime/index.js"
@@ -86,7 +90,8 @@
     "bin",
     "runtime",
     "portal-standard.json",
-    "portal-standard.schema.json"
+    "portal-standard.schema.json",
+    "module-manifest.schema.json"
   ],
   "publishConfig": {
     "registry": "https://npm.pkg.github.com",
