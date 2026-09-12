@@ -175,11 +175,11 @@
      was crushed to zero width (blank content under correct narrow chrome).
      Stack the body the same way the shell stacks. */
   .shell-with-header .shell-body { flex-direction: column; }
-  .portal-sidebar { position: fixed; left: -110%; top: 0; bottom: 0; width: min(82vw, 300px); transition: left 0.25s ease; z-index: 70; box-shadow: 4px 0 24px rgba(0,0,0,0.18); }
+  .portal-sidebar { position: fixed; left: -110%; top: 0; bottom: 0; width: min(82vw, 300px); transition: left 0.25s ease; z-index: 9100; box-shadow: 4px 0 24px rgba(0,0,0,0.18); }
   .portal-sidebar.open { left: 0; }
   .portal-sidebar.rail { width: min(82vw, 300px); }
   .portal-mobile-bar { display: flex; width: 100%; box-sizing: border-box; }
-  .portal-sidebar-overlay { z-index: 69; }
+  .portal-sidebar-overlay { z-index: 9050; }
   .portal-main { padding: 20px 16px 80px; }
   .shell-with-header .portal-sidebar { top: 0; }
 }

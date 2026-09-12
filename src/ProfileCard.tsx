@@ -745,7 +745,7 @@ function RolesCard({ base, productHeaders }: { base: string; productHeaders?: Re
         })}
       </div>
       <div style={{ marginTop: 10, fontSize: 11, color: 'var(--muted, #9ca3af)' }}>
-        Roles are granted in Portal Manager. Swap your active role from the user menu.
+        Roles are granted in Portals. Swap your active role from the user menu.
       </div>
     </div>
   )
