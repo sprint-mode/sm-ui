@@ -664,7 +664,7 @@ function HeaderUserMenu(props: {
       // UX-1941C (collapsed line): photo + name + active role display name ONLY
       // -- no portal suffix, no key-count. Title lives in the EXPANDED header.
       // BUG-2033: under a lens the name is the TARGET's, with an eye indicator.
-      React.createElement('span', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15, maxWidth: 140, overflow: 'hidden' } },
+      React.createElement('span', { className: 'shell-header-user-name-block', style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15, maxWidth: 140, overflow: 'hidden' } },
         React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, color: 'var(--foreground)', fontWeight: 500, maxWidth: 140, overflow: 'hidden' } },
           lensEyeIcon,
           React.createElement('span', { style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, displayName)
@@ -2117,14 +2117,16 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     // ADDITIVE to the control row (View as, Search, theme, inbox, waffle, avatar).
     React.createElement(ActingRoleChip, { session: session, apiBase: vaAuthBase, portalSubdomain: portalSubdomain }),
     cmdKEnabled ? React.createElement('button', {
+      className: 'shell-header-search-btn',
       onClick: function() { setCmdkOpen(true) },
       style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', color: 'var(--muted)', fontSize: 13, cursor: 'pointer', transition: 'border-color .2s' }
     },
       React.createElement(IconSearch, null),
-      React.createElement('span', null, 'Search'),
-      React.createElement('kbd', { style: { fontSize: 11, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle)', color: 'var(--muted)', lineHeight: 1.4 } }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1) ? '\u2318K' : 'Ctrl+K')
+      React.createElement('span', { className: 'shell-header-search-text' }, 'Search'),
+      React.createElement('kbd', { className: 'shell-header-search-kbd', style: { fontSize: 11, padding: '1px 5px', border: '1px solid var(--border)', borderRadius: 4, background: 'var(--bg-subtle)', color: 'var(--muted)', lineHeight: 1.4 } }, (typeof navigator !== 'undefined' && navigator.platform && navigator.platform.indexOf('Mac') !== -1) ? '\u2318K' : 'Ctrl+K')
     ) : null,
     React.createElement('button', {
+      className: 'shell-header-theme-toggle',
       onClick: theme.toggle,
       'aria-label': theme.mode === 'auto' ? 'Theme: System' : theme.mode === 'dark' ? 'Theme: Dark' : 'Theme: Light',
       title: theme.mode === 'auto' ? 'Theme: System' : theme.mode === 'dark' ? 'Theme: Dark' : 'Theme: Light',
@@ -2159,6 +2161,15 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
         {hasHeader && (
           <header className={'shell-header' + (serverLens ? ' shell-header-lens' : '')}>
             <div className="shell-header-inner">
+              {!isTopNav && (
+                <button
+                  className="shell-header-hamburger"
+                  onClick={() => setMobileOpen(!mobileOpen)}
+                  aria-label="Open navigation"
+                >
+                  <span /><span /><span />
+                </button>
+              )}
               <div style={{ display: 'flex', alignItems: 'center' }}>
               <a href="/" className="shell-header-logo">
                 {title ? (
@@ -2363,6 +2374,27 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
           )}
 
           {sidebarBottom}
+
+          {hasHeader && (
+            <div className="portal-sidebar-mobile-controls">
+              <button
+                className="shell-header-theme-toggle"
+                onClick={theme.toggle}
+                aria-label={theme.mode === 'auto' ? 'Theme: System' : theme.mode === 'dark' ? 'Theme: Dark' : 'Theme: Light'}
+                title={theme.mode === 'auto' ? 'Theme: System' : theme.mode === 'dark' ? 'Theme: Dark' : 'Theme: Light'}
+                style={{ height: 34, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, padding: '0 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted)', fontFamily: 'var(--font)', flexShrink: 0, transition: 'border-color .2s', boxSizing: 'border-box' as const }}
+              >
+                {React.createElement(theme.mode === 'light' ? IconSun : theme.mode === 'dark' ? IconMoon : IconDeviceDesktop, null)}
+                <span style={{ fontSize: 11, fontWeight: 500, letterSpacing: '0.3px' }}>
+                  {theme.mode === 'auto' ? 'Auto' : theme.mode === 'dark' ? 'Dark' : 'Light'}
+                </span>
+              </button>
+              {headerCta && React.createElement('button', {
+                className: 'portal-sidebar-mobile-site-cta',
+                onClick: headerCta.onClick,
+              }, headerCta.label)}
+            </div>
+          )}
 
           {!hasHeader && (
             <div className="portal-sidebar-user">

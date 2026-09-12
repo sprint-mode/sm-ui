@@ -159,6 +159,15 @@
 .shell-va-lens-exit { font-size: 12px; font-weight: 600; padding: 5px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm, 8px); background: var(--bg-card, var(--bg)); color: var(--foreground); cursor: pointer; font-family: var(--font); }
 .shell-va-lens-exit:hover { background: var(--bg-subtle); }
 
+/* ======= PHONE HEADER (FEAT-3588) ======= */
+/* Hamburger button inside shell-header — hidden on desktop, shown at 900px */
+.shell-header-hamburger { display: none; background: none; border: none; cursor: pointer; padding: 8px; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.shell-header-hamburger span { display: block; width: 18px; height: 2px; background: var(--foreground); border-radius: 1px; }
+/* Mobile sidebar bottom slot: theme toggle + Site link — hidden on desktop */
+.portal-sidebar-mobile-controls { display: none; border-top: 1px solid var(--border); padding: 8px 10px; flex-direction: column; gap: 4px; flex-shrink: 0; }
+.portal-sidebar-mobile-site-cta { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg); color: var(--foreground); font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font); }
+.portal-sidebar-mobile-site-cta:hover { background: var(--bg-subtle); }
+
 /* Mobile/tablet shell (Wave 2 batch 4, Aaron's phone review):
    - Breakpoint raised 768 -> 900: ~850px viewports previously got the desktop
      rail squeezed into a gutter column with an unusable flyout.
@@ -182,6 +191,19 @@
   .portal-sidebar-overlay { z-index: 9050; }
   .portal-main { padding: 20px 16px 80px; }
   .shell-with-header .portal-sidebar { top: 0; }
+  /* FEAT-3588: header portals move hamburger into the header; suppress duplicate mobile bar */
+  .shell-with-header .portal-mobile-bar { display: none; }
+  .shell-header-hamburger { display: flex; }
+  /* Search button: icon-only at mobile (hide label and keyboard shortcut hint) */
+  .shell-header-search-text, .shell-header-search-kbd { display: none; }
+  /* Theme toggle: hidden in header at mobile (appears in sidebar bottom controls) */
+  .shell-header-theme-toggle { display: none; }
+  /* User menu: collapse to avatar only — hide name and role text */
+  .shell-header-user-name-block { display: none; }
+  .shell-header-avatar { padding: 4px !important; }
+  /* Reveal sidebar mobile controls slot (theme + site link) */
+  .portal-sidebar-mobile-controls { display: flex; }
+  .portal-sidebar-mobile-controls .shell-header-theme-toggle { display: flex; width: 100%; justify-content: flex-start; height: auto; padding: 8px 10px; box-sizing: border-box; border-radius: var(--radius-sm); }
 }
 
 /* ======= SIDEBAR RAIL (desktop collapsed) ======= */
