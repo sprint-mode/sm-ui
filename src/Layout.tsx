@@ -1090,6 +1090,32 @@ function canViewProduct(perms: Permissions | null, role: string | null | undefin
 
 // ─── Sidebar Section ────────────────────────────────────────────────────────
 
+// BUG-3928: NavLink matches the pathname only, so items that differ only in
+// their query string (e.g. /table?lens=stacks) were all active at once.
+// Items without `?` keep the plain pathname rule (query ignored). Items with
+// `?` also require every query param in `to` to be present in the current
+// search with an equal value; extra params in the current search are allowed.
+function isNavItemActive(item: NavItem, loc: { pathname: string; search: string }): boolean {
+  var to = item.to || ''
+  var q = to.indexOf('?')
+  var path = q === -1 ? to : to.slice(0, q)
+  var pathMatch = item.exact ? loc.pathname === path : loc.pathname.startsWith(path)
+  if (q === -1 || !pathMatch) return pathMatch
+  var want = new URLSearchParams(to.slice(q + 1))
+  var have = new URLSearchParams(loc.search)
+  var ok = true
+  want.forEach(function(value, key) {
+    if (have.getAll(key).indexOf(value) === -1) ok = false
+  })
+  return ok
+}
+
+// Active class for a NavLink: plain items keep NavLink's own isActive;
+// query items use isNavItemActive (BUG-3928).
+function navItemIsActive(item: NavItem, routerActive: boolean, loc: { pathname: string; search: string }): boolean {
+  return (item.to || '').indexOf('?') === -1 ? routerActive : isNavItemActive(item, loc)
+}
+
 function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat, railCollapsed, onRailEnter, onRailLeave }: {
   label: string
   sectionIcon?: React.ReactNode
@@ -1116,7 +1142,7 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
 
   var hasActive = items.some(function(item) {
     if (item.external) return false
-    return item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to)
+    return isNavItemActive(item, location)
   })
 
   var _mounted = useRef(false)
@@ -1218,7 +1244,7 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
                 end={item.exact}
                 className={function(p) {
                   var cls = 'ps-item'
-                  if (p.isActive) cls += ' active'
+                  if (navItemIsActive(item, p.isActive, location)) cls += ' active'
                   if (item.locked) cls += ' locked'
                   if (item.completed) cls += ' completed'
                   return cls
@@ -2451,7 +2477,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               if (item.disabled) {
                 return <span key={item.to || item.label} className="ps-item disabled">{item.Icon && <item.Icon />}{' '}{item.label}</span>
               }
-              return <NavLink key={item.to} to={item.to} end={item.exact} className={function(p) { return 'ps-item' + (p.isActive ? ' active' : '') }}>{item.Icon && <item.Icon />}{' '}{item.label}</NavLink>
+              return <NavLink key={item.to} to={item.to} end={item.exact} className={function(p) { return 'ps-item' + (navItemIsActive(item, p.isActive, location) ? ' active' : '') }}>{item.Icon && <item.Icon />}{' '}{item.label}</NavLink>
             })}
           </div>
         )}
