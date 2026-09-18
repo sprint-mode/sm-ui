@@ -1,10 +1,10 @@
 {
   "format_version": 1,
-  "last_scan": "2026-09-17",
-  "overall_grade": "D",
-  "previous_grade": null,
-  "trending": "-",
-  "item": "BUG-3928",
+  "last_scan": "2026-09-18",
+  "overall_grade": "D-",
+  "previous_grade": "D",
+  "trending": "down",
+  "item": "TASK-3823",
   "scan_scope": "partial",
   "scanned_domains": ["layout-shell"],
   "domain_detection": "import-graph inference (no ARCHITECTURE.md/SPEC.md; flat src/ with no feature/module/workspace markers)",
@@ -20,16 +20,19 @@
       "principles": "F",
       "patterns": "D",
       "security": "D",
-      "git_health": "B",
+      "git_health": "D",
       "testability": "D",
       "observability": "F",
       "frontend": "D",
       "hygiene": "C",
       "cicd": "F",
       "overall": "F",
-      "mean": 0.92
+      "mean": 0.77
     }
   },
   "tech_debt": { "todo": 0, "fixme": 0, "hack": 0, "total": 0 },
-  "history": [{ "date": "2026-09-17", "overall": "D", "trend": "-" }]
+  "history": [
+    { "date": "2026-09-17", "overall": "D", "trend": "-" },
+    { "date": "2026-09-18", "overall": "D-", "trend": "down" }
+  ]
 }

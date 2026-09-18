@@ -69,6 +69,19 @@ interface LinkedAccount {
   portals: PortalInfo[]
 }
 
+// TASK-3823: one sub-row per Waffle account the signed-in session holds a
+// waffle customer role on (super_owner/owner/manager/member), from
+// GET /api/auth/waffle-accounts (TASK-3836). Server-side filtered — this
+// shape carries no role_display_name, so titleCase(role) is the only
+// humanization available (BUG-3087's role_display_name preference does not
+// apply here).
+interface WaffleAccount {
+  workspace_id: string
+  name: string
+  role: string
+  is_current: boolean
+}
+
 function PlusIcon() {
   return React.createElement('svg', {
     width: 14, height: 14, viewBox: '0 0 24 24',
@@ -173,6 +186,8 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var _expanded = useState<string | null>(null); var expanded = _expanded[0]; var setExpanded = _expanded[1]
   var _expandedSection = useState<string | null>(null); var expandedSection = _expandedSection[0]; var setExpandedSection = _expandedSection[1]
   var _meUserId = useState(cached ? cached.meUserId : ''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
+  var _waffleAccounts = useState<WaffleAccount[]>([]); var waffleAccounts = _waffleAccounts[0]; var setWaffleAccounts = _waffleAccounts[1]
+  var setWaffleLoaded = useState(false)[1]
   var _me = useState<SessionData | null>(props.session || null); var me = _me[0]; var setMe = _me[1]
   var _swapBusy = useState<string | null>(null); var swapBusy = _swapBusy[0]; var setSwapBusy = _swapBusy[1]
   var _defaultMsg = useState<string | null>(null); var defaultMsg = _defaultMsg[0]; var setDefaultMsg = _defaultMsg[1]
@@ -227,11 +242,28 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       .catch(function() { setLoaded(true) })
   }, [apiBase, authHeaders, cacheKey])
 
+  // TASK-3823: signed-in session's Waffle accounts, for the Waffle sub-rows
+  // section below. Mirrors fetchAccounts()'s shape and its silent-degrade
+  // catch (a proxy that doesn't yet serve this route simply shows no
+  // section, same as fetchAccounts() on an un-updated portal).
+  var fetchWaffleAccounts = useCallback(function() {
+    fetch(apiBase + '/api/auth/waffle-accounts', { credentials: 'include', headers: authHeaders() })
+      .then(function(r) { return r.json() })
+      .then(function(data: { ok: boolean; data?: { accounts: WaffleAccount[] } }) {
+        setWaffleLoaded(true)
+        if (data.ok && data.data) {
+          setWaffleAccounts(data.data.accounts)
+        }
+      })
+      .catch(function() { setWaffleLoaded(true) })
+  }, [apiBase, authHeaders])
+
   useEffect(function() {
     fetchMe()
+    fetchWaffleAccounts()
     if (cached && Date.now() - cached.ts < CACHE_TTL) return
     fetchAccounts()
-  }, [fetchAccounts, fetchMe])
+  }, [fetchAccounts, fetchMe, fetchWaffleAccounts])
 
   function handlePortalClick(userId: string, targetUrl: string, portalSubdomain: string) {
     fetch('/api/auth/switch-account', {
@@ -502,6 +534,39 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     ) : null
   ) : null
 
+  // ── Section: Waffle accounts (TASK-3823) ──────────────────────────────────
+  // One sub-row per Waffle account the session holds a waffle customer role
+  // on (already server-side filtered by the endpoint — see Interpretation 2:
+  // this section gates on a non-empty list, exactly like accessSection, with
+  // no independent client-side role check). No row is excluded on
+  // is_current (Interpretation 3: "one sub-row per Waffle account", not
+  // "other Waffle accounts"). Links are plain anchors to the external Waffle
+  // app, not handlePortalClick — Waffle sub-rows do not switch the sm-ui
+  // session (Interpretation 5).
+  var waffleSection = waffleAccounts.length > 0 ? React.createElement(React.Fragment, null,
+    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+    sectionHeader('waffle', 'Waffle', waffleAccounts.length),
+    expandedSection === 'waffle' ? React.createElement('div', null,
+      waffleAccounts.map(function(a) {
+        return React.createElement('a', {
+          key: a.workspace_id,
+          href: 'https://waffle.sprintmode.ai?account=' + encodeURIComponent(a.workspace_id),
+          style: {
+            display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+            borderRadius: 6, textDecoration: 'none', boxSizing: 'border-box' as const,
+            width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
+            transition: 'background .15s',
+          },
+          onMouseEnter: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-subtle)' },
+          onMouseLeave: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' },
+        },
+          React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const } }, a.name),
+          React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0, marginLeft: 4 } }, titleCase(a.role))
+        )
+      })
+    ) : null
+  ) : null
+
   // ── Section 3: Linked accounts ────────────────────────────────────────────
   var otherAccounts = accounts.filter(function(a) {
     if (a.is_current) return false
@@ -619,6 +684,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   return React.createElement(React.Fragment, null,
     rolesSection,
     accessSection,
+    waffleSection,
     linkedSection
   )
 }
