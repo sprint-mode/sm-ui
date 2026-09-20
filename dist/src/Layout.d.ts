@@ -117,6 +117,22 @@ export interface LayoutProps {
     title?: string;
     headerRight?: React.ReactNode;
     sidebarBottom?: React.ReactNode;
+    /** FEAT-3814 / TASK-3952: a module-provided UI drawer the shell mounts at the
+     *  end of <main>, gated on the portal's live install state. The shell renders
+     *  `node` and registers `hotkey` ONLY when `requiresModule` is in the portal's
+     *  installed_modules (from portal config); otherwise nothing mounts and no
+     *  key listener is registered. Generic by construction: the shell never names
+     *  a product, never imports the module, and compares the pressed key against
+     *  the parsed `hotkey` value — the module (its component, id and key) is passed
+     *  in by the host. Preserves BUG-2220's guarantee that no cross-portal panel is
+     *  hardcoded into the shell; a panel appears only where its module is installed.
+     *  `hotkey` is "Mod+<key>" (Mod = Cmd on macOS, Ctrl elsewhere), e.g. "Mod+."; a
+     *  bare "<key>" is also accepted. Omit `hotkey` for no keybinding. */
+    panelSlot?: {
+        node: React.ReactNode;
+        requiresModule: string;
+        hotkey?: string;
+    };
     /** Slot rendered at the TOP of the sidebar, directly under the logo/wordmark
      *  and ABOVE the nav rail. For a per-workspace switcher (e.g. Waffle's kitchen
      *  switcher) that must sit above navigation per its frame. Hidden in the
@@ -241,5 +257,12 @@ export interface Permissions {
 export declare function parsePerms(session: SessionData | ViewAsUser | null): Permissions | null;
 export declare function canViewSection(perms: Permissions | null, role: string | null | undefined, key: string | undefined): boolean;
 export declare function useDeployRefresh(): boolean;
+export declare function PanelSlotMount(props: {
+    slot: {
+        node: React.ReactNode;
+        requiresModule: string;
+        hotkey?: string;
+    };
+}): React.FunctionComponentElement<React.FragmentProps> | null;
 declare const Layout: React.FC<LayoutProps>;
 export default Layout;
