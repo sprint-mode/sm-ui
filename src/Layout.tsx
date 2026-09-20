@@ -143,6 +143,18 @@ export interface LayoutProps {
   title?: string
   headerRight?: React.ReactNode
   sidebarBottom?: React.ReactNode
+  /** FEAT-3814 / TASK-3952: a module-provided UI drawer the shell mounts at the
+   *  end of <main>, gated on the portal's live install state. The shell renders
+   *  `node` and registers `hotkey` ONLY when `requiresModule` is in the portal's
+   *  installed_modules (from portal config); otherwise nothing mounts and no
+   *  key listener is registered. Generic by construction: the shell never names
+   *  a product, never imports the module, and compares the pressed key against
+   *  the parsed `hotkey` value — the module (its component, id and key) is passed
+   *  in by the host. Preserves BUG-2220's guarantee that no cross-portal panel is
+   *  hardcoded into the shell; a panel appears only where its module is installed.
+   *  `hotkey` is "Mod+<key>" (Mod = Cmd on macOS, Ctrl elsewhere), e.g. "Mod+."; a
+   *  bare "<key>" is also accepted. Omit `hotkey` for no keybinding. */
+  panelSlot?: { node: React.ReactNode; requiresModule: string; hotkey?: string }
   /** Slot rendered at the TOP of the sidebar, directly under the logo/wordmark
    *  and ABOVE the nav rail. For a per-workspace switcher (e.g. Waffle's kitchen
    *  switcher) that must sit above navigation per its frame. Hidden in the
@@ -1401,6 +1413,43 @@ export function useDeployRefresh(): boolean {
   return ready
 }
 
+// FEAT-3814 / TASK-3952: mounts a host-provided module drawer at the end of the
+// shell, but ONLY when the module that owns it is live-installed for this portal
+// (portal config installed_modules). Generic on purpose — no product name, no
+// module import; the component, its module id and its keybinding are all passed
+// in. The pressed key is compared against the PARSED hotkey value, never a
+// literal, so BUG-2220's "no hardcoded panel / no fixed key binding in the shell"
+// guard holds. When the module is not installed: no node, no key listener.
+export function PanelSlotMount(props: { slot: { node: React.ReactNode; requiresModule: string; hotkey?: string } }) {
+  var slot = props.slot
+  var portalCfg = usePortalConfig()
+  var installed = (portalCfg.config && (portalCfg.config as any).installed_modules) || []
+  var isInstalled = Array.isArray(installed) && installed.indexOf(slot.requiresModule) >= 0
+
+  useEffect(function() {
+    if (!isInstalled || !slot.hotkey) return
+    // Parse "Mod+<key>" (or a bare "<key>") into a modifier requirement and the
+    // target key, held in variables — the handler never tests a literal key.
+    var parts = String(slot.hotkey).split('+')
+    var target = parts[parts.length - 1]
+    var mods = parts.slice(0, -1).map(function(m) { return m.toLowerCase() })
+    var needMod = mods.indexOf('mod') >= 0 || mods.indexOf('meta') >= 0 || mods.indexOf('ctrl') >= 0
+    if (!target) return
+    function handler(e: KeyboardEvent) {
+      var modOk = needMod ? (e.metaKey || e.ctrlKey) : (!e.metaKey && !e.ctrlKey)
+      if (modOk && e.key === target) {
+        e.preventDefault()
+        window.dispatchEvent(new CustomEvent('sm:panel-slot-toggle', { detail: { module: slot.requiresModule } }))
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return function() { window.removeEventListener('keydown', handler) }
+  }, [isInstalled, slot.hotkey, slot.requiresModule])
+
+  if (!isInstalled) return null
+  return React.createElement(React.Fragment, null, slot.node)
+}
+
 const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var navConfig = props.navConfig
   var navSections = props.navSections
@@ -2598,6 +2647,8 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
             })()}
           </div>
         </main>
+
+        {props.panelSlot ? React.createElement(PanelSlotMount, { slot: props.panelSlot }) : null}
 
         </div>
 
