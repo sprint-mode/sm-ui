@@ -69,6 +69,30 @@ var s = {
   traceBtn: { background:'none', border:'1px solid var(--border, #e5e7eb)', borderRadius:4, padding:'1px 5px', fontSize:9, cursor:'pointer', color:'var(--text-3, #999)', fontFamily:'inherit', display:'inline-flex', alignItems:'center', gap:3 },
   label: { fontSize:12, fontWeight:500, display:'block', marginBottom:4, marginTop:10 },
   fieldInput: { width:'100%', border:'1px solid var(--border, #e5e7eb)', borderRadius:6, padding:'7px 10px', fontSize:12, fontFamily:'inherit', boxSizing:'border-box' },
+  // BUG-4086: inline acknowledgement / error surfaces (never window.alert).
+  // Background tokens follow the status badge above (--green-soft with a light
+  // fallback); the text colours are fixed dark tones so the box stays readable
+  // whether the host maps --text-1 to a light or a dark foreground.
+  ack: { margin:'10px 12px 0', padding:'8px 10px', borderRadius:8, fontSize:12, lineHeight:1.4, background:'var(--green-soft, #eaf3de)', color:'#14532d', borderLeft:'3px solid #27500a' },
+  ackRef: { fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace', fontWeight:600, wordBreak:'break-all' },
+  ackBtn: { background:'none', border:'1px solid currentColor', borderRadius:4, padding:'1px 6px', fontSize:10, cursor:'pointer', color:'inherit', fontFamily:'inherit', marginLeft:6 },
+  err: { marginTop:10, padding:'8px 10px', borderRadius:8, fontSize:12, lineHeight:1.4, background:'var(--red-soft, #fde8e8)', color:'#7f1d1d', borderLeft:'3px solid #8a1c1c' },
+  refLine: { fontFamily:'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize:10, color:'var(--text-3, #999)', wordBreak:'break-all' },
+  linkBtn: { background:'none', border:'none', cursor:'pointer', fontSize:11, color:'var(--accent, #2362ea)', fontFamily:'inherit', padding:0 },
+}
+
+// BUG-4086: the reference a customer quotes back. The create response carries
+// request_id (csr_...); the list and detail endpoints carry the thread id only,
+// so prefer a request_id the server sent, then one remembered from this
+// session's submit, then the thread id.
+function ticketRef(t, sessionRefs) {
+  if (!t) return ''
+  return t.request_id || (sessionRefs && sessionRefs[t.id]) || t.id || ''
+}
+
+// The first message of a support thread is stored as "**subject**\n\nbody".
+function plainMessage(content) {
+  return String(content || '').replace(/\*\*/g, '')
 }
 
 // ── Widget ────────────────────────────────────────────────────────────────────
@@ -120,6 +144,13 @@ export function PortalSupportWidget(props) {
   var _ticketSubject = useState(''); var ticketSubject = _ticketSubject[0]; var setTicketSubject = _ticketSubject[1]
   var _ticketBody = useState(''); var ticketBody = _ticketBody[0]; var setTicketBody = _ticketBody[1]
   var _ticketSending = useState(false); var ticketSending = _ticketSending[0]; var setTicketSending = _ticketSending[1]
+  // BUG-4086: acknowledgement of the last submit, inline submit error,
+  // request_id remembered per thread for this session, and the open detail.
+  var _ack = useState(null); var ack = _ack[0]; var setAck = _ack[1]
+  var _ticketError = useState(null); var ticketError = _ticketError[0]; var setTicketError = _ticketError[1]
+  var _sessionRefs = useState({}); var sessionRefs = _sessionRefs[0]; var setSessionRefs = _sessionRefs[1]
+  var _detail = useState(null); var detail = _detail[0]; var setDetail = _detail[1]
+  var _copied = useState(false); var copied = _copied[0]; var setCopied = _copied[1]
   var messagesEndRef = useRef(null)
 
   var isDebug = typeof window !== 'undefined' && window.location.search.indexOf('debug=1') !== -1
@@ -164,7 +195,34 @@ export function PortalSupportWidget(props) {
 
   function handleTabChange(t) {
     setTab(t)
+    setDetail(null)
     if (t === 'tickets') loadTickets()
+  }
+
+  // BUG-4086: minimal ticket detail (GET /support/threads/:id) so the
+  // reference is visible on the ticket itself, not only in the acknowledgement.
+  function openTicket(t) {
+    setDetail({ id: t.id, row: t, loading: true, thread: null, messages: [], error: null })
+    fetch(apiBase + '/api/portals/' + subdomain + '/support/threads/' + encodeURIComponent(t.id), { credentials: 'include' })
+      .then(function(r) { return r.json().catch(function() { return { ok: false, error: 'HTTP ' + r.status } }) })
+      .then(function(d) {
+        if (d && d.ok && d.data) {
+          setDetail({ id: t.id, row: t, loading: false, thread: d.data.thread || null, messages: d.data.messages || [], error: null })
+        } else {
+          setDetail({ id: t.id, row: t, loading: false, thread: null, messages: [], error: (d && d.error) || 'Could not load this ticket.' })
+        }
+      })
+      .catch(function() {
+        setDetail({ id: t.id, row: t, loading: false, thread: null, messages: [], error: 'Connection error. Could not load this ticket.' })
+      })
+  }
+
+  function copyRef(ref) {
+    if (!ref || typeof navigator === 'undefined' || !navigator.clipboard) return
+    navigator.clipboard.writeText(ref).then(function() {
+      setCopied(true)
+      setTimeout(function() { setCopied(false) }, 1500)
+    }).catch(function() {})
   }
 
   // Send chat message
@@ -212,27 +270,40 @@ export function PortalSupportWidget(props) {
   }
 
   // Submit ticket
+  // BUG-4086: a 201 shows an inline acknowledgement carrying request_id on the
+  // My tickets tab; any failure keeps Subject and Description and renders the
+  // error inline under the form. No window.alert on either path.
   function submitTicket() {
     if (!ticketSubject.trim()) return
+    var subject = ticketSubject.trim()
     setTicketSending(true)
+    setTicketError(null)
     fetch(apiBase + '/api/portals/' + subdomain + '/support/thread', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ subject: ticketSubject.trim(), message: ticketBody.trim(), category: 'general' }),
+      body: JSON.stringify({ subject: subject, message: ticketBody.trim(), category: 'general' }),
     })
-      .then(function(r) { return r.json() })
+      .then(function(r) { return r.json().catch(function() { return { ok: false, error: 'HTTP ' + r.status } }) })
       .then(function(d) {
-        if (d.ok) {
+        if (d && d.ok) {
+          var data = d.data || {}
+          var threadId = data.thread_id || null
+          var requestId = data.request_id || threadId || ''
+          if (threadId && data.request_id) {
+            setSessionRefs(function(prev) { var next = Object.assign({}, prev); next[threadId] = data.request_id; return next })
+          }
+          setAck({ reference: requestId, thread_id: threadId, subject: subject })
+          setCopied(false)
           setTicketSubject('')
           setTicketBody('')
           setShowTicketForm(false)
           handleTabChange('tickets')
         } else {
-          alert('Failed: ' + (d.error || 'Unknown error'))
+          setTicketError('Your ticket was not sent: ' + ((d && d.error) || 'unknown error') + '. Your text is still here; please try again.')
         }
       })
-      .catch(function() { alert('Connection error') })
+      .catch(function() { setTicketError('Connection error. Your ticket was not sent; your text is still here. Please try again.') })
       .finally(function() { setTicketSending(false) })
   }
 
@@ -363,6 +434,7 @@ export function PortalSupportWidget(props) {
             value: ticketBody,
             onChange: function(e) { setTicketBody(e.target.value) },
           }),
+          ticketError && React.createElement('div', { style: s.err, role: 'alert', 'data-testid': 'sm-support-error' }, ticketError),
           React.createElement('button', {
             onClick: submitTicket,
             disabled: ticketSending || !ticketSubject.trim(),
@@ -370,18 +442,54 @@ export function PortalSupportWidget(props) {
           }, ticketSending ? 'Submitting...' : 'Submit ticket')
         ),
 
+        // Ticket detail (BUG-4086) -- replaces the list while open
+        tab === 'tickets' && detail && React.createElement('div', { style: { padding:'10px 12px' }, 'data-testid': 'sm-support-detail' },
+          React.createElement('button', { style: s.linkBtn, onClick: function() { setDetail(null) } }, '< Back to My tickets'),
+          React.createElement('div', { style: { fontWeight:500, color: text1, marginTop:8, marginBottom:2 } },
+            (detail.row && (detail.row.subject || detail.row.purpose)) || 'Support request'),
+          React.createElement('div', { style: Object.assign({}, s.refLine, { marginBottom:6 }) },
+            'Reference: ', React.createElement('span', { 'data-testid': 'sm-support-detail-ref' }, ticketRef(Object.assign({}, detail.thread || {}, detail.row || {}), sessionRefs))),
+          detail.loading && React.createElement('div', { style: { fontSize:12, color:'var(--text-3, #999)' } }, 'Loading...'),
+          detail.error && React.createElement('div', { style: s.err, role: 'alert' }, detail.error),
+          !detail.loading && !detail.error && detail.messages.map(function(m) {
+            var isCustomer = m.role === 'user'
+            return React.createElement('div', { key: m.id, style: { marginTop:8 } },
+              React.createElement('div', { style: { fontSize:10, color:'var(--text-3, #999)', marginBottom:2 } },
+                (isCustomer ? 'You' : 'Support') + (m.created_at ? ' - ' + new Date(m.created_at).toLocaleDateString() : '')),
+              React.createElement('div', { style: Object.assign({}, s.msgAi, { maxWidth:'100%', whiteSpace:'pre-wrap' }) }, plainMessage(m.content))
+            )
+          })
+        ),
+
         // Tickets tab
-        tab === 'tickets' && React.createElement('div', null,
+        tab === 'tickets' && !detail && React.createElement('div', null,
+          // Acknowledgement of the ticket just submitted (BUG-4086)
+          ack && React.createElement('div', { style: s.ack, role: 'status', 'data-testid': 'sm-support-ack' },
+            React.createElement('div', { style: { fontWeight:500 } }, 'Your ticket was received.'),
+            React.createElement('div', { style: { marginTop:2 } },
+              'Reference: ', React.createElement('span', { style: s.ackRef, 'data-testid': 'sm-support-ack-ref' }, ack.reference),
+              React.createElement('button', { style: s.ackBtn, onClick: function() { copyRef(ack.reference) }, 'aria-label': 'Copy reference' }, copied ? 'Copied' : 'Copy')
+            ),
+            React.createElement('div', { style: { marginTop:2, opacity:.8 } }, 'Quote this reference if you follow up with us. It also appears on the ticket below.'),
+            React.createElement('button', { style: Object.assign({}, s.linkBtn, { marginTop:4, color:'inherit', textDecoration:'underline' }), onClick: function() { setAck(null) } }, 'Dismiss')
+          ),
           ticketsLoading
             ? React.createElement('div', { style: { padding:20, textAlign:'center', fontSize:12, color:'var(--text-3, #999)' } }, 'Loading...')
             : tickets.length === 0
               ? React.createElement('div', { style: { padding:20, textAlign:'center', fontSize:12, color:'var(--text-3, #999)' } }, 'No tickets yet')
               : tickets.map(function(t) {
+                  var ref = ticketRef(t, sessionRefs)
                   return React.createElement('div', {
                     key: t.id,
+                    role: 'button',
+                    tabIndex: 0,
+                    'data-testid': 'sm-support-row',
+                    onClick: function() { openTicket(t) },
+                    onKeyDown: function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTicket(t) } },
                     style: { padding:'8px 12px', borderBottom:'1px solid var(--border, #e5e7eb)', fontSize:12, cursor:'pointer' },
                   },
                     React.createElement('div', { style: { fontWeight:500, color: text1, marginBottom:2 } }, t.subject || t.purpose || 'Support request'),
+                    ref && React.createElement('div', { style: Object.assign({}, s.refLine, { marginBottom:3 }) }, 'Ref ', React.createElement('span', { 'data-testid': 'sm-support-row-ref' }, ref)),
                     React.createElement('div', { style: { fontSize:11, color:'var(--text-3, #999)', display:'flex', gap:6, alignItems:'center' } },
                       React.createElement('span', {
                         style: { padding:'1px 6px', borderRadius:8, fontSize:9, fontWeight:600, textTransform:'uppercase',
