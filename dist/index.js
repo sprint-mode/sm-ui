@@ -107849,6 +107849,7 @@ var cNe = function(e) {
 												vn,
 												_n,
 												F && o.createElement("button", {
+													className: "shell-header-cta",
 													onClick: F.onClick,
 													style: {
 														padding: "6px 14px",
