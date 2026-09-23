@@ -2358,6 +2358,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
                   {lensChip}
                   {viewAsSelect}
                   {headerCta && React.createElement('button', {
+                    className: 'shell-header-cta',
                     onClick: headerCta.onClick,
                     style: {
                       padding: '6px 14px', borderRadius: 8,

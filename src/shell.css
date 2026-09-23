@@ -196,10 +196,23 @@
   .shell-header-hamburger { display: flex; }
   /* Search button: icon-only at mobile (hide label and keyboard shortcut hint) */
   .shell-header-search-text, .shell-header-search-kbd { display: none; }
-  /* Theme toggle: hidden in header at mobile (appears in sidebar bottom controls) */
-  .shell-header-theme-toggle { display: none; }
-  /* User menu: collapse to avatar only — hide name and role text */
-  .shell-header-user-name-block { display: none; }
+  /* Theme toggle: hidden in header at mobile (appears in sidebar bottom controls).
+     BUG-4196: the button sets an inline display:flex (Layout.tsx), which beats a
+     plain display:none here -- needs !important, the same reason .shell-header-avatar's
+     padding override below already carries one. Scoped to .shell-header-right so it
+     hits only the header-row instance -- the sidebar drawer renders the same class
+     on its own copy (line ~211) and must stay visible there. Without the !important,
+     "Auto" never actually left the row and ran off the right edge. */
+  .shell-header-right .shell-header-theme-toggle { display: none !important; }
+  /* BUG-4196: headerCta ("Site") hidden in the header row at mobile -- it
+     duplicates into .portal-sidebar-mobile-site-cta (reachable via the
+     hamburger), the same overflow slot FEAT-3588 already gave the theme
+     toggle. Without this the button ran off the right edge past the avatar. */
+  .shell-header-cta { display: none; }
+  /* User menu: collapse to avatar only — hide name and role text.
+     BUG-4196: also carries an inline display:flex, so this needs !important too
+     (avatar name/role was the "cut to a sliver" part of the bug report). */
+  .shell-header-user-name-block { display: none !important; }
   .shell-header-avatar { padding: 4px !important; }
   /* Reveal sidebar mobile controls slot (theme + site link) */
   .portal-sidebar-mobile-controls { display: flex; }
