@@ -60,6 +60,18 @@ interface PortalInfo {
   is_default?: boolean
 }
 
+// BUG-4347: one Waffle account an identity belongs to (workspace_memberships,
+// product waffle), carried per identity on /api/auth/linked-accounts. Roles
+// are the IDENTITY-CANON section 4 set (super_owner/owner/manager/member);
+// this shape carries no role_display_name, so titleCase(role) is the
+// humanization.
+interface WaffleAccount {
+  workspace_id: string
+  name: string
+  role: string
+  is_current: boolean
+}
+
 interface LinkedAccount {
   user_id: string
   display_name: string
@@ -67,19 +79,10 @@ interface LinkedAccount {
   photo_url: string | null
   is_current: boolean
   portals: PortalInfo[]
-}
-
-// TASK-3823: one sub-row per Waffle account the signed-in session holds a
-// waffle customer role on (super_owner/owner/manager/member), from
-// GET /api/auth/waffle-accounts (TASK-3836). Server-side filtered — this
-// shape carries no role_display_name, so titleCase(role) is the only
-// humanization available (BUG-3087's role_display_name preference does not
-// apply here).
-interface WaffleAccount {
-  workspace_id: string
-  name: string
-  role: string
-  is_current: boolean
+  /** BUG-4347: this identity's Waffle accounts, nested under it in the menu
+   *  (approved mock sm-control-5/waffle-panel-module screen 2). Absent on an
+   *  sm-api that predates the field: the menu then shows no Waffle rows. */
+  waffle_accounts?: WaffleAccount[]
 }
 
 function PlusIcon() {
@@ -186,8 +189,6 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var _expanded = useState<string | null>(null); var expanded = _expanded[0]; var setExpanded = _expanded[1]
   var _expandedSection = useState<string | null>(null); var expandedSection = _expandedSection[0]; var setExpandedSection = _expandedSection[1]
   var _meUserId = useState(cached ? cached.meUserId : ''); var meUserId = _meUserId[0]; var setMeUserId = _meUserId[1]
-  var _waffleAccounts = useState<WaffleAccount[]>([]); var waffleAccounts = _waffleAccounts[0]; var setWaffleAccounts = _waffleAccounts[1]
-  var setWaffleLoaded = useState(false)[1]
   var _me = useState<SessionData | null>(props.session || null); var me = _me[0]; var setMe = _me[1]
   var _swapBusy = useState<string | null>(null); var swapBusy = _swapBusy[0]; var setSwapBusy = _swapBusy[1]
   var _defaultMsg = useState<string | null>(null); var defaultMsg = _defaultMsg[0]; var setDefaultMsg = _defaultMsg[1]
@@ -242,28 +243,23 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       .catch(function() { setLoaded(true) })
   }, [apiBase, authHeaders, cacheKey])
 
-  // TASK-3823: signed-in session's Waffle accounts, for the Waffle sub-rows
-  // section below. Mirrors fetchAccounts()'s shape and its silent-degrade
-  // catch (a proxy that doesn't yet serve this route simply shows no
-  // section, same as fetchAccounts() on an un-updated portal).
-  var fetchWaffleAccounts = useCallback(function() {
-    fetch(apiBase + '/api/auth/waffle-accounts', { credentials: 'include', headers: authHeaders() })
-      .then(function(r) { return r.json() })
-      .then(function(data: { ok: boolean; data?: { accounts: WaffleAccount[] } }) {
-        setWaffleLoaded(true)
-        if (data.ok && data.data) {
-          setWaffleAccounts(data.data.accounts)
-        }
-      })
-      .catch(function() { setWaffleLoaded(true) })
-  }, [apiBase, authHeaders])
-
   useEffect(function() {
     fetchMe()
-    fetchWaffleAccounts()
     if (cached && Date.now() - cached.ts < CACHE_TTL) return
     fetchAccounts()
-  }, [fetchAccounts, fetchMe, fetchWaffleAccounts])
+  }, [fetchAccounts, fetchMe])
+
+  // BUG-4347: open Waffle as an identity, switched to one of its accounts.
+  // A full-page navigation to the redirect door (ACCOUNT-SWITCHER-5: cookies
+  // set on a navigation, never on fetch). On *.sprintmode.ai the door is
+  // api.sprintmode.ai itself; elsewhere it is the portal's own /api proxy.
+  // Never POST /api/auth/switch-account for this (BUG-2220).
+  function handleWaffleAccountClick(userId: string, workspaceId: string) {
+    var door = onSmHost ? 'https://api.sprintmode.ai' : apiBase
+    window.location.href = door + '/api/auth/switch-account-redirect?user_id=' + encodeURIComponent(userId) +
+      '&workspace=' + encodeURIComponent(workspaceId) +
+      '&return_to=' + encodeURIComponent('https://waffle.sprintmode.ai/')
+  }
 
   function handlePortalClick(userId: string, targetUrl: string, portalSubdomain: string) {
     fetch('/api/auth/switch-account', {
@@ -506,9 +502,23 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     ? (currentAccount.portals || []).filter(function(p) { return p.subdomain !== product })
     : []
 
-  var accessSection = accessPortals.length > 0 ? React.createElement(React.Fragment, null,
+  // BUG-4347 (Aaron's ruling, 2026-09-24): where the signed-in identity has
+  // more than one account on one product, they nest beneath that product
+  // INSIDE Portal access -- never as a separate block between Portal access
+  // and Linked accounts (the placement of the unapproved TASK-3823 section).
+  // A single account has nothing to switch to, so nothing nests. When the
+  // accounts nest, the "Waffle / N accounts" header IS the identity's Waffle
+  // line (mock screen 2 shows one), so the plain waffle portal row is dropped.
+  var ownWaffleAccounts = currentAccount ? (currentAccount.waffle_accounts || []) : []
+  var ownWaffleNested = !!currentAccount && ownWaffleAccounts.length > 1
+  if (ownWaffleNested) {
+    accessPortals = accessPortals.filter(function(p) { return p.subdomain !== 'waffle' })
+  }
+  var accessCount = accessPortals.length + (ownWaffleNested ? 1 : 0)
+
+  var accessSection = accessCount > 0 ? React.createElement(React.Fragment, null,
     React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
-    sectionHeader('access', 'Portal access', accessPortals.length),
+    sectionHeader('access', 'Portal access', accessCount),
     expandedSection === 'access' ? React.createElement('div', null,
       accessPortals.map(function(p) {
         return React.createElement('button', {
@@ -530,42 +540,57 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
           p.role ? React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0, marginLeft: 4 } }, roleLabel(p)) : null,
           React.createElement(ArrowIcon, { rotated: false })
         )
-      })
+      }),
+      // BUG-4347: the signed-in identity's own Waffle accounts, nested beneath
+      // its portal rows (Done when 1: aaronmhall@gmail.com on Waffle sees
+      // Homey, Weekwell and Switchpoint here).
+      ownWaffleNested ? waffleAccountRows(currentAccount!) : null
     ) : null
   ) : null
 
-  // ── Section: Waffle accounts (TASK-3823) ──────────────────────────────────
-  // One sub-row per Waffle account the session holds a waffle customer role
-  // on (already server-side filtered by the endpoint — see Interpretation 2:
-  // this section gates on a non-empty list, exactly like accessSection, with
-  // no independent client-side role check). No row is excluded on
-  // is_current (Interpretation 3: "one sub-row per Waffle account", not
-  // "other Waffle accounts"). Links are plain anchors to the external Waffle
-  // app, not handlePortalClick — Waffle sub-rows do not switch the sm-ui
-  // session (Interpretation 5).
-  var waffleSection = waffleAccounts.length > 0 ? React.createElement(React.Fragment, null,
-    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
-    sectionHeader('waffle', 'Waffle', waffleAccounts.length),
-    expandedSection === 'waffle' ? React.createElement('div', null,
-      waffleAccounts.map(function(a) {
-        return React.createElement('a', {
+  // -- Waffle accounts nested under an identity (BUG-4347) ------------------
+  // Approved mock (sm-control-5/waffle-panel-module, screen 2): under an
+  // identity's portal rows, one "Waffle / N accounts" row, then one indented
+  // sub-row per Waffle account (name / role), the current one highlighted.
+  // Clicking a sub-row opens Waffle as that identity on that account. This
+  // replaces the TASK-3823 session-only "Waffle (N)" section, which was
+  // never approved (BUG-4347).
+  function waffleAccountRows(account: LinkedAccount) {
+    var list = account.waffle_accounts || []
+    if (list.length === 0) return null
+    return React.createElement(React.Fragment, null,
+      React.createElement('div', {
+        'data-testid': 'waffle-accounts-row-' + account.user_id,
+        style: {
+          display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
+          fontSize: 13, color: 'var(--foreground)',
+        },
+      },
+        React.createElement('span', { style: { flex: 1 } }, 'Waffle'),
+        React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0 } },
+          list.length + (list.length === 1 ? ' account' : ' accounts'))
+      ),
+      list.map(function(a) {
+        return React.createElement('button', {
           key: a.workspace_id,
-          href: 'https://waffle.sprintmode.ai?account=' + encodeURIComponent(a.workspace_id),
+          'aria-current': a.is_current ? 'true' : undefined,
+          onClick: function() { handleWaffleAccountClick(account.user_id, a.workspace_id) },
           style: {
-            display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px',
-            borderRadius: 6, textDecoration: 'none', boxSizing: 'border-box' as const,
+            display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px 7px 24px',
+            borderRadius: 6, border: 'none', cursor: 'pointer',
+            background: a.is_current ? 'var(--accent-10)' : 'transparent',
             width: '100%', textAlign: 'left' as const, fontSize: 13, color: 'var(--foreground)',
-            transition: 'background .15s',
+            fontWeight: a.is_current ? 600 : 400, transition: 'background .15s',
           },
-          onMouseEnter: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'var(--bg-subtle)' },
-          onMouseLeave: function(e: React.MouseEvent<HTMLAnchorElement>) { (e.currentTarget as HTMLAnchorElement).style.background = 'transparent' },
+          onMouseEnter: function(e: React.MouseEvent<HTMLButtonElement>) { if (!a.is_current) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-subtle)' },
+          onMouseLeave: function(e: React.MouseEvent<HTMLButtonElement>) { if (!a.is_current) (e.currentTarget as HTMLButtonElement).style.background = 'transparent' },
         },
           React.createElement('span', { style: { flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const } }, a.name),
           React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0, marginLeft: 4 } }, titleCase(a.role))
         )
       })
-    ) : null
-  ) : null
+    )
+  }
 
   // ── Section 3: Linked accounts ────────────────────────────────────────────
   var otherAccounts = accounts.filter(function(a) {
@@ -578,6 +603,15 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var expandedAccount = expanded ? otherAccounts.find(function(a) { return a.user_id === expanded }) : null
 
   if (expandedAccount) {
+    // BUG-4347: a linked identity's Waffle accounts nest beneath one Waffle
+    // line (its "Waffle / N accounts" header), so when they render, the plain
+    // waffle portal row is dropped rather than shown twice. A linked identity
+    // nests at one account too: that row is the only door into Waffle as
+    // that identity on that account.
+    var linkedWaffleNested = (expandedAccount.waffle_accounts || []).length > 0
+    var linkedPortals = linkedWaffleNested
+      ? expandedAccount.portals.filter(function(p) { return p.subdomain !== 'waffle' })
+      : expandedAccount.portals
     return React.createElement(React.Fragment, null,
       React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
       React.createElement('button', {
@@ -592,8 +626,8 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
         React.createElement(BackIcon, null),
         expandedAccount.email
       ),
-      expandedAccount.portals.length > 0
-        ? expandedAccount.portals.map(function(p) {
+      linkedPortals.length > 0
+        ? linkedPortals.map(function(p) {
             return React.createElement('button', {
               key: p.subdomain,
               onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p), p.subdomain) },
@@ -611,9 +645,11 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
               p.role ? React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0, marginLeft: 4 } }, roleLabel(p)) : null
             )
           })
-        : React.createElement('div', {
+        : (linkedWaffleNested ? null : React.createElement('div', {
             style: { padding: '8px 10px', fontSize: 12, color: 'var(--muted)' }
-          }, 'No portals available')
+          }, 'No portals available')),
+      // BUG-4347: this identity's Waffle accounts, nested below its portals.
+      waffleAccountRows(expandedAccount)
     )
   }
 
@@ -684,7 +720,6 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   return React.createElement(React.Fragment, null,
     rolesSection,
     accessSection,
-    waffleSection,
     linkedSection
   )
 }
