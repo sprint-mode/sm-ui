@@ -21,7 +21,7 @@ function portal(subdomain, name, role) {
   return { subdomain: subdomain, name: name, brand_color: null, brand_tint: null, logo_mark_url: null, custom_domain: null, portal_url: null, role: role, is_default: true }
 }
 
-async function renderSwitcher({ ownWaffle, linkedWaffle } = {}) {
+async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals } = {}) {
   var { AccountSwitcher } = await import('../AccountSwitcher.tsx')
   vi.spyOn(window, 'fetch').mockImplementation(function(url) {
     var u = url.toString()
@@ -38,7 +38,7 @@ async function renderSwitcher({ ownWaffle, linkedWaffle } = {}) {
         data: {
           accounts: [
             { user_id: 'usr_ai', display_name: 'Aaron', email: 'aaron@sprintmode.ai', photo_url: null, is_current: true,
-              portals: [portal('waffle', 'Waffle', 'super_admin'), portal('admin', 'Admin', 'super_admin')],
+              portals: ownPortals !== undefined ? ownPortals : [portal('waffle', 'Waffle', 'super_admin'), portal('admin', 'Admin', 'super_admin')],
               waffle_accounts: ownWaffle !== undefined ? ownWaffle : [{ workspace_id: 'co_sm', name: 'Sprint Mode LLC', role: 'owner', is_current: true }] },
             { user_id: 'usr_gmail', display_name: 'Aaron Hall', email: 'aaronmhall@gmail.com', photo_url: null, is_current: false,
               portals: [portal('switchpoint', 'Switchpoint', 'owner')],
@@ -115,14 +115,24 @@ describe('BUG-4347 — Waffle accounts nested under each identity', function() {
     expect(screen.queryByTestId('waffle-accounts-row-usr_gmail')).toBeNull()
   })
 
-  it('(5) the signed-in identity with several Waffle accounts gets the same nested rows, its current account marked', async function() {
+  // Aaron's ruling (BUG-4347, 2026-09-24): the signed-in identity's own
+  // accounts nest beneath the product INSIDE Portal access, never as a
+  // separate block between Portal access and Linked accounts.
+  it('(5) the signed-in identity with several Waffle accounts gets the nested rows inside Portal access, its current account marked', async function() {
     await renderSwitcher({ ownWaffle: [
       { workspace_id: 'co_homey', name: 'Homey', role: 'owner', is_current: true },
       { workspace_id: 'co_weekwell', name: 'Weekwell', role: 'owner', is_current: false },
       { workspace_id: 'co_switchpoint', name: 'Switchpoint', role: 'member', is_current: false },
     ] })
+    await waitFor(function() { expect(screen.getByText(/Portal access/i)).toBeInTheDocument() })
+    // Collapsed: nothing nested is visible yet, and no separate Waffle block exists.
+    expect(screen.queryByTestId('waffle-accounts-row-usr_ai')).toBeNull()
+    // The header counts Admin plus the nested Waffle row.
+    expect(screen.getByText(/Portal access/i).closest('button')).toHaveTextContent('(2)')
+    fireEvent.click(screen.getByText(/Portal access/i).closest('button'))
     await waitFor(function() { expect(screen.getByTestId('waffle-accounts-row-usr_ai')).toBeInTheDocument() })
     expect(screen.getByTestId('waffle-accounts-row-usr_ai')).toHaveTextContent('3 accounts')
+    expect(screen.getByText('Admin')).toBeInTheDocument()
     var homey = screen.getByText('Homey').closest('button')
     expect(homey.getAttribute('aria-current')).toBe('true')
     expect(screen.getByText('Weekwell').closest('button').getAttribute('aria-current')).toBeNull()
@@ -132,7 +142,27 @@ describe('BUG-4347 — Waffle accounts nested under each identity', function() {
 
   it('(6) the signed-in identity with a single Waffle account shows no Waffle rows of its own', async function() {
     await renderSwitcher()
-    await waitFor(function() { expect(screen.getByText(/Linked accounts/i)).toBeInTheDocument() })
+    await waitFor(function() { expect(screen.getByText(/Portal access/i)).toBeInTheDocument() })
+    expect(screen.getByText(/Portal access/i).closest('button')).toHaveTextContent('(1)')
+    fireEvent.click(screen.getByText(/Portal access/i).closest('button'))
+    await waitFor(function() { expect(screen.getByText('Admin')).toBeInTheDocument() })
     expect(screen.queryByTestId('waffle-accounts-row-usr_ai')).toBeNull()
+  })
+
+  it('(7) Portal access renders for the nested Waffle accounts alone when the identity reaches no other portal', async function() {
+    await renderSwitcher({
+      ownPortals: [portal('waffle', 'Waffle', 'owner')],
+      ownWaffle: [
+        { workspace_id: 'co_homey', name: 'Homey', role: 'owner', is_current: true },
+        { workspace_id: 'co_weekwell', name: 'Weekwell', role: 'owner', is_current: false },
+      ],
+    })
+    await waitFor(function() { expect(screen.getByText(/Portal access/i)).toBeInTheDocument() })
+    expect(screen.getByText(/Portal access/i).closest('button')).toHaveTextContent('(1)')
+    fireEvent.click(screen.getByText(/Portal access/i).closest('button'))
+    await waitFor(function() { expect(screen.getByTestId('waffle-accounts-row-usr_ai')).toBeInTheDocument() })
+    expect(screen.getByTestId('waffle-accounts-row-usr_ai')).toHaveTextContent('2 accounts')
+    expect(screen.getByText('Homey')).toBeInTheDocument()
+    expect(screen.getByText('Weekwell')).toBeInTheDocument()
   })
 })

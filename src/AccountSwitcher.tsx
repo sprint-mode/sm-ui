@@ -502,9 +502,18 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     ? (currentAccount.portals || []).filter(function(p) { return p.subdomain !== product })
     : []
 
-  var accessSection = accessPortals.length > 0 ? React.createElement(React.Fragment, null,
+  // BUG-4347 (Aaron's ruling, 2026-09-24): where the signed-in identity has
+  // more than one account on one product, they nest beneath that product
+  // INSIDE Portal access -- never as a separate block between Portal access
+  // and Linked accounts (the placement of the unapproved TASK-3823 section).
+  // A single account has nothing to switch to, so nothing nests.
+  var ownWaffleAccounts = currentAccount ? (currentAccount.waffle_accounts || []) : []
+  var ownWaffleNested = !!currentAccount && ownWaffleAccounts.length > 1
+  var accessCount = accessPortals.length + (ownWaffleNested ? 1 : 0)
+
+  var accessSection = accessCount > 0 ? React.createElement(React.Fragment, null,
     React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
-    sectionHeader('access', 'Portal access', accessPortals.length),
+    sectionHeader('access', 'Portal access', accessCount),
     expandedSection === 'access' ? React.createElement('div', null,
       accessPortals.map(function(p) {
         return React.createElement('button', {
@@ -526,7 +535,11 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
           p.role ? React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0, marginLeft: 4 } }, roleLabel(p)) : null,
           React.createElement(ArrowIcon, { rotated: false })
         )
-      })
+      }),
+      // BUG-4347: the signed-in identity's own Waffle accounts, nested beneath
+      // its portal rows (Done when 1: aaronmhall@gmail.com on Waffle sees
+      // Homey, Weekwell and Switchpoint here).
+      ownWaffleNested ? waffleAccountRows(currentAccount!) : null
     ) : null
   ) : null
 
@@ -573,15 +586,6 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       })
     )
   }
-
-  // The signed-in identity's own accounts: nested under it (BUG-4347 Done
-  // when 1) and only when there is something to switch to -- a single
-  // account shows nothing, the same rule as Waffle's kitchen switcher.
-  var ownWaffleAccounts = currentAccount ? (currentAccount.waffle_accounts || []) : []
-  var ownWaffleSection = currentAccount && ownWaffleAccounts.length > 1 ? React.createElement(React.Fragment, null,
-    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
-    waffleAccountRows(currentAccount)
-  ) : null
 
   // ── Section 3: Linked accounts ────────────────────────────────────────────
   var otherAccounts = accounts.filter(function(a) {
@@ -702,7 +706,6 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   return React.createElement(React.Fragment, null,
     rolesSection,
     accessSection,
-    ownWaffleSection,
     linkedSection
   )
 }
