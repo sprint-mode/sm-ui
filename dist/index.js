@@ -104193,8 +104193,7 @@ function k7(e) {
 		H(), !(g && Date.now() - g.ts < BMe) && oe();
 	}, [oe, H]);
 	function se(e, n) {
-		var r = s ? "https://api.sprintmode.ai" : t;
-		window.location.href = r + "/api/auth/switch-account-redirect?user_id=" + encodeURIComponent(e) + "&workspace=" + encodeURIComponent(n) + "&return_to=https%3A%2F%2Fwaffle.sprintmode.ai%2F";
+		window.location.href = t + "/api/auth/switch-account-redirect?user_id=" + encodeURIComponent(e) + "&workspace=" + encodeURIComponent(n) + "&return_to=https%3A%2F%2Fwaffle.sprintmode.ai%2F";
 	}
 	function U(e, t, n) {
 		fetch("/api/auth/switch-account", {
