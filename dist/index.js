@@ -104455,7 +104455,11 @@ function k7(e) {
 		color: te ? "hsl(142,71%,30%)" : "hsl(0,84%,40%)"
 	} }, R) : null) : null) : null, ge = q ? (q.portals || []).filter(function(e) {
 		return e.subdomain !== n;
-	}) : [], _e = q && q.waffle_accounts || [], ve = !!q && _e.length > 1, ye = ge.length + +!!ve, be = ye > 0 ? o.createElement(o.Fragment, null, o.createElement("div", { style: {
+	}) : [], _e = q && q.waffle_accounts || [], ve = !!q && _e.length > 1;
+	ve && (ge = ge.filter(function(e) {
+		return e.subdomain !== "waffle";
+	}));
+	var ye = ge.length + +!!ve, be = ye > 0 ? o.createElement(o.Fragment, null, o.createElement("div", { style: {
 		height: 1,
 		background: "var(--border)",
 		margin: "4px 0"
@@ -104561,75 +104565,80 @@ function k7(e) {
 	}), Y = w ? Se.find(function(e) {
 		return e.user_id === w;
 	}) : null;
-	if (Y) return o.createElement(o.Fragment, null, o.createElement("div", { style: {
-		height: 1,
-		background: "var(--border)",
-		margin: "4px 0"
-	} }), o.createElement("button", {
-		onClick: function() {
-			T(null);
-		},
-		style: {
-			display: "flex",
-			alignItems: "center",
-			gap: 6,
-			padding: "6px 10px",
-			border: "none",
-			background: "transparent",
-			cursor: "pointer",
-			width: "100%",
-			textAlign: "left",
-			fontSize: 11,
-			fontWeight: 600,
-			color: "var(--muted)",
-			textTransform: "uppercase",
-			letterSpacing: "0.5px"
-		}
-	}, o.createElement(zMe, null), Y.email), Y.portals.length > 0 ? Y.portals.map(function(e) {
-		return o.createElement("button", {
-			key: e.subdomain,
+	if (Y) {
+		var X = (Y.waffle_accounts || []).length > 0, Ce = X ? Y.portals.filter(function(e) {
+			return e.subdomain !== "waffle";
+		}) : Y.portals;
+		return o.createElement(o.Fragment, null, o.createElement("div", { style: {
+			height: 1,
+			background: "var(--border)",
+			margin: "4px 0"
+		} }), o.createElement("button", {
 			onClick: function() {
-				U(Y.user_id, T7(e), e.subdomain);
+				T(null);
 			},
 			style: {
 				display: "flex",
 				alignItems: "center",
-				gap: 8,
-				padding: "7px 10px",
-				borderRadius: 6,
+				gap: 6,
+				padding: "6px 10px",
 				border: "none",
 				background: "transparent",
 				cursor: "pointer",
 				width: "100%",
 				textAlign: "left",
-				fontSize: 13,
-				color: "var(--foreground)",
-				transition: "background .15s"
-			},
-			onMouseEnter: function(e) {
-				e.currentTarget.style.background = "var(--bg-subtle)";
-			},
-			onMouseLeave: function(e) {
-				e.currentTarget.style.background = "transparent";
+				fontSize: 11,
+				fontWeight: 600,
+				color: "var(--muted)",
+				textTransform: "uppercase",
+				letterSpacing: "0.5px"
 			}
-		}, pe(e), o.createElement("span", { style: {
-			flex: 1,
-			fontSize: 13,
-			overflow: "hidden",
-			textOverflow: "ellipsis",
-			whiteSpace: "nowrap"
-		} }, e.name || e.subdomain), e.role ? o.createElement("span", { style: {
-			fontSize: 11,
-			color: "var(--muted)",
-			flexShrink: 0,
-			marginLeft: 4
-		} }, D7(e)) : null);
-	}) : o.createElement("div", { style: {
-		padding: "8px 10px",
-		fontSize: 12,
-		color: "var(--muted)"
-	} }, "No portals available"), xe(Y));
-	var X = o.createElement(o.Fragment, null, o.createElement("div", { style: {
+		}, o.createElement(zMe, null), Y.email), Ce.length > 0 ? Ce.map(function(e) {
+			return o.createElement("button", {
+				key: e.subdomain,
+				onClick: function() {
+					U(Y.user_id, T7(e), e.subdomain);
+				},
+				style: {
+					display: "flex",
+					alignItems: "center",
+					gap: 8,
+					padding: "7px 10px",
+					borderRadius: 6,
+					border: "none",
+					background: "transparent",
+					cursor: "pointer",
+					width: "100%",
+					textAlign: "left",
+					fontSize: 13,
+					color: "var(--foreground)",
+					transition: "background .15s"
+				},
+				onMouseEnter: function(e) {
+					e.currentTarget.style.background = "var(--bg-subtle)";
+				},
+				onMouseLeave: function(e) {
+					e.currentTarget.style.background = "transparent";
+				}
+			}, pe(e), o.createElement("span", { style: {
+				flex: 1,
+				fontSize: 13,
+				overflow: "hidden",
+				textOverflow: "ellipsis",
+				whiteSpace: "nowrap"
+			} }, e.name || e.subdomain), e.role ? o.createElement("span", { style: {
+				fontSize: 11,
+				color: "var(--muted)",
+				flexShrink: 0,
+				marginLeft: 4
+			} }, D7(e)) : null);
+		}) : X ? null : o.createElement("div", { style: {
+			padding: "8px 10px",
+			fontSize: 12,
+			color: "var(--muted)"
+		} }, "No portals available"), xe(Y));
+	}
+	var we = o.createElement(o.Fragment, null, o.createElement("div", { style: {
 		height: 1,
 		background: "var(--border)",
 		margin: "4px 0"
@@ -104722,7 +104731,7 @@ function k7(e) {
 			e.currentTarget.style.background = "transparent";
 		}
 	}, o.createElement(RMe, null), "Add Account")) : null);
-	return o.createElement(o.Fragment, null, he, be, X);
+	return o.createElement(o.Fragment, null, he, be, we);
 }
 //#endregion
 //#region src/ActingRoleChip.tsx

@@ -506,9 +506,14 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   // more than one account on one product, they nest beneath that product
   // INSIDE Portal access -- never as a separate block between Portal access
   // and Linked accounts (the placement of the unapproved TASK-3823 section).
-  // A single account has nothing to switch to, so nothing nests.
+  // A single account has nothing to switch to, so nothing nests. When the
+  // accounts nest, the "Waffle / N accounts" header IS the identity's Waffle
+  // line (mock screen 2 shows one), so the plain waffle portal row is dropped.
   var ownWaffleAccounts = currentAccount ? (currentAccount.waffle_accounts || []) : []
   var ownWaffleNested = !!currentAccount && ownWaffleAccounts.length > 1
+  if (ownWaffleNested) {
+    accessPortals = accessPortals.filter(function(p) { return p.subdomain !== 'waffle' })
+  }
   var accessCount = accessPortals.length + (ownWaffleNested ? 1 : 0)
 
   var accessSection = accessCount > 0 ? React.createElement(React.Fragment, null,
@@ -543,7 +548,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
     ) : null
   ) : null
 
-  // ── Waffle accounts nested under an identity (BUG-4347) ──────────────────
+  // -- Waffle accounts nested under an identity (BUG-4347) ------------------
   // Approved mock (sm-control-5/waffle-panel-module, screen 2): under an
   // identity's portal rows, one "Waffle / N accounts" row, then one indented
   // sub-row per Waffle account (name / role), the current one highlighted.
@@ -598,6 +603,15 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var expandedAccount = expanded ? otherAccounts.find(function(a) { return a.user_id === expanded }) : null
 
   if (expandedAccount) {
+    // BUG-4347: a linked identity's Waffle accounts nest beneath one Waffle
+    // line (its "Waffle / N accounts" header), so when they render, the plain
+    // waffle portal row is dropped rather than shown twice. A linked identity
+    // nests at one account too: that row is the only door into Waffle as
+    // that identity on that account.
+    var linkedWaffleNested = (expandedAccount.waffle_accounts || []).length > 0
+    var linkedPortals = linkedWaffleNested
+      ? expandedAccount.portals.filter(function(p) { return p.subdomain !== 'waffle' })
+      : expandedAccount.portals
     return React.createElement(React.Fragment, null,
       React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
       React.createElement('button', {
@@ -612,8 +626,8 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
         React.createElement(BackIcon, null),
         expandedAccount.email
       ),
-      expandedAccount.portals.length > 0
-        ? expandedAccount.portals.map(function(p) {
+      linkedPortals.length > 0
+        ? linkedPortals.map(function(p) {
             return React.createElement('button', {
               key: p.subdomain,
               onClick: function() { handlePortalClick(expandedAccount!.user_id, portalUrl(p), p.subdomain) },
@@ -631,9 +645,9 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
               p.role ? React.createElement('span', { style: { fontSize: 11, color: 'var(--muted)', flexShrink: 0, marginLeft: 4 } }, roleLabel(p)) : null
             )
           })
-        : React.createElement('div', {
+        : (linkedWaffleNested ? null : React.createElement('div', {
             style: { padding: '8px 10px', fontSize: 12, color: 'var(--muted)' }
-          }, 'No portals available'),
+          }, 'No portals available')),
       // BUG-4347: this identity's Waffle accounts, nested below its portals.
       waffleAccountRows(expandedAccount)
     )

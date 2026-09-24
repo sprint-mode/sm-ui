@@ -1,4 +1,4 @@
-// bug-4347-nested-waffle-accounts.test.jsx — BUG-4347
+// bug-4347-nested-waffle-accounts.test.jsx - BUG-4347
 // The approved user menu (sm-jockey/_briefs/mocks/sm-control-5/waffle-panel-module,
 // screen 2): each linked identity's Waffle accounts are nested under that
 // identity in its drill-in ("Waffle / N accounts" row, then one sub-row per
@@ -21,7 +21,7 @@ function portal(subdomain, name, role) {
   return { subdomain: subdomain, name: name, brand_color: null, brand_tint: null, logo_mark_url: null, custom_domain: null, portal_url: null, role: role, is_default: true }
 }
 
-async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals } = {}) {
+async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals, linkedPortals, product } = {}) {
   var { AccountSwitcher } = await import('../AccountSwitcher.tsx')
   vi.spyOn(window, 'fetch').mockImplementation(function(url) {
     var u = url.toString()
@@ -41,7 +41,7 @@ async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals } = {}) {
               portals: ownPortals !== undefined ? ownPortals : [portal('waffle', 'Waffle', 'super_admin'), portal('admin', 'Admin', 'super_admin')],
               waffle_accounts: ownWaffle !== undefined ? ownWaffle : [{ workspace_id: 'co_sm', name: 'Sprint Mode LLC', role: 'owner', is_current: true }] },
             { user_id: 'usr_gmail', display_name: 'Aaron Hall', email: 'aaronmhall@gmail.com', photo_url: null, is_current: false,
-              portals: [portal('switchpoint', 'Switchpoint', 'owner')],
+              portals: linkedPortals !== undefined ? linkedPortals : [portal('switchpoint', 'Switchpoint', 'owner')],
               waffle_accounts: linkedWaffle !== undefined ? linkedWaffle : GMAIL_WAFFLE },
           ],
         },
@@ -50,7 +50,7 @@ async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals } = {}) {
     return Promise.resolve({ ok: true, json: function() { return Promise.resolve({ ok: false }) } })
   })
   var session = { ok: true, user_id: 'usr_ai', email: 'aaron@sprintmode.ai', name: 'Aaron', role: 'super_admin', portal_role: 'super_admin', permissions: {} }
-  return render(React.createElement(AccountSwitcher, { product: 'waffle', session: session }))
+  return render(React.createElement(AccountSwitcher, { product: product || 'waffle', session: session }))
 }
 
 async function openGmailDrillIn() {
@@ -69,7 +69,7 @@ beforeEach(function() {
   window.location = { href: 'https://waffle.sprintmode.ai/', hostname: 'waffle.sprintmode.ai' }
 })
 
-describe('BUG-4347 — Waffle accounts nested under each identity', function() {
+describe('BUG-4347 - Waffle accounts nested under each identity', function() {
   it('(1) never fetches /api/auth/waffle-accounts and shows no top-level "Waffle (N)" section', async function() {
     await renderSwitcher()
     await waitFor(function() { expect(screen.getByText(/Linked accounts/i)).toBeInTheDocument() })
@@ -164,5 +164,51 @@ describe('BUG-4347 — Waffle accounts nested under each identity', function() {
     expect(screen.getByTestId('waffle-accounts-row-usr_ai')).toHaveTextContent('2 accounts')
     expect(screen.getByText('Homey')).toBeInTheDocument()
     expect(screen.getByText('Weekwell')).toBeInTheDocument()
+  })
+
+  // Mock screen 2 shows ONE Waffle line per identity: the "Waffle / N accounts"
+  // header stands in for the plain waffle portal row whenever accounts nest.
+  it('(8) a linked identity with a waffle portal row and nested accounts shows one Waffle line, with the accounts beneath it', async function() {
+    await renderSwitcher({
+      linkedPortals: [portal('waffle', 'Waffle', 'owner'), portal('switchpoint', 'Switchpoint', 'owner')],
+    })
+    await openGmailDrillIn()
+    expect(screen.getAllByText('Waffle').length).toBe(1)
+    expect(screen.getByTestId('waffle-accounts-row-usr_gmail')).toHaveTextContent('3 accounts')
+    // The Waffle line is the nested header, never a portal switch button.
+    expect(screen.getByText('Waffle').closest('button')).toBeNull()
+    expect(screen.getByText('Homey')).toBeInTheDocument()
+    expect(screen.getByText('Weekwell')).toBeInTheDocument()
+    expect(screen.getAllByText('Switchpoint').length).toBe(2)
+  })
+
+  it('(9) on another portal, the signed-in identity\'s waffle portal row gives way to the nested Waffle line inside Portal access', async function() {
+    await renderSwitcher({
+      product: 'admin',
+      ownWaffle: [
+        { workspace_id: 'co_homey', name: 'Homey', role: 'owner', is_current: false },
+        { workspace_id: 'co_weekwell', name: 'Weekwell', role: 'owner', is_current: false },
+      ],
+    })
+    await waitFor(function() { expect(screen.getByText(/Portal access/i)).toBeInTheDocument() })
+    // portals [waffle, admin] on admin: the waffle row is replaced by the nested line, so one entry.
+    expect(screen.getByText(/Portal access/i).closest('button')).toHaveTextContent('(1)')
+    fireEvent.click(screen.getByText(/Portal access/i).closest('button'))
+    await waitFor(function() { expect(screen.getByTestId('waffle-accounts-row-usr_ai')).toBeInTheDocument() })
+    expect(screen.getAllByText('Waffle').length).toBe(1)
+    expect(screen.getByText('Waffle').closest('button')).toBeNull()
+    expect(screen.queryByText('Admin')).toBeNull()
+    expect(screen.getByText('Homey')).toBeInTheDocument()
+  })
+
+  it('(10) a linked identity with a single Waffle account still nests it: that row is its only door into Waffle', async function() {
+    await renderSwitcher({ linkedWaffle: [{ workspace_id: 'co_sm', name: 'Sprint Mode LLC', role: 'owner', is_current: false }] })
+    await waitFor(function() { expect(screen.getByText(/Linked accounts/i)).toBeInTheDocument() })
+    fireEvent.click(screen.getByText(/Linked accounts/i).closest('button'))
+    await waitFor(function() { expect(screen.getByText('aaronmhall@gmail.com')).toBeInTheDocument() })
+    fireEvent.click(screen.getByText('aaronmhall@gmail.com').closest('button'))
+    await waitFor(function() { expect(screen.getByTestId('waffle-accounts-row-usr_gmail')).toBeInTheDocument() })
+    expect(screen.getByTestId('waffle-accounts-row-usr_gmail')).toHaveTextContent('1 account')
+    expect(screen.getByText('Sprint Mode LLC')).toBeInTheDocument()
   })
 })
