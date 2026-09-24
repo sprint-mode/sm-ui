@@ -21,7 +21,7 @@ function portal(subdomain, name, role) {
   return { subdomain: subdomain, name: name, brand_color: null, brand_tint: null, logo_mark_url: null, custom_domain: null, portal_url: null, role: role, is_default: true }
 }
 
-async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals, linkedPortals, product } = {}) {
+async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals, linkedPortals, product, apiBase } = {}) {
   var { AccountSwitcher } = await import('../AccountSwitcher.tsx')
   vi.spyOn(window, 'fetch').mockImplementation(function(url) {
     var u = url.toString()
@@ -50,7 +50,7 @@ async function renderSwitcher({ ownWaffle, linkedWaffle, ownPortals, linkedPorta
     return Promise.resolve({ ok: true, json: function() { return Promise.resolve({ ok: false }) } })
   })
   var session = { ok: true, user_id: 'usr_ai', email: 'aaron@sprintmode.ai', name: 'Aaron', role: 'super_admin', portal_role: 'super_admin', permissions: {} }
-  return render(React.createElement(AccountSwitcher, { product: product || 'waffle', session: session }))
+  return render(React.createElement(AccountSwitcher, { product: product || 'waffle', session: session, apiBase: apiBase }))
 }
 
 async function openGmailDrillIn() {
@@ -93,16 +93,31 @@ describe('BUG-4347 - Waffle accounts nested under each identity', function() {
     expect(screen.getByText('Member')).toBeInTheDocument()
   })
 
+  // TASK-4384: the door is the portal's own origin (apiBase) on every host,
+  // never api.sprintmode.ai, where the host-only session cookie is not sent.
   it('(3) clicking a nested account navigates to the switch-account redirect door for that identity and workspace', async function() {
     await renderSwitcher()
     await openGmailDrillIn()
     fireEvent.click(screen.getByText('Weekwell').closest('button'))
     expect(window.location.href).toBe(
-      'https://api.sprintmode.ai/api/auth/switch-account-redirect?user_id=usr_gmail&workspace=co_weekwell&return_to=' +
+      '/api/auth/switch-account-redirect?user_id=usr_gmail&workspace=co_weekwell&return_to=' +
       encodeURIComponent('https://waffle.sprintmode.ai/')
     )
     var switchPost = window.fetch.mock.calls.find(function(c) { return c[0].toString().includes('switch-account') })
     expect(switchPost).toBeFalsy()
+  })
+
+  it('(3b) on a *.sprintmode.ai host the door is apiBase, never api.sprintmode.ai', async function() {
+    await renderSwitcher({ apiBase: 'https://waffle.sprintmode.ai' })
+    await openGmailDrillIn()
+    var linkedCall = window.fetch.mock.calls.filter(function(c) { return c[0].toString().includes('/api/auth/linked-accounts') }).pop()
+    expect(linkedCall[0]).toBe('https://waffle.sprintmode.ai/api/auth/linked-accounts')
+    fireEvent.click(screen.getByText('Homey').closest('button'))
+    expect(window.location.href).toBe(
+      'https://waffle.sprintmode.ai/api/auth/switch-account-redirect?user_id=usr_gmail&workspace=co_homey&return_to=' +
+      encodeURIComponent('https://waffle.sprintmode.ai/')
+    )
+    expect(window.location.href).not.toContain('api.sprintmode.ai')
   })
 
   it('(4) a linked identity with no Waffle accounts shows no Waffle rows in its drill-in', async function() {

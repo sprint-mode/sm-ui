@@ -251,12 +251,13 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
 
   // BUG-4347: open Waffle as an identity, switched to one of its accounts.
   // A full-page navigation to the redirect door (ACCOUNT-SWITCHER-5: cookies
-  // set on a navigation, never on fetch). On *.sprintmode.ai the door is
-  // api.sprintmode.ai itself; elsewhere it is the portal's own /api proxy.
+  // set on a navigation, never on fetch). The door is the portal's own apiBase
+  // on every host, the same origin the linked-accounts read uses: the session
+  // cookie is host-only on the portal, so api.sprintmode.ai answers
+  // "Not authenticated" (TASK-4384).
   // Never POST /api/auth/switch-account for this (BUG-2220).
   function handleWaffleAccountClick(userId: string, workspaceId: string) {
-    var door = onSmHost ? 'https://api.sprintmode.ai' : apiBase
-    window.location.href = door + '/api/auth/switch-account-redirect?user_id=' + encodeURIComponent(userId) +
+    window.location.href = apiBase + '/api/auth/switch-account-redirect?user_id=' + encodeURIComponent(userId) +
       '&workspace=' + encodeURIComponent(workspaceId) +
       '&return_to=' + encodeURIComponent('https://waffle.sprintmode.ai/')
   }
