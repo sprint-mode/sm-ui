@@ -21,6 +21,8 @@
 // Plain ESM JavaScript. No React, no sm-ui component imports. Runs equally
 // under Node (tests) and the Cloudflare Pages Functions / Workers runtime.
 
+import { isPreviewHost, resolveApiBase } from './preview.js'
+
 /**
  * @typedef {Object} Portal
  * @property {string} slug  The portal's data-product slug (from portal.json).
@@ -35,9 +37,11 @@
  */
 export function createApiProxy(portal) {
   return async function onRequest(context) {
-    var SM_API = context.env.SM_API_URL || 'https://api.sprintmode.ai'
     var request = context.request
     var url = new URL(request.url)
+    // TASK-4410: a Pages preview host reaches staging, never production.
+    var preview = isPreviewHost(url.hostname)
+    var SM_API = resolveApiBase(context.env, url.hostname)
     var path = url.pathname
 
     if (request.method === 'OPTIONS') {
@@ -91,6 +95,9 @@ export function createApiProxy(portal) {
       var headers = new Headers(response.headers)
       headers.set('Access-Control-Allow-Origin', url.origin)
       headers.set('Access-Control-Allow-Credentials', 'true')
+      // TASK-4410: on a preview, name the upstream so the preview can be
+      // checked from outside. Production responses carry no such header.
+      if (preview) headers.set('X-SM-API-Upstream', new URL(SM_API).hostname)
       return new Response(response.body, { status: response.status, headers: headers })
     } catch (_err) {
       return new Response(JSON.stringify({ ok: false, error: 'Proxy error' }), {
