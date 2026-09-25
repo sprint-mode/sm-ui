@@ -14,7 +14,8 @@
       "Bash(gh pr create*)",
       "Bash(gh pr view*)",
       "Bash(gh pr checks*)",
-      "Bash(gh pr comment*)"
+      "Bash(gh pr comment*)",
+      "Bash(wf token*)"
     ]
   },
   "hooks": {
