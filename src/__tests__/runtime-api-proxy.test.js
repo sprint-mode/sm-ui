@@ -187,3 +187,61 @@ describe('createApiProxy', () => {
     expect(await res.json()).toEqual({ ok: false, error: 'Proxy error' })
   })
 })
+
+// TASK-4410: a Pages preview host reaches staging, never production.
+import { isPreviewHost, resolveApiBase, STAGING_API_URL } from '../../runtime/preview.js'
+
+describe('preview hosts (TASK-4410)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it.each([
+    ['feat-x.acme.pages.dev', true],
+    ['1a2b3c4d.acme-c5d.pages.dev', true],
+    ['acme.pages.dev', false],
+    ['acme.sprintmode.ai', false],
+    ['a.b.acme.pages.dev', false],
+    ['feat-x.acme.pages.dev.evil.test', false],
+  ])('isPreviewHost(%s) -> %s', (host, expected) => {
+    expect(isPreviewHost(host)).toBe(expected)
+  })
+
+  it('resolveApiBase pins staging on a preview host even with a production SM_API_URL', () => {
+    expect(resolveApiBase({ SM_API_URL: 'https://api.sprintmode.ai' }, 'feat-x.acme.pages.dev')).toBe(STAGING_API_URL)
+    expect(resolveApiBase({}, 'feat-x.acme.pages.dev')).toBe(STAGING_API_URL)
+  })
+
+  it('resolveApiBase keeps SM_API_URL, then production, off a preview host', () => {
+    expect(resolveApiBase({ SM_API_URL: 'https://x.test' }, 'acme.sprintmode.ai')).toBe('https://x.test')
+    expect(resolveApiBase({}, 'acme.pages.dev')).toBe('https://api.sprintmode.ai')
+  })
+
+  function captureFetch() {
+    const calls = []
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (req) => {
+        calls.push(req)
+        return new Response('{"ok":true}', { status: 200, headers: { 'Content-Type': 'application/json' } })
+      }),
+    )
+    return calls
+  }
+
+  it('createApiProxy sends a preview request to staging and names it in X-SM-API-Upstream', async () => {
+    const calls = captureFetch()
+    const proxy = createApiProxy({ slug: 'acme' })
+    const res = await proxy(makeContext('https://feat-x.acme.pages.dev/api/auth/me', {}, { SM_API_URL: 'https://api.sprintmode.ai' }))
+    expect(calls[0].url).toBe('https://staging-api.sprintmode.ai/auth/me')
+    expect(res.headers.get('X-SM-API-Upstream')).toBe('staging-api.sprintmode.ai')
+  })
+
+  it('createApiProxy keeps the configured API on a production host, with no upstream header', async () => {
+    const calls = captureFetch()
+    const proxy = createApiProxy({ slug: 'acme' })
+    const res = await proxy(makeContext('https://acme.sprintmode.ai/api/things', {}, { SM_API_URL: 'https://api.sprintmode.ai' }))
+    expect(calls[0].url).toBe('https://api.sprintmode.ai/api/things')
+    expect(res.headers.get('X-SM-API-Upstream')).toBeNull()
+  })
+})
