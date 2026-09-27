@@ -187,7 +187,7 @@ describe("SiteHeader dropdown and mobile menu", () => {
   });
 
   it("renders a mobile menu with grouped items, toggled by the Menu button", () => {
-    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} />);
+    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} mobileMenu />);
     const menuBtn = document.querySelector(".smsh__menubtn");
     expect(menuBtn.textContent).toBe("Menu");
     const mnav = document.getElementById("smsh-mnav");
@@ -199,7 +199,13 @@ describe("SiteHeader dropdown and mobile menu", () => {
   });
 
   it("renders no Menu button when there are no nav links", () => {
-    render(<SiteHeader subdomain="capital" config={CAPITAL} />);
+    render(<SiteHeader subdomain="capital" config={CAPITAL} mobileMenu />);
     expect(document.querySelector(".smsh__menubtn")).toBeNull();
+  });
+
+  it("renders no Menu button or phone nav when a site passes navLinks without opting in", () => {
+    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} />);
+    expect(document.querySelector(".smsh__menubtn")).toBeNull();
+    expect(document.getElementById("smsh-mnav")).toBeNull();
   });
 });

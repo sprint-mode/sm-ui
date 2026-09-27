@@ -154,6 +154,10 @@ export interface SiteHeaderProps {
   subdomain: string
   /** Primary nav links rendered in the header. */
   navLinks?: SiteHeaderNavLink[]
+  /** Opt in to the phone menu: under 680px a "Menu" button opens navLinks
+   *  (with dropdown items as labelled groups). Default false, so a site that
+   *  does not pass it renders exactly as before (nav hidden on phones). */
+  mobileMenu?: boolean
   /** Sign-in destination. Omit to hide the sign-in entry. */
   signInHref?: string
   /** Sign-in label. Default "Sign in". */
@@ -292,6 +296,7 @@ export function SiteHeader(props: SiteHeaderProps) {
     }
   }, [openDd, mobOpen])
   var hasNav = navLinks.length > 0
+  var showMobile = hasNav && props.mobileMenu === true
 
   return (
     <header className="smsh" ref={headerRef}>
@@ -382,7 +387,7 @@ export function SiteHeader(props: SiteHeaderProps) {
 
           {props.rightSlot}
 
-          {hasNav ? (
+          {showMobile ? (
             <button
               type="button"
               className="smsh__menubtn"
@@ -395,7 +400,7 @@ export function SiteHeader(props: SiteHeaderProps) {
           ) : null}
         </div>
       </div>
-      {hasNav ? (
+      {showMobile ? (
         <nav className="smsh__mnav" id="smsh-mnav" hidden={!mobOpen} aria-label="Menu">
           {navLinks.map(function(link) {
             if (link.items && link.items.length > 0) {

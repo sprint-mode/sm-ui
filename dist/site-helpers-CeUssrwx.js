@@ -204,7 +204,7 @@ function g(a) {
 			document.removeEventListener("mousedown", e), document.removeEventListener("keydown", t);
 		};
 	}, [P, L]);
-	var B = s.length > 0;
+	var B = s.length > 0 && a.mobileMenu === !0;
 	return /* @__PURE__ */ i("header", {
 		className: "smsh",
 		ref: z,
