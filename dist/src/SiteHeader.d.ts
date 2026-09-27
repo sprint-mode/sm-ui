@@ -13,6 +13,12 @@ export interface SiteHeaderNavLink {
     label: string;
     href: string;
     external?: boolean;
+    /** One short line shown under the label inside a dropdown. */
+    description?: string;
+    /** When present, this entry renders as a dropdown (desktop) and a group
+     *  (mobile menu) of these links; `href` is where the group label points
+     *  in the mobile menu and for no-JS readers. */
+    items?: SiteHeaderNavLink[];
 }
 export interface SiteHeaderProps {
     /** Portal subdomain. Everything else (name, brand, logos) resolves from

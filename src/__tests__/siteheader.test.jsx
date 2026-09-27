@@ -142,3 +142,64 @@ describe("SiteHeader (logged-out marketing shell)", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 });
+
+describe("SiteHeader dropdown and mobile menu", () => {
+  const NAV = [
+    {
+      label: "Products",
+      href: "/#products",
+      items: [
+        { label: "Signal", href: "/signal/", description: "Spot the second job" },
+        { label: "PrivacyAI", href: "https://privacyai.com", external: true },
+      ],
+    },
+    { label: "Platform", href: "/platform/" },
+  ];
+
+  it("renders a dropdown button whose panel links are in the DOM but hidden", () => {
+    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} />);
+    const btn = screen.getByRole("button", { name: /Products/ });
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    const panel = document.getElementById(btn.getAttribute("aria-controls"));
+    expect(panel).toHaveAttribute("hidden");
+    expect(panel.querySelector('a[href="/signal/"]')).not.toBeNull();
+    expect(panel.textContent).toContain("Spot the second job");
+  });
+
+  it("opens on click, marks external items, and closes on Escape and outside click", () => {
+    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} />);
+    const btn = screen.getByRole("button", { name: /Products/ });
+    fireEvent.click(btn);
+    expect(btn).toHaveAttribute("aria-expanded", "true");
+    const panel = document.getElementById(btn.getAttribute("aria-controls"));
+    expect(panel).not.toHaveAttribute("hidden");
+    expect(panel.querySelector('a[href="https://privacyai.com"]')).toHaveAttribute("target", "_blank");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(btn);
+    fireEvent.mouseDown(document.body);
+    expect(btn).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("keeps plain links as links next to the dropdown", () => {
+    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} />);
+    expect(screen.getAllByRole("link", { name: "Platform" })[0]).toHaveAttribute("href", "/platform/");
+  });
+
+  it("renders a mobile menu with grouped items, toggled by the Menu button", () => {
+    render(<SiteHeader subdomain="capital" config={CAPITAL} navLinks={NAV} />);
+    const menuBtn = document.querySelector(".smsh__menubtn");
+    expect(menuBtn.textContent).toBe("Menu");
+    const mnav = document.getElementById("smsh-mnav");
+    expect(mnav).toHaveAttribute("hidden");
+    expect(mnav.querySelector('a[href="/signal/"]')).not.toBeNull();
+    fireEvent.click(menuBtn);
+    expect(mnav).not.toHaveAttribute("hidden");
+    expect(menuBtn).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("renders no Menu button when there are no nav links", () => {
+    render(<SiteHeader subdomain="capital" config={CAPITAL} />);
+    expect(document.querySelector(".smsh__menubtn")).toBeNull();
+  });
+});
