@@ -7,7 +7,9 @@
 // a portal checkout: package.json/package-lock.json pinning, the CI workflow,
 // kit files, portal.json, and a handful of static source-code scans (no local
 // shell components, login wiring, role lists, brand tokens, the auth/me
-// shape, and non-spine auth calls). Check 2 additionally needs --newest-tag.
+// shape, and non-spine auth calls). Check 2 additionally needs --newest-tag;
+// it reads the publish dates itself (npm view @sprint-mode/sm-ui time --json)
+// unless --publish-times names a JSON file of { version: ISO date } (TASK-4607).
 //
 // The production-side gatherers (Cloudflare Pages, D1, R2, a live production
 // fetch) are out of scope here -- they live in sm-api (square 9) and read the
@@ -15,6 +17,7 @@
 //
 // No runtime dependencies: Node 20 built-ins only.
 
+import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -216,15 +219,49 @@ function checkSmUiPinnedExact(root) {
   return { status: 'pass', found, expected: 'an exact version', fix_where: fixWhere }
 }
 
-function checkSmUiPinMatchesNewestTag(root, standard, ctx) {
+// Check 2 (TASK-4607, control's ruling of 2026-09-28): the pin passes when it is the newest
+// published release OR a release published less than CHECK2_WINDOW_DAYS days before the check.
+// A pin whose publish date cannot be read is a deviation, never a pass (fail closed).
+export const CHECK2_WINDOW_DAYS = 14
+
+// The registry's publish times for @sprint-mode/sm-ui, { version: ISO date }, read the way the
+// kit workflow already reads the newest version (npm view against the configured registry).
+// null when npm cannot answer; check 2 then fails closed for any pin other than the newest.
+export function readPublishTimes(pkg = '@sprint-mode/sm-ui') {
+  try {
+    const out = execFileSync('npm', ['view', pkg, 'time', '--json'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 30000 })
+    const parsed = JSON.parse(out)
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+    const times = {}
+    for (const [k, v] of Object.entries(parsed)) if (k !== 'created' && k !== 'modified' && typeof v === 'string') times[k] = v
+    return times
+  } catch {
+    return null
+  }
+}
+
+export function checkSmUiPinMatchesNewestTag(root, standard, ctx) {
   const fixWhere = 'package.json dependencies["@sprint-mode/sm-ui"], or a declared override under docs/portal-lock/overrides/'
+  const pinned = ctx.pin.found
   if (!ctx.newestTag) {
-    return { status: 'unknown', found: ctx.pin.found, expected: '--newest-tag not provided', fix_where: fixWhere }
+    return { status: 'unknown', found: pinned, expected: '--newest-tag not provided', fix_where: fixWhere }
   }
-  if (ctx.pin.found === ctx.newestTag) {
-    return { status: 'pass', found: ctx.pin.found, expected: ctx.newestTag, fix_where: fixWhere }
+  const expected = `${ctx.newestTag} (newest) or any release published less than ${CHECK2_WINDOW_DAYS} days ago`
+  if (pinned === ctx.newestTag) {
+    return { status: 'pass', found: pinned, expected, fix_where: fixWhere }
   }
-  return { status: 'deviation', found: ctx.pin.found, expected: ctx.newestTag, fix_where: fixWhere }
+  const publishedAt = ctx.publishTimes && typeof ctx.publishTimes === 'object' ? ctx.publishTimes[pinned] : undefined
+  const publishedMs = publishedAt ? Date.parse(publishedAt) : NaN
+  if (!Number.isFinite(publishedMs)) {
+    return { status: 'deviation', found: `${pinned} (publish date unknown)`, expected, fix_where: fixWhere }
+  }
+  const now = ctx.now instanceof Date ? ctx.now : new Date()
+  const ageDays = (now.getTime() - publishedMs) / 86400000
+  const found = `${pinned} (published ${publishedAt}, ${Math.floor(ageDays)} days ago)`
+  if (ageDays >= 0 && ageDays < CHECK2_WINDOW_DAYS) {
+    return { status: 'pass', found, expected, fix_where: fixWhere }
+  }
+  return { status: 'deviation', found, expected, fix_where: fixWhere }
 }
 
 function checkPackageLockInSync(root, standard, ctx) {
@@ -646,7 +683,7 @@ export function runChecks(root, standard, opts = {}) {
   const overrides = loadOverrides(root)
   const pin = checkSmUiPinnedExact(root)
   const htmlSlugResult = checkDataProductOnHtml(root)
-  const ctx = { pin, htmlSlugResult, newestTag: opts.newestTag || null, dataProductSlug: htmlSlugResult._slug }
+  const ctx = { pin, htmlSlugResult, newestTag: opts.newestTag || null, publishTimes: opts.publishTimes || null, now, dataProductSlug: htmlSlugResult._slug }
 
   const repoChecks = standard.checks.filter((c) => c.source === 'repo' && c.gates.includes('A'))
   const results = []
@@ -670,12 +707,13 @@ export function runChecks(root, standard, opts = {}) {
 // --- CLI ---------------------------------------------------------------------
 
 function parseArgs(argv) {
-  const args = { path: process.cwd(), json: false, newestTag: null, help: false }
+  const args = { path: process.cwd(), json: false, newestTag: null, publishTimes: null, help: false }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '--path') args.path = argv[++i]
     else if (a === '--json') args.json = true
     else if (a === '--newest-tag') args.newestTag = argv[++i]
+    else if (a === '--publish-times') args.publishTimes = argv[++i]
     else if (a === '--help' || a === '-h') args.help = true
   }
   return args
@@ -707,11 +745,13 @@ function printHelp() {
   console.log(`sm-portal-lock -- PORTAL-LOCK repo-side check runner
 
 Usage:
-  sm-portal-lock [--path <checkout>] [--newest-tag <version>] [--json]
+  sm-portal-lock [--path <checkout>] [--newest-tag <version>] [--publish-times <file>] [--json]
 
 Options:
   --path <dir>          Portal checkout to check (default: cwd)
   --newest-tag <ver>    Newest published @sprint-mode/sm-ui tag, for check 2
+  --publish-times <f>   JSON file of { "<version>": "<ISO date>" } for check 2's
+                        14-day window (default: npm view @sprint-mode/sm-ui time)
   --json                Emit machine-readable JSON instead of a table
   --help                Show this message
 
@@ -734,7 +774,15 @@ function main() {
   const root = resolve(args.path)
   const standard = loadStandard()
   const versionInfo = resolveStandardVersion(standard)
-  const results = runChecks(root, standard, { newestTag: args.newestTag })
+  // Check 2's publish dates: a JSON file when --publish-times names one (tests, offline runs),
+  // otherwise the registry, read only when --newest-tag is set (the check is unknown without it).
+  let publishTimes = null
+  if (args.publishTimes) {
+    try { publishTimes = JSON.parse(readFileSync(resolve(args.publishTimes), 'utf8')) } catch { publishTimes = null }
+  } else if (args.newestTag) {
+    publishTimes = readPublishTimes()
+  }
+  const results = runChecks(root, standard, { newestTag: args.newestTag, publishTimes })
 
   if (args.json) {
     console.log(

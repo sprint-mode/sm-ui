@@ -70,6 +70,21 @@ export function SettingsPage() {
     expect(allRepoChecksPass(results)).toBe(true)
   })
 
+  it('check 2: a pin behind the newest tag passes while its release is under 14 days old (TASK-4607)', () => {
+    const now = new Date('2026-09-28T12:00:00Z')
+    const publishTimes = { '1.2.0': '2026-09-15T12:00:00Z', '1.2.1': '2026-09-27T12:00:00Z' }
+    const results = runChecks(dir, standard, { newestTag: '1.2.1', publishTimes, now })
+    const r = findResult(results, 'sm-ui-pin-matches-newest-tag')
+    expect(r.status).toBe('pass')
+    expect(r.found).toContain('13 days ago')
+    expect(r.expected).toContain('less than 14 days ago')
+  })
+
+  it('check 2: the newest tag itself passes with no publish dates at all', () => {
+    const results = runChecks(dir, standard, { newestTag: '1.2.0', publishTimes: null, now: new Date('2026-09-28T12:00:00Z') })
+    expect(findResult(results, 'sm-ui-pin-matches-newest-tag').status).toBe('pass')
+  })
+
   it('stays green after bumping the sm-ui pin to the value passed as --newest-tag', () => {
     const newVersion = '1.3.0'
     const pkgPath = join(dir, 'package.json')
