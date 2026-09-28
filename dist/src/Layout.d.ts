@@ -256,6 +256,7 @@ export interface Permissions {
 }
 export declare function parsePerms(session: SessionData | ViewAsUser | null): Permissions | null;
 export declare function canViewSection(perms: Permissions | null, role: string | null | undefined, key: string | undefined): boolean;
+export declare function sectionTint(color: string): string;
 export declare function useDeployRefresh(): boolean;
 export declare function PanelSlotMount(props: {
     slot: {

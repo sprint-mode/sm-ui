@@ -1128,6 +1128,15 @@ function navItemIsActive(item: NavItem, routerActive: boolean, loc: { pathname: 
   return (item.to || '').indexOf('?') === -1 ? routerActive : isNavItemActive(item, loc)
 }
 
+// BUG-4588: the 12% tint behind a section icon. The old form appended a hex
+// alpha to the colour string ("#2362ea" + "1f"), which turned a token such as
+// var(--accent), the default section colour, into an invalid value and made
+// the tile vanish. color-mix() takes hex, hsl() and var() alike, at the same
+// 0x1f / 255 = 12% alpha. Exported for the test.
+export function sectionTint(color: string): string {
+  return 'color-mix(in srgb, ' + color + ' 12%, transparent)'
+}
+
 function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat, railCollapsed, onRailEnter, onRailLeave }: {
   label: string
   sectionIcon?: React.ReactNode
@@ -1200,10 +1209,7 @@ function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, 
 
               var sc = sectionColor || color
               var _dark = isDarkMode()
-              var bg = 'transparent'
-              if (sc && !_dark) {
-                bg = sc.includes('hsl') ? sc.replace(')', ', 0.12)').replace('hsl(', 'hsla(') : sc + '1f'
-              }
+              var bg = sc && !_dark ? sectionTint(sc) : 'transparent'
               return <span className="ps-section-icon" style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 20, height: 20, borderRadius: 5, flexShrink: 0,

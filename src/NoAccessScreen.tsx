@@ -259,7 +259,7 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
         },
           currentPortals.map(function(p) {
             var iconColor = p.brand_color || '#2362ea'
-            var iconTint = (p.brand_tint || iconColor + '1a')
+            var iconTint = (p.brand_tint || 'color-mix(in srgb, ' + iconColor + ' 10%, transparent)')
             var iconPath = ICON_PATHS[p.icon_key || ''] || ICON_PATHS.grid
             return React.createElement('a', {
               key: p.subdomain, href: portalUrl(p),
@@ -317,7 +317,7 @@ export function NoAccessScreen(props: NoAccessScreenProps) {
           var initials = (acct.display_name || acct.email || '?')
             .split(' ').map(function(w) { return w[0] || '' }).join('').slice(0, 2).toUpperCase()
           var acctColor = acct.portals.length > 0 && acct.portals[0].brand_color ? acct.portals[0].brand_color : '#6b7280'
-          var acctTint = acctColor + '26'
+          var acctTint = 'color-mix(in srgb, ' + acctColor + ' 15%, transparent)'
           return React.createElement('div', {
             key: acct.user_id,
             onClick: function() { if (!switching) handleSwitch(acct.user_id) },
