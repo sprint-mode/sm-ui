@@ -16,7 +16,7 @@
 // No runtime dependencies: Node 20 built-ins only.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
-import { dirname, extname, join, relative, resolve } from 'node:path'
+import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -538,9 +538,20 @@ function checkAuthMeShape(root) {
   }
 }
 
+// BUG-4589: a test file that names an auth URL is exercising the portal's own
+// middleware or fetch mock, not calling another origin for a session, so
+// check 29 skips test files by path (__tests__/, test/, tests/) and by name
+// (*.test.*, *.spec.*). App code under pages/, src/, functions/ and workers/
+// stays in scope. Exported for the test.
+export function isTestFile(relPath) {
+  const p = relPath.split(sep).join('/')
+  if (/(^|\/)(__tests__|tests?)\//.test(p)) return true
+  return /\.(test|spec)\.[^/]+$/.test(p)
+}
+
 function checkNoNonSpineAuthCalls(root) {
   const fixWhere = "client-side fetch/axios calls -- route auth calls through api.sprintmode.ai or the portal's own /api/sm proxy"
-  const files = walkSourceFiles(root)
+  const files = walkSourceFiles(root).filter((f) => !isTestFile(relative(root, f)))
   const offenders = []
   for (const file of files) {
     const raw = readSafe(file)
