@@ -93,10 +93,18 @@ describe('portal-standard.json validates against portal-standard.schema.json', (
     expect(errors).toEqual([])
   })
 
-  it('carries exactly 30 checks with ids 1..30 and unique keys', () => {
-    expect(standard.checks).toHaveLength(30)
-    expect(standard.checks.map((c) => c.id)).toEqual(Array.from({ length: 30 }, (_, i) => i + 1))
-    expect(new Set(standard.checks.map((c) => c.key)).size).toBe(30)
+  it('carries exactly 31 checks with ids 1..31 and unique keys', () => {
+    expect(standard.checks).toHaveLength(31)
+    expect(standard.checks.map((c) => c.id)).toEqual(Array.from({ length: 31 }, (_, i) => i + 1))
+    expect(new Set(standard.checks.map((c) => c.key)).size).toBe(31)
+  })
+
+  it('check 31 fails undeclared customer roles: a new portal gets Owner only (TASK-4597)', () => {
+    const check = standard.checks.find((c) => c.id === 31)
+    expect(check.key).toBe('customer-roles-declared')
+    expect(check.source).toBe('d1')
+    expect(check.title).toMatch(/Owner only/)
+    expect(standard.portal_json_schema.optional_fields).toContain('customer_roles')
   })
 
   it('marks only checks 2, 14, 29 and 30 as a_warns_only, per the approved lines', () => {

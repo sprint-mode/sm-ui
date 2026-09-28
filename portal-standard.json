@@ -1,6 +1,6 @@
 {
   "$schema": "./portal-standard.schema.json",
-  "standard_version": "1.5.1",
+  "standard_version": "1.6.0",
   "required_exports": [
     "Layout",
     "Login",
@@ -48,7 +48,8 @@
       "api_base",
       "public_routes",
       "public_routes_shape",
-      "nav_orientation"
+      "nav_orientation",
+      "customer_roles"
     ],
     "nav_orientation_values": ["side", "top"],
     "backend_values": ["sm-api", "own-worker"],
@@ -430,6 +431,14 @@
       "gates": ["A", "N"],
       "source": "repo",
       "a_warns_only": true
+    },
+    {
+      "id": 31,
+      "key": "customer-roles-declared",
+      "title": "User (customer) roles are Owner plus only the roles the portal declares in portal.json customer_roles. A new portal gets Owner only; each product adds and declares its own roles (Aaron ruling, 2026-09-28). An undeclared customer role in portal_roles fails. [N, S]",
+      "gates": ["N", "S"],
+      "source": "d1",
+      "a_warns_only": false
     }
   ],
   "brand_override_dark_rule": "html[data-product=<slug>][data-theme=dark] must redefine --accent-tint",
