@@ -1,5 +1,11 @@
 name: sm-workflow drift
 
+# The job id is the required context `sm-workflow-drift`. BUG-4340: GitHub counts
+# a required status check only from a check run an Actions job produced, so this
+# context is a job named like the context, never a run published through the
+# Checks API (kit 14.66 to 14.73 did that, and every PR on such a repository
+# stayed "expected" with all gates green).
+
 on:
   pull_request:
   merge_group:
@@ -119,3 +125,115 @@ jobs:
           else
             emit kit.drift_stamp "{\"repo\":\"$RSHORT\",\"stamp_version\":\"$REPO_V\",\"kit_version\":\"$KIT_V\",\"verdict\":\"current\"}"
           fi
+      # FEAT-4218. The kit requires a check named `ci-gate`, and a repository that
+      # arrives with its own CI keeps its own job names, so nothing may report it.
+      # This step reads the tree only (no wait, no extra job): it fails when no
+      # workflow in the PR's tree produces `ci-gate`, and a red step fails this
+      # job, so the required `sm-workflow-drift` context is red and names
+      # `ci-gate`. A tree passes with a job that reports `ci-gate`, or with
+      # sm-ci-gate.yml, the publisher `wf sync` installs where no such job exists.
+      # It runs after the version comparison: that step is the file's first
+      # `run: |` block, which tests/test-drift-gate.sh and
+      # tests/test-release-integrity.sh extract by position.
+      # The block between the `producer core` markers is libexec/wf-ci-gate.py's,
+      # copied verbatim; tests/test-ci-gate-producer-gate.sh fails when they differ.
+      - name: "Check: ci-gate producer"
+        run: |
+          python3 - <<'PY'
+          import re
+          import sys
+          from pathlib import Path
+
+          # --- producer core: copied verbatim into pack/.github/workflows/sm-workflow-drift.yml ---
+          GATE = "ci-gate"
+          PUBLISHER = "sm-ci-gate.yml"
+          # Built in two pieces so the sequence never appears in a workflow run: block,
+          # where GitHub Actions would read it as the start of an expression.
+          EXPRESSION = "$" + "{{"
+
+          JOBS_KEY = re.compile(r"""^(["']?)jobs\1[ \t]*:[ \t]*(?:#.*)?$""")
+          JOB_HEADER = re.compile(r"""^(["']?)([^\s:"'#]+)\1[ \t]*:[ \t]*(?:#.*)?$""")
+          JOB_KEY = re.compile(r"""^(["']?)(name|uses)\1[ \t]*:(.*)$""")
+          TRAILING_COMMENT = re.compile(r"[ \t]+#.*$")
+
+
+          def scalar(raw):
+              """The value of a one-line YAML scalar, or None when it is not a plain literal."""
+              raw = raw.strip()
+              if raw[:1] in ("'", '"'):
+                  end = raw.find(raw[0], 1)
+                  rest = raw[end + 1:].strip()
+                  if end < 1 or (rest and rest[0] != "#") or "\\" in raw[1:end] or raw[end + 1:end + 2] == raw[0]:
+                      return None
+                  return raw[1:end]
+              value = TRAILING_COMMENT.sub("", raw).strip()
+              if not value or value[0] in "|>&*!{[%@`" or ": " in value or value.endswith(":"):
+                  return None
+              return value
+
+
+          def significant(lines, start=0):
+              """(indent, text) of every line that is neither blank nor a comment."""
+              for index in range(start, len(lines)):
+                  text = lines[index].rstrip()
+                  stripped = text.lstrip(" ")
+                  if stripped and not stripped.startswith("#"):
+                      yield len(text) - len(stripped), stripped
+
+
+          def reported_names(text):
+              """The check name each job of one workflow file reports."""
+              lines = text.splitlines()
+              start = next((i for i, line in enumerate(lines) if JOBS_KEY.match(line.rstrip())), None)
+              if start is None:
+                  return []
+              names = []
+              job = None
+              job_indent = child_indent = None
+
+              def close():
+                  if job is None or job["uses"]:
+                      return
+                  reported = job["name"] if job["has_name"] else job["id"]
+                  if reported and EXPRESSION not in reported:
+                      names.append(reported)
+
+              for indent, stripped in significant(lines, start + 1):
+                  if indent == 0:
+                      break
+                  if job_indent is None:
+                      job_indent = indent
+                  if indent == job_indent:
+                      close()
+                      header = JOB_HEADER.match(stripped)
+                      job = {"id": header.group(2), "name": None, "has_name": False, "uses": False} if header else None
+                      child_indent = None
+                  elif indent > job_indent and job is not None:
+                      if child_indent is None:
+                          child_indent = indent
+                      key = JOB_KEY.match(stripped) if indent == child_indent else None
+                      if key and key.group(2) == "name":
+                          job["has_name"], job["name"] = True, scalar(key.group(3))
+                      elif key:
+                          job["uses"] = True
+              close()
+              return names
+
+
+          def producers(directory):
+              """Names of the workflow files, other than the kit's own publisher, that report ci-gate."""
+              directory = Path(directory)
+              files = sorted(p for p in directory.iterdir() if p.suffix in (".yml", ".yaml") and p.is_file()) \
+                  if directory.is_dir() else []
+              return [
+                  path.name for path in files
+                  if path.name != PUBLISHER and GATE in reported_names(path.read_text(encoding="utf-8", errors="replace"))
+              ]
+          # --- end producer core ---
+
+          if producers(".github/workflows") or Path(".github/workflows", PUBLISHER).is_file():
+              print("a workflow in this tree produces ci-gate")
+              sys.exit(0)
+          print("::error::ci-gate: no workflow in this tree produces the required ci-gate check: no job in .github/workflows is named ci-gate and .github/workflows/sm-ci-gate.yml is absent. Run 'wf sync' and land the update (it installs sm-ci-gate.yml when ci.yml has a top-level name:), or add a job named ci-gate to ci.yml.")
+          sys.exit(1)
+          PY
