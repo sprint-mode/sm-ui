@@ -1137,7 +1137,9 @@ export function sectionTint(color: string): string {
   return 'color-mix(in srgb, ' + color + ' 12%, transparent)'
 }
 
-function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat, railCollapsed, onRailEnter, onRailLeave }: {
+// Exported for the BUG-4588 render test (the section icon tile); portals use
+// Layout, not this directly.
+export function SidebarSection({ label, sectionIcon, sectionColor, items, color, tint, defaultOpen, product, collapsed, onToggle, flat, railCollapsed, onRailEnter, onRailLeave }: {
   label: string
   sectionIcon?: React.ReactNode
   sectionColor?: string
