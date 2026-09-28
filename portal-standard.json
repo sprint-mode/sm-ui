@@ -1,6 +1,6 @@
 {
   "$schema": "./portal-standard.schema.json",
-  "standard_version": "1.5.0",
+  "standard_version": "1.5.1",
   "required_exports": [
     "Layout",
     "Login",
@@ -298,7 +298,7 @@
     {
       "id": 18,
       "key": "portal-roles-standard",
-      "title": "portal_roles has super_admin with its grants; other team roles are toggled per portal in Portal Manager > Roles and are never audited as missing; customer roles match the type's list or a declared list. [N, S]",
+      "title": "portal_roles has super_admin with its grants; other team roles are toggled per portal in Portal Manager > Roles and are never audited as missing; role names render from admin's Team Roles registry, so per-portal display names are never compared; customer roles match the type's list or a declared list. [N, S]",
       "gates": [
         "N",
         "S"
