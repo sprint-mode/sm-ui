@@ -28,7 +28,6 @@ name: codeowner gate
 #   pull_request_target  base-supplied. This is the leg whose definition a PR
 #                        cannot edit. That is ALL it is - see below for why it
 #                        is not the same as "the leg that binds".
-#   pull_request         PR-supplied. MIGRATION-ONLY, see the transition note.
 #   pull_request_review  PR-supplied. Still forgeable, and self-service: a PR
 #                        author may submit a COMMENT review on their own PR,
 #                        which is a `submitted` event, so no second person is
@@ -69,26 +68,16 @@ name: codeowner gate
 # anyway, since they can add a separate workflow emitting this check's name
 # (BUG-2217).
 #
-# TRANSITION, and it is why `pull_request` is still listed. On the `wf sync` PR
-# that upgrades a repo from a release without `pull_request_target`, the
-# `pull_request` leg resolves from the PR's copy and the `pull_request_target`
-# leg resolves from the default branch's OLD copy. Drop `pull_request` in the
-# same release and NEITHER fires: `codeowner-gate` is a strict required context
-# (server/required-checks-ruleset.json), so that upgrade PR blocks on a check
-# that never reports, once, in every adopted repo. Keeping both for one release
-# makes the upgrade PR report via the PR-supplied leg while the base-supplied
-# leg takes over afterwards.
-#
-# REMOVING THE MIGRATION LEG IS GATED ON EVIDENCE, NOT ON A RELEASE NUMBER.
-# `wf sync` copies the CURRENT kit tree; there is no stepwise upgrade, and being
-# behind the kit is warn-only (sm-workflow-drift.yml). A repo that skips 13.42.0
-# entirely - most of the fleet sits well below it - would sync straight from a
-# release with no `pull_request_target` to one with no `pull_request`, and hit
-# the very deadlock this leg prevents, with the intermediate release no longer
-# offerable. So: drop `pull_request` only once EVERY adopted repo's
-# `.sm-workflow.conf` reports version >= 13.42.0, verified by reading them, not
-# assumed from elapsed releases. Tracked on the Waffle item; the test suite
-# fails if this marker is deleted while the trigger stays.
+# TASK-2218 (kit 14.75.0) removed the PR-supplied `pull_request` leg that
+# 13.42.0 (BUG-2216) kept for one release as a migration leg. It existed so the
+# `wf sync` PR upgrading a repo from a release without `pull_request_target`
+# still reported `codeowner-gate`: on that PR the default branch's old copy had
+# no base-supplied leg to run from. Dropping it was gated on evidence, not on a
+# release count: every adopted repository's `.sm-workflow.conf` was read on
+# 2026-09-24 and the lowest stamp was 14.12.0 (sm-capital), above the 13.42.0
+# floor. The survey is recorded on TASK-2218. tests/test-codeowner-gate.sh now
+# refuses a `pull_request` trigger in this file: a PR-supplied copy of the gate
+# must not come back.
 #
 # What none of this closes, and why the base-supplied leg is not "the leg that
 # binds":
@@ -104,21 +93,26 @@ name: codeowner gate
 #   - Any PR may add a NEW workflow file emitting a check of this name
 #     (BUG-2217).
 #
-# SO BE EXACT ABOUT WHAT THIS RELEASE DOES. It ADDS a base-supplied leg. It
-# does NOT yet remove the edit-the-gate-in-place bypass, because `pull_request`
-# is still live below: a PR can ship its own copy declaring that trigger with a
-# `codeowner-gate` job that is `exit 0`, and land a green check run of the
-# required name on the same head as the base-supplied leg's red one. The bypass
-# closes when the migration leg is dropped, not here - and per the transition
-# note that wait is long, because most of the fleet is far below 13.42.0.
+# SO BE EXACT ABOUT WHAT TASK-2218 CHANGED AND WHAT IT DID NOT. This file no
+# longer declares a `pull_request` leg, so on a PR that does not edit it the
+# gate runs once per push, from the base-supplied leg, instead of twice with
+# one run PR-supplied. It does NOT close the edit-the-gate-in-place bypass:
+# GitHub reads the workflow file for `pull_request` from refs/pull/N/merge, so
+# a PR can put `pull_request:` back in its own copy with a `codeowner-gate` job
+# that is `exit 0` and land a green check run of the required name on its head
+# beside the base-supplied leg's red one. That is the same class of power as
+# adding a new workflow emitting this check's name (BUG-2217). The
+# `pull_request_review` leg below is still PR-supplied too (its own item;
+# TASK-2218 left it out of scope). The standing mitigation for all three is
+# the CODEOWNERS gate on /.github/, below.
 #
 # UNVERIFIED, AND IT MATTERS: how branch protection resolves TWO check runs of
 # the name `codeowner-gate` on one head. BUG-2138 observed a stale failed run
 # holding the rollup at FAILURE while a newer same-named run passed, which
 # would mean the base-supplied red wins - but that was observed for a different
-# purpose, is undocumented, and the PR controls its own leg's job graph and so
-# can influence which run completes last. Nobody has tested it for this. Do not
-# describe the migration window as safe on the strength of it.
+# purpose, is undocumented, and a PR controls the job graph of any PR-supplied
+# copy and so can influence which run completes last. Nobody has tested it for
+# this. Do not describe a PR-supplied leg as safe on the strength of it.
 #
 # The standing mitigation is the CODEOWNERS gate on /.github/. A current-head
 # AI APPROVE or a non-author GitHub review can clear it. The path is therefore
@@ -129,13 +123,6 @@ name: codeowner gate
 on:
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review]
-  # MIGRATION-ONLY - remove ONLY once EVERY adopted repo's .sm-workflow.conf
-  # reports version >= 13.42.0, verified by reading them, NOT after some number
-  # of releases. See the transition note above; removing this on a release
-  # count deadlocks the sync PR of every repo that skipped 13.42.0. Present so
-  # the upgrade PR itself reports a check.
-  pull_request:
-    types: [opened, reopened, synchronize, ready_for_review]
   pull_request_review:
     types: [submitted, edited, dismissed]
   merge_group:
@@ -144,11 +131,11 @@ on:
 # needs is declared on the job that needs it, and nowhere else. Be exact about
 # what that buys: it is a real control on the `pull_request_target` leg, the
 # only one that runs THIS file, and which now carries a base-repository token on
-# every PR. It is NOT a control on the PR-supplied legs - `pull_request`,
-# `pull_request_review` and `merge_group` all resolve the file from a ref the PR
-# contributes to, so a PR's own copy declares its own `permissions:` and never
-# reads this block. The scoping bounds one leg, and saying "legs" plural was
-# itself the overclaim pattern this file is about.
+# every PR. It is NOT a control on the PR-supplied legs - `pull_request_review`
+# and `merge_group` both resolve the file from a ref the PR contributes to, so
+# a PR's own copy declares its own `permissions:` and never reads this block.
+# The scoping bounds one leg, and saying "legs" plural was itself the overclaim
+# pattern this file is about.
 permissions:
   contents: read
   pull-requests: read
@@ -649,7 +636,7 @@ jobs:
 
   # BUG-2138: an approval does not clear the pre-approval failure.
   #
-  # The gate runs on `pull_request` before any review exists and fails
+  # The gate runs on `pull_request_target` before any review exists and fails
   # correctly. When the approval lands, `pull_request_review` fires a SECOND
   # run, and GitHub puts it in a NEW check suite. The first suite's failure
   # never clears, the rollup stays FAILURE, and an armed auto-merge never
@@ -730,11 +717,11 @@ jobs:
               exit 0 ;;
           esac
           # EVERY failed run on this head, not just the newest and not just the
-          # pull_request ones. A COMMENT or CHANGES_REQUESTED review before the
-          # approval leaves a failed pull_request_review run; reopened and
-          # ready_for_review leave extra pull_request runs. Any one of them
-          # holds the rollup red, so clearing only one leaves the human doing
-          # exactly what this exists to remove.
+          # pull_request_target ones. A COMMENT or CHANGES_REQUESTED review
+          # before the approval leaves a failed pull_request_review run;
+          # reopened and ready_for_review leave extra pull_request_target runs.
+          # Any one of them holds the rollup red, so clearing only one leaves
+          # the human doing exactly what this exists to remove.
           rc=0
           gh api "repos/$REPO/actions/workflows/$WF_FILE/runs?head_sha=$HEAD_SHA&per_page=100" \
             --jq ".workflow_runs[] | select(.conclusion == \"failure\") | select(.id != $THIS_RUN) | .id" \

@@ -1,2 +1,5 @@
 node_modules/
 .DS_Store
+
+# BUG-4137: npm auth comes from CI (NODE_AUTH_TOKEN), never a committed file
+.npmrc.publish

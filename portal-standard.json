@@ -1,6 +1,6 @@
 {
   "$schema": "./portal-standard.schema.json",
-  "standard_version": "1.5.0",
+  "standard_version": "1.7.0",
   "required_exports": [
     "Layout",
     "Login",
@@ -48,7 +48,8 @@
       "api_base",
       "public_routes",
       "public_routes_shape",
-      "nav_orientation"
+      "nav_orientation",
+      "customer_roles"
     ],
     "nav_orientation_values": ["side", "top"],
     "backend_values": ["sm-api", "own-worker"],
@@ -119,7 +120,7 @@
     {
       "id": 2,
       "key": "sm-ui-pin-matches-newest-tag",
-      "title": "sm-ui pinned version equals the newest published tag, or a declared exception. [N deviation; A warns only]",
+      "title": "sm-ui pinned version is the newest published release, or a release published less than 14 days before the check, or a declared exception; an unknown publish date is a deviation. [N deviation; A warns only]",
       "gates": [
         "A",
         "N"
@@ -298,7 +299,7 @@
     {
       "id": 18,
       "key": "portal-roles-standard",
-      "title": "portal_roles has super_admin with its grants; other team roles are toggled per portal in Portal Manager > Roles and are never audited as missing; customer roles match the type's list or a declared list. [N, S]",
+      "title": "portal_roles has super_admin with its grants; other team roles are toggled per portal in Portal Manager > Roles and are never audited as missing; role names render from admin's Team Roles registry, so per-portal display names are never compared; customer roles match the type's list or a declared list. [N, S]",
       "gates": [
         "N",
         "S"
@@ -430,6 +431,14 @@
       "gates": ["A", "N"],
       "source": "repo",
       "a_warns_only": true
+    },
+    {
+      "id": 31,
+      "key": "customer-roles-declared",
+      "title": "User (customer) roles are Owner plus only the roles the portal declares in portal.json customer_roles. A new portal gets Owner only; each product adds and declares its own roles (Aaron ruling, 2026-09-28). An undeclared customer role in portal_roles fails. [N, S]",
+      "gates": ["N", "S"],
+      "source": "d1",
+      "a_warns_only": false
     }
   ],
   "brand_override_dark_rule": "html[data-product=<slug>][data-theme=dark] must redefine --accent-tint",
