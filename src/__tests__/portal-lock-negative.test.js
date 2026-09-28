@@ -32,11 +32,33 @@ describe('sm-portal-lock reports a deviation for each repo-side violation', () =
     expect(findResult(results, 'sm-ui-pinned-exact').status).toBe('deviation')
   })
 
-  it('check 2: sm-ui pin does not match the newest published tag', () => {
+  it('check 2: sm-ui pin does not match the newest published tag and its publish date is unknown (fails closed)', () => {
     const results = runChecks(dir, standard, { newestTag: '1.9.9' })
     const r = findResult(results, 'sm-ui-pin-matches-newest-tag')
     expect(r.status).toBe('deviation')
+    expect(r.found).toBe('1.2.0 (publish date unknown)')
     expect(r.a_warns_only).toBe(true)
+  })
+
+  it('check 2: a pin whose release is 15 days old is a deviation (TASK-4607)', () => {
+    const now = new Date('2026-09-28T12:00:00Z')
+    const publishTimes = { '1.2.0': '2026-09-13T12:00:00Z', '1.9.9': '2026-09-28T00:00:00Z' }
+    const results = runChecks(dir, standard, { newestTag: '1.9.9', publishTimes, now })
+    const r = findResult(results, 'sm-ui-pin-matches-newest-tag')
+    expect(r.status).toBe('deviation')
+    expect(r.found).toContain('15 days ago')
+  })
+
+  it('check 2: a pin exactly 14 days old is a deviation; the window is strictly under 14 days', () => {
+    const now = new Date('2026-09-28T12:00:00Z')
+    const results = runChecks(dir, standard, { newestTag: '1.9.9', publishTimes: { '1.2.0': '2026-09-14T12:00:00Z' }, now })
+    expect(findResult(results, 'sm-ui-pin-matches-newest-tag').status).toBe('deviation')
+  })
+
+  it('check 2: publish dates that do not list the pin, or an unparsable date, fail closed', () => {
+    const now = new Date('2026-09-28T12:00:00Z')
+    expect(findResult(runChecks(dir, standard, { newestTag: '1.9.9', publishTimes: { '1.9.9': '2026-09-28T00:00:00Z' }, now }), 'sm-ui-pin-matches-newest-tag').status).toBe('deviation')
+    expect(findResult(runChecks(dir, standard, { newestTag: '1.9.9', publishTimes: { '1.2.0': 'yesterday' }, now }), 'sm-ui-pin-matches-newest-tag').status).toBe('deviation')
   })
 
   it('check 3: package-lock.json is out of sync with package.json', () => {

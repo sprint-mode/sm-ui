@@ -204,7 +204,12 @@ npx sm-portal-lock --json                        # machine-readable output
 
 Each check reports one of `pass`, `deviation`, `exception`, or `unknown`, with
 `found`, `expected`, and `fix_where`. Check 2 (the sm-ui pin against the newest
-published tag) reports `unknown` unless `--newest-tag` is given.
+published release) reports `unknown` unless `--newest-tag` is given. It passes a
+pin equal to the newest release or any release published less than 14 days
+before the check; it reads the publish dates itself with
+`npm view @sprint-mode/sm-ui time --json`, or from a JSON file of
+`{ "<version>": "<ISO date>" }` given as `--publish-times <file>`. A pin whose
+publish date cannot be read is a deviation (fail closed).
 
 ### Exit codes
 

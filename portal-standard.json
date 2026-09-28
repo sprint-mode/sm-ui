@@ -1,6 +1,6 @@
 {
   "$schema": "./portal-standard.schema.json",
-  "standard_version": "1.6.0",
+  "standard_version": "1.7.0",
   "required_exports": [
     "Layout",
     "Login",
@@ -120,7 +120,7 @@
     {
       "id": 2,
       "key": "sm-ui-pin-matches-newest-tag",
-      "title": "sm-ui pinned version equals the newest published tag, or a declared exception. [N deviation; A warns only]",
+      "title": "sm-ui pinned version is the newest published release, or a release published less than 14 days before the check, or a declared exception; an unknown publish date is a deviation. [N deviation; A warns only]",
       "gates": [
         "A",
         "N"
