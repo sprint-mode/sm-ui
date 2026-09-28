@@ -57,9 +57,9 @@ function TypeBadge({ updateType }: { updateType: string | undefined }) {
       display: 'inline-flex', alignItems: 'center',
       padding: '2px 8px', borderRadius: 20,
       fontSize: 11, fontWeight: 500,
-      background: color + '18',
+      background: 'color-mix(in srgb, ' + color + ' 9%, transparent)',
       color: color,
-      border: '1px solid ' + color + '40',
+      border: '1px solid color-mix(in srgb, ' + color + ' 25%, transparent)',
     }}>{label}</span>
   )
 }

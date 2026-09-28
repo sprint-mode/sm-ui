@@ -227,7 +227,7 @@ function FilterBar({ readFilter, onReadFilterChange, categories, selectedCategor
             style={Object.assign({}, pillBase, {
               background: isSelected ? cat.bg : 'var(--bg-subtle, #f3f4f6)',
               color: isSelected ? cat.color : 'var(--muted, #6b7280)',
-              boxShadow: isSelected ? 'inset 0 0 0 1px ' + cat.color + '33' : 'none',
+              boxShadow: isSelected ? 'inset 0 0 0 1px color-mix(in srgb, ' + cat.color + ' 20%, transparent)' : 'none',
             })}
           >
             {cat.label}
