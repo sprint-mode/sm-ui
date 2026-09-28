@@ -52,6 +52,7 @@
 /scripts/sm-deploy-result.py            @sprint-mode/reviewers
 /scripts/sm-deploy-http.py              @sprint-mode/reviewers
 /scripts/sm-deploy-incident.py          @sprint-mode/reviewers
+/scripts/sm-qa-trigger.py               @sprint-mode/reviewers
 /scripts/check-migration-numbers.sh    @sprint-mode/reviewers
 /scripts/migration-dupe-allowlist.txt  @sprint-mode/reviewers
 wrangler.toml                          @sprint-mode/reviewers

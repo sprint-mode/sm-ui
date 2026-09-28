@@ -49,6 +49,12 @@ jobs:
         run: |
           THRESHOLD=$(grep '^stale_after_minutes=' .sm-workflow.conf 2>/dev/null | head -1 | cut -d= -f2)
           [ -n "${THRESHOLD:-}" ] || THRESHOLD=60
+          # BUG-4169: this exit is NOT the cost control. GitHub bills this job a
+          # full minute before this line runs, so `sweep=off` read here saves
+          # nothing. The opt-out is the file's absence: `wf sync` removes this
+          # workflow when .sm-workflow.conf carries `sweep=off`, and `wf doctor`
+          # reports a repository that still has both. This check is a belt for
+          # a repository that flipped the line before its next sync.
           SWEEP=$(grep '^sweep=' .sm-workflow.conf 2>/dev/null | head -1 | cut -d= -f2)
           if [ "${SWEEP:-on}" = "off" ]; then echo "sweep=off in .sm-workflow.conf — skipping."; exit 0; fi
           set -- --repo "$GITHUB_REPOSITORY" --threshold "$THRESHOLD"
