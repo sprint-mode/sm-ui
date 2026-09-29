@@ -13,6 +13,12 @@ export interface SiteHeaderNavLink {
     label: string;
     href: string;
     external?: boolean;
+    /** One short line shown under the label inside a dropdown. */
+    description?: string;
+    /** When present, this entry renders as a dropdown (desktop) and a group
+     *  (mobile menu) of these links; `href` is where the group label points
+     *  in the mobile menu and for no-JS readers. */
+    items?: SiteHeaderNavLink[];
 }
 export interface SiteHeaderProps {
     /** Portal subdomain. Everything else (name, brand, logos) resolves from
@@ -20,6 +26,10 @@ export interface SiteHeaderProps {
     subdomain: string;
     /** Primary nav links rendered in the header. */
     navLinks?: SiteHeaderNavLink[];
+    /** Opt in to the phone menu: under 680px a "Menu" button opens navLinks
+     *  (with dropdown items as labelled groups). Default false, so a site that
+     *  does not pass it renders exactly as before (nav hidden on phones). */
+    mobileMenu?: boolean;
     /** Sign-in destination. Omit to hide the sign-in entry. */
     signInHref?: string;
     /** Sign-in label. Default "Sign in". */

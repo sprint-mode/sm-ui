@@ -140,6 +140,12 @@ export interface SiteHeaderNavLink {
   label: string
   href: string
   external?: boolean
+  /** One short line shown under the label inside a dropdown. */
+  description?: string
+  /** When present, this entry renders as a dropdown (desktop) and a group
+   *  (mobile menu) of these links; `href` is where the group label points
+   *  in the mobile menu and for no-JS readers. */
+  items?: SiteHeaderNavLink[]
 }
 
 export interface SiteHeaderProps {
@@ -148,6 +154,10 @@ export interface SiteHeaderProps {
   subdomain: string
   /** Primary nav links rendered in the header. */
   navLinks?: SiteHeaderNavLink[]
+  /** Opt in to the phone menu: under 680px a "Menu" button opens navLinks
+   *  (with dropdown items as labelled groups). Default false, so a site that
+   *  does not pass it renders exactly as before (nav hidden on phones). */
+  mobileMenu?: boolean
   /** Sign-in destination. Omit to hide the sign-in entry. */
   signInHref?: string
   /** Sign-in label. Default "Sign in". */
@@ -187,10 +197,25 @@ var SITE_HEADER_CSS =
   '.smsh__pill-label{font-size:11px;font-weight:500;letter-spacing:.3px}' +
   '.smsh__signin{display:flex;align-items:center;height:34px;padding:0 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--font);flex-shrink:0;box-sizing:border-box;white-space:nowrap}' +
   '.smsh__signin:hover{opacity:.9}' +
+  '.smsh__dd{position:relative}' +
+  '.smsh__ddbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:14px;font-family:var(--font);color:var(--muted);white-space:nowrap}' +
+  '.smsh__ddbtn[aria-expanded="true"],.smsh__ddbtn:hover{color:var(--foreground)}' +
+  '.smsh__ddbtn:focus-visible,.smsh__menubtn:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}' +
+  '.smsh__ddpanel{position:absolute;top:calc(100% + 12px);left:-12px;min-width:300px;background:var(--bg-card,var(--bg));border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:9001}' +
+  '.smsh__ddpanel[hidden],.smsh__mnav[hidden]{display:none}' +
+  '.smsh__ddpanel a{display:block;padding:9px 10px;border-radius:7px;text-decoration:none;color:var(--foreground);font-size:14px;font-weight:500;font-family:var(--font);white-space:normal}' +
+  '.smsh__ddpanel a:hover,.smsh__ddpanel a:focus-visible{background:var(--bg-subtle,rgba(0,0,0,.04));outline:none}' +
+  '.smsh__desc{display:block;font-size:12px;font-weight:400;color:var(--muted);margin-top:2px}' +
+  '.smsh__menubtn{all:unset;display:none;cursor:pointer;font-size:13px;font-family:var(--font);color:var(--foreground);border:1px solid var(--border);border-radius:7px;height:34px;padding:0 10px;box-sizing:border-box;align-items:center}' +
+  '.smsh__mnav{border-top:1px solid var(--border);padding:8px 14px 14px;background:var(--bg-card,var(--bg))}' +
+  '.smsh__mnav a{display:block;padding:9px 0;text-decoration:none;color:var(--foreground);font-size:15px;font-family:var(--font)}' +
+  '.smsh__mgroup{font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);padding:10px 0 2px}' +
+  '.smsh__mnav .smsh__msub{padding-left:10px}' +
   '@media (max-width:680px){' +
   '.smsh__inner{padding:0 14px;gap:10px}' +
   '.smsh__byline{display:none}' +
   '.smsh__nav{display:none}' +
+  '.smsh__menubtn{display:inline-flex}' +
   '.smsh__pill-label{display:none}' +
   '.smsh__pill{padding:0 9px}' +
   '}'
@@ -250,8 +275,31 @@ export function SiteHeader(props: SiteHeaderProps) {
 
   var ThemeIcon = theme.mode === 'light' ? IconSun : theme.mode === 'dark' ? IconMoon : IconDeviceDesktop
 
+  // Dropdowns (desktop) and the mobile menu. Panels are always in the DOM
+  // (toggled with the hidden attribute) so prerendered HTML carries every link.
+  var _open = useState<string | null>(null); var openDd = _open[0]; var setOpenDd = _open[1]
+  var _mob = useState(false); var mobOpen = _mob[0]; var setMobOpen = _mob[1]
+  var headerRef = React.useRef<HTMLElement | null>(null)
+  useEffect(function() {
+    if (!openDd && !mobOpen) return
+    function onDoc(e: MouseEvent) {
+      if (headerRef.current && !headerRef.current.contains(e.target as Node)) { setOpenDd(null); setMobOpen(false) }
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') { setOpenDd(null); setMobOpen(false) }
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return function() {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [openDd, mobOpen])
+  var hasNav = navLinks.length > 0
+  var showMobile = hasNav && props.mobileMenu === true
+
   return (
-    <header className="smsh">
+    <header className="smsh" ref={headerRef}>
       <style dangerouslySetInnerHTML={{ __html: SITE_HEADER_CSS }} />
       <div className="smsh__inner">
         {/* Logo lockup: the portal's horizontal wordmark (themed) + "by ..."
@@ -276,6 +324,38 @@ export function SiteHeader(props: SiteHeaderProps) {
           {navLinks.length > 0 ? (
             <nav className="smsh__nav">
               {navLinks.map(function(link) {
+                if (link.items && link.items.length > 0) {
+                  var ddId = 'smsh-dd-' + link.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+                  var isOpen = openDd === link.label
+                  return (
+                    <div className="smsh__dd" key={link.label}>
+                      <button
+                        type="button"
+                        className="smsh__ddbtn"
+                        aria-expanded={isOpen ? 'true' : 'false'}
+                        aria-controls={ddId}
+                        onClick={function() { setOpenDd(isOpen ? null : link.label) }}
+                      >
+                        {link.label}
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+                      </button>
+                      <div className="smsh__ddpanel" id={ddId} hidden={!isOpen}>
+                        {link.items.map(function(it) {
+                          return (
+                            <a
+                              key={it.href}
+                              href={it.href}
+                              {...(it.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                            >
+                              {it.label}
+                              {it.description ? <span className="smsh__desc">{it.description}</span> : null}
+                            </a>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )
+                }
                 var active = !link.external && pathname === link.href
                 return (
                   <a
@@ -306,8 +386,54 @@ export function SiteHeader(props: SiteHeaderProps) {
           ) : null}
 
           {props.rightSlot}
+
+          {showMobile ? (
+            <button
+              type="button"
+              className="smsh__menubtn"
+              aria-expanded={mobOpen ? 'true' : 'false'}
+              aria-controls="smsh-mnav"
+              onClick={function() { setMobOpen(!mobOpen) }}
+            >
+              Menu
+            </button>
+          ) : null}
         </div>
       </div>
+      {showMobile ? (
+        <nav className="smsh__mnav" id="smsh-mnav" hidden={!mobOpen} aria-label="Menu">
+          {navLinks.map(function(link) {
+            if (link.items && link.items.length > 0) {
+              return (
+                <div key={link.label}>
+                  <div className="smsh__mgroup">{link.label}</div>
+                  {link.items.map(function(it) {
+                    return (
+                      <a
+                        key={it.href}
+                        className="smsh__msub"
+                        href={it.href}
+                        {...(it.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                      >
+                        {it.label}
+                      </a>
+                    )
+                  })}
+                </div>
+              )
+            }
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+              >
+                {link.label}
+              </a>
+            )
+          })}
+        </nav>
+      ) : null}
     </header>
   )
 }
