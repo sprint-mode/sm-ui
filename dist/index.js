@@ -108458,7 +108458,7 @@ var pNe = function(e) {
 		var t = y && y.includes("@") ? y : void 0;
 		E(null), K("waiting");
 		var n = Le();
-		import("./esm-UCENc6Ld.js").then(function(e) {
+		import("./esm-Blv-p25D.js").then(function(e) {
 			return fetch(Y + "/auth/webauthn/login/options", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
@@ -108493,7 +108493,7 @@ var pNe = function(e) {
 		});
 	}
 	function ze(e) {
-		e.preventDefault(), !be && (xe(!0), import("./esm-UCENc6Ld.js").then(function(e) {
+		e.preventDefault(), !be && (xe(!0), import("./esm-Blv-p25D.js").then(function(e) {
 			return fetch(Y + "/auth/webauthn/register/options", {
 				method: "POST",
 				credentials: "include"
@@ -110758,7 +110758,7 @@ function ANe({ base: e }) {
 		l();
 	}, [e]);
 	function d() {
-		a || (o(!0), c(null), import("./esm-UCENc6Ld.js").then(function(t) {
+		a || (o(!0), c(null), import("./esm-Blv-p25D.js").then(function(t) {
 			return fetch(e + "/auth/webauthn/register/options", {
 				method: "POST",
 				credentials: "include"
