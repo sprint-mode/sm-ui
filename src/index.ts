@@ -57,6 +57,9 @@ export {
 export { NotificationBellNav } from './NotificationBellNav.tsx'
 export { ProfileCard } from './ProfileCard.tsx'
 export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.tsx'
+// TASK-4748: the sm-core inside look (Platform, Studios)
+export { applySmLook, currentSmLook, isSmLook, SM_LOOKS } from './look.ts'
+export type { SmLook } from './look.ts'
 
 // Public marketing-site shell (FEAT-2997). Session-free; a marketing site should
 // import from '@sprintmode/ui/site' to keep session code out of its bundle, but

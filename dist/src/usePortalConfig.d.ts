@@ -1,4 +1,5 @@
 import { default as React, ReactNode } from 'react';
+import { SmLook } from './look.js';
 export interface PortalConfig {
     id?: string;
     subdomain?: string;
@@ -14,6 +15,9 @@ export interface PortalConfig {
         '--radius'?: string;
         '--font'?: string;
     } | null;
+    /** TASK-4748: the inside look. "sm-core" turns on the sprintmode.ai v2 look
+     *  (src/theme-core.css) for this portal. Absent or null keeps the default. */
+    look?: SmLook | null;
     logo_url?: string | null;
     favicon_url?: string | null;
     icon_key?: string | null;
