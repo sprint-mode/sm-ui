@@ -246,6 +246,22 @@ export declare function useTheme(): {
     toggle: () => void;
 };
 export declare function CmdK(props: CmdKProps): React.FunctionComponentElement<React.FragmentProps> | null;
+export declare function HeaderUserMenu(props: {
+    session: SessionData | null;
+    profilePath?: string;
+    logoutHref: string;
+    userMenuExtra?: React.ReactNode;
+    portalSubdomain?: string;
+    authBase?: string;
+    apiBase?: string;
+    mcpKeysPath?: string;
+    apiKeysPath?: string;
+}): React.DetailedReactHTMLElement<{
+    ref: React.RefObject<HTMLDivElement | null>;
+    style: {
+        position: "relative";
+    };
+}, HTMLDivElement>;
 export declare function PortalSwitcher(): null;
 export interface Permissions {
     sections?: Record<string, {

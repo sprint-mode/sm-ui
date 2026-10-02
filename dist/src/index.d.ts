@@ -1,6 +1,7 @@
 export { Card, CardBody, Pill, Badge, Button, StatCard, Stats, Progress, Tabs, PageHeader, Table, Empty, Spinner, ScoreRing, Explainer, DataTable, MultiSelect, } from './components.js';
 export { default as Layout, useSession, ViewAsContext, useViewAs, useViewAsTeam, CmdK, useTheme, PortalSwitcher, useDeployRefresh } from './Layout.js';
 export type { LayoutProps } from './Layout.js';
+export { HeaderUserMenu as UserMenu } from './Layout.js';
 export { default as Login } from './Login.js';
 export type { LoginProps } from './Login.js';
 export { default as ApiDocs } from './ApiDocs.js';

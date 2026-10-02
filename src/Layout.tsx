@@ -606,8 +606,10 @@ export function CmdK(props: CmdKProps) {
 }
 
 // ─── Header User Menu ───────────────────────────────────────────────────────
+// Exported as UserMenu (FEAT-4168): the same signed-in menu, for pages that are not inside
+// Layout, such as a public site's SiteHeader (rightSlot) once it knows there is a session.
 
-function HeaderUserMenu(props: {
+export function HeaderUserMenu(props: {
   session: SessionData | null
   profilePath?: string
   logoutHref: string

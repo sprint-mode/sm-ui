@@ -25,6 +25,9 @@ export {
 // Layout shell with session context + view-as system + cmd+k + theme
 export { default as Layout, useSession, ViewAsContext, useViewAs, useViewAsTeam, CmdK, useTheme, PortalSwitcher, useDeployRefresh } from './Layout.tsx'
 export type { LayoutProps } from './Layout.tsx'
+// The signed-in header menu on its own (FEAT-4168): a public site's SiteHeader shows it in
+// rightSlot when /api/auth/me says there is a session. Same component Layout renders.
+export { HeaderUserMenu as UserMenu } from './Layout.tsx'
 
 // Login page
 export { default as Login } from './Login.tsx'
