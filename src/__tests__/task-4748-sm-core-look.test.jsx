@@ -78,7 +78,7 @@ describe('look switch', function() {
     expect(currentSmLook()).toBe('sm-core')
   })
 
-  it('portal config look: "sm-core" turns it on and brand_color is kept as --brand', async function() {
+  it('portal config look: "sm-core" turns it on and brand_color is kept as --sm-brand', async function() {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({
       json: function() {
         return Promise.resolve({ ok: true, config: { subdomain: 'studios', brand_color: '#7947d1', look: 'sm-core' } })
@@ -87,7 +87,7 @@ describe('look switch', function() {
     render(<PortalConfigProvider subdomain="studios"><div>x</div></PortalConfigProvider>)
     await waitFor(function() { expect(currentSmLook()).toBe('sm-core') })
     const injected = document.getElementById('sm-theme-inject')?.textContent ?? ''
-    expect(injected).toContain('--brand:#7947d1;')
+    expect(injected).toContain('--sm-brand:#7947d1;')
   })
 
   it('a config without look leaves the page alone', async function() {
@@ -98,6 +98,21 @@ describe('look switch', function() {
     await waitFor(function() {
       expect(document.getElementById('sm-theme-inject')?.textContent ?? '').toContain('#123456')
     })
+    expect(currentSmLook()).toBe(null)
+  })
+
+  // FEAT-4809 I1: with sm-core off, nothing may define --brand. At the base nothing does, so
+  // PortalUpdates' "Read more" link and spinner keep their #7c5cbf fallback.
+  it('a config without look injects no --brand', async function() {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      json: function() { return Promise.resolve({ ok: true, config: { subdomain: 'raise', brand_color: '#123456', brand_color_dark: '#654321' } }) },
+    })
+    render(<PortalConfigProvider subdomain="raise"><div>x</div></PortalConfigProvider>)
+    await waitFor(function() {
+      expect(document.getElementById('sm-theme-inject')?.textContent ?? '').toContain('#123456')
+    })
+    const injected = document.getElementById('sm-theme-inject')?.textContent ?? ''
+    expect(injected).not.toMatch(/(^|[^-])--brand:/m)
     expect(currentSmLook()).toBe(null)
   })
 })

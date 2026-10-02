@@ -105248,7 +105248,7 @@ function P7(e, t, n) {
 	return [
 		e + "{",
 		"  --accent:" + t + ";",
-		"  --brand:" + t + ";",
+		"  --sm-brand:" + t + ";",
 		"  --accent-hover:" + YMe(t, 10) + ";",
 		"  --accent-10:rgba(" + i + ",0.1);",
 		"  --accent-20:rgba(" + i + ",0.2);",

@@ -12,7 +12,7 @@
  *
  * Every rule here is scoped to html[data-sm-look="sm-core"], so a portal that does not turn
  * it on renders exactly as before. Orange is the one action colour in every sm-core portal;
- * the portal's own brand_color stays available as --brand, for its mark only.
+ * the portal's own brand_color stays available as --sm-brand, for its mark only.
  * Tokens come from sm-site styles/site.css (palette PASS 2026-09-25).
  */
 
@@ -109,7 +109,7 @@ html[data-sm-look="sm-core"][data-theme="dark"] {
 
 /* The portal's brand_color is injected on the shell ([data-sm-theme=<subdomain>]) and on
    per-product sections. Under sm-core it must not take over buttons and links, so the accent
-   set is restated on those elements; the brand colour itself survives as --brand. */
+   set is restated on those elements; the brand colour itself survives as --sm-brand. */
 html[data-sm-look="sm-core"] [data-sm-theme],
 html[data-sm-look="sm-core"] [data-product],
 html[data-sm-look="sm-core"][data-product] {

@@ -77,7 +77,9 @@ function accentBlock(sel: string, color: string, tint?: string | null): string {
   return [
     sel + '{',
     '  --accent:' + color + ';',
-    '  --brand:' + color + ';',
+    // FEAT-4809: the brand colour under its own name. Nothing outside sm-core reads --sm-brand,
+    // so portals that do not turn sm-core on render exactly as before (PortalUpdates reads --brand).
+    '  --sm-brand:' + color + ';',
     '  --accent-hover:' + darkenHex(color, 10) + ';',
     '  --accent-10:rgba(' + rgbStr + ',0.1);',
     '  --accent-20:rgba(' + rgbStr + ',0.2);',
