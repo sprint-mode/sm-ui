@@ -1,4 +1,5 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react'
+import { applySmLook, type SmLook } from './look.ts'
 
 export interface PortalConfig {
   id?: string
@@ -12,6 +13,9 @@ export interface PortalConfig {
   /** FEAT-3283: optional token overrides — only --radius and --font are
    *  in the published set; anything else is ignored by the injector. */
   theme_overrides?: { '--radius'?: string; '--font'?: string } | null
+  /** TASK-4748: the inside look. "sm-core" turns on the sprintmode.ai v2 look
+   *  (src/theme-core.css) for this portal. Absent or null keeps the default. */
+  look?: SmLook | null
   logo_url?: string | null
   favicon_url?: string | null
   icon_key?: string | null
@@ -73,6 +77,9 @@ function accentBlock(sel: string, color: string, tint?: string | null): string {
   return [
     sel + '{',
     '  --accent:' + color + ';',
+    // FEAT-4809: the brand colour under its own name. Nothing outside sm-core reads --sm-brand,
+    // so portals that do not turn sm-core on render exactly as before (PortalUpdates reads --brand).
+    '  --sm-brand:' + color + ';',
     '  --accent-hover:' + darkenHex(color, 10) + ';',
     '  --accent-10:rgba(' + rgbStr + ',0.1);',
     '  --accent-20:rgba(' + rgbStr + ',0.2);',
@@ -142,6 +149,8 @@ export function PortalConfigProvider({ subdomain, apiBase, children }: PortalCon
           if (d.config.brand_color && subdomain) {
             injectPortalTheme(subdomain, d.config)
           }
+          // TASK-4748: a portal can turn the sm-core look on from its config.
+          if (d.config.look) applySmLook(d.config.look)
         } else {
           setError(d.error || 'Failed to load portal config')
         }

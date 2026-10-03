@@ -8,6 +8,7 @@ import { NoAccessScreen } from './NoAccessScreen.tsx'
 import { usePortalConfig } from './usePortalConfig.jsx'
 import { WhatsNew } from './WhatsNew.tsx'
 import { Tour, triggerTour } from './Tour.tsx'
+import { applySmLook, type SmLook } from './look.ts'
 
 // ─── Global augmentation for window.__SM_SESSION ───────────────────────────
 
@@ -155,6 +156,10 @@ export interface LayoutProps {
    *  `hotkey` is "Mod+<key>" (Mod = Cmd on macOS, Ctrl elsewhere), e.g. "Mod+."; a
    *  bare "<key>" is also accepted. Omit `hotkey` for no keybinding. */
   panelSlot?: { node: React.ReactNode; requiresModule: string; hotkey?: string }
+  /** TASK-4748: the inside look. "sm-core" turns on the sprintmode.ai v2 look
+   *  (theme-core.css) by setting data-sm-look on <html>. Setting it in index.html
+   *  instead avoids a first-paint flash; either works. */
+  look?: SmLook
   /** Slot rendered at the TOP of the sidebar, directly under the logo/wordmark
    *  and ABOVE the nav rail. For a per-workspace switcher (e.g. Waffle's kitchen
    *  switcher) that must sit above navigation per its frame. Hidden in the
@@ -1492,6 +1497,8 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var headerCta = props.headerCta
   var viewAsAnyRole = props.viewAsAnyRole
   var portalCfg = usePortalConfig()
+  var look = props.look
+  useEffect(function() { if (look) applySmLook(look) }, [look])
   // cmdK prop takes priority (explicit true/false/object). If not passed, fall back to
   // config.cmdk from Portal Manager. Default to enabled while config is still loading.
   var cmdKEnabled = props.cmdK !== undefined

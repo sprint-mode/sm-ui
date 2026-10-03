@@ -23,6 +23,7 @@
     "./css": "./src/index.css",
     "./css/shell": "./src/shell.css",
     "./css/components": "./src/components.css",
+    "./css/core": "./src/theme-core.css",
     "./brands": "./brands/",
     "./portal-standard": "./portal-standard.json",
     "./module-manifest": {
