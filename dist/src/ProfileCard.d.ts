@@ -14,6 +14,8 @@ export interface ProfileCardProps {
      * sm_client cookie (regression introduced by FLIP-HOTFIX-1 / FEAT-1915).
      */
     portalSubdomain?: string;
+    /** BUG-4926: the card's page heading (default "Profile"); PrivacyAI passes "Settings". */
+    heading?: string;
 }
 export interface ProfileData {
     id?: string;

@@ -106191,8 +106191,8 @@ function t9(e) {
 			textDecoration: "none",
 			fontWeight: 500
 		}
-	}, "View Profile") : null), o.createElement("a", {
-		href: "/user/notifications",
+	}, e.profileLabel || "View Profile") : null), e.notificationSettingsHref === null ? null : o.createElement("a", {
+		href: e.notificationSettingsHref || "/user/notifications",
 		style: {
 			display: "flex",
 			alignItems: "center",
@@ -107656,6 +107656,8 @@ var pNe = function(e) {
 	} }, Z.mode === "auto" ? "Auto" : Z.mode === "dark" ? "Dark" : "Light")), o.createElement(t9, {
 		session: V,
 		profilePath: D,
+		profileLabel: e.profileLabel,
+		notificationSettingsHref: e.notificationSettingsHref,
 		logoutHref: rn,
 		userMenuExtra: P,
 		portalSubdomain: Ge,
@@ -108114,7 +108116,7 @@ var pNe = function(e) {
 													/* @__PURE__ */ h("hr", {}),
 													/* @__PURE__ */ h("a", {
 														href: D || "/client/profile",
-														children: "Profile"
+														children: e.profileLabel || "Profile"
 													}),
 													/* @__PURE__ */ h("a", {
 														href: rn,
@@ -110136,59 +110138,59 @@ var g9 = {
 	color: "var(--foreground, #111)",
 	lineHeight: 1.4
 };
-function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
-	var r = e || xNe, i = n ? { "X-SM-Product": n } : {}, [a, o] = p(null), [s, c] = p(!0), [l, d] = p(null), [f, _] = p(!0), [v, y] = p(!0), [b, x] = p(!1);
+function ONe({ apiBase: e, backHref: t, portalSubdomain: n, heading: r }) {
+	var i = e || xNe, a = n ? { "X-SM-Product": n } : {}, [o, s] = p(null), [c, l] = p(!0), [d, f] = p(null), [_, v] = p(!0), [y, b] = p(!0), [x, S] = p(!1);
 	u(function() {
-		fetch(r + "/api/profile", {
+		fetch(i + "/api/profile", {
 			credentials: "include",
-			headers: i
+			headers: a
 		}).then(function(e) {
 			return e.ok ? e.json() : null;
 		}).then(function(e) {
-			e && e.ok && e.profile && o(e.profile);
+			e && e.ok && e.profile && s(e.profile);
 		}).catch(function() {}).finally(function() {
-			c(!1);
-		}), fetch(r + "/api/notifications/prefs", {
+			l(!1);
+		}), fetch(i + "/api/notifications/prefs", {
 			credentials: "include",
-			headers: i
+			headers: a
 		}).then(function(e) {
 			return e.ok ? e.json() : null;
 		}).then(function(e) {
-			e && e.ok && e.data && (_(e.data.email_enabled !== !1), y(e.data.app_enabled !== !1), x(!!e.data.slack_enabled));
+			e && e.ok && e.data && (v(e.data.email_enabled !== !1), b(e.data.app_enabled !== !1), S(!!e.data.slack_enabled));
 		}).catch(function() {});
-	}, [r]);
-	function S() {
-		fetch(r + "/api/profile", {
+	}, [i]);
+	function C() {
+		fetch(i + "/api/profile", {
 			credentials: "include",
-			headers: i
+			headers: a
 		}).then(function(e) {
 			return e.ok ? e.json() : null;
 		}).then(function(e) {
-			e && e.ok && e.profile && o(e.profile);
+			e && e.ok && e.profile && s(e.profile);
 		}).catch(function() {});
 	}
-	async function C(e) {
+	async function w(e) {
 		try {
-			var t = await (await fetch(r + "/api/profile", {
+			var t = await (await fetch(i + "/api/profile", {
 				method: "PATCH",
 				credentials: "include",
-				headers: Object.assign({ "Content-Type": "application/json" }, i),
+				headers: Object.assign({ "Content-Type": "application/json" }, a),
 				body: JSON.stringify(e)
 			})).json();
-			t.ok && t.profile && (o(t.profile), d("Saved"), setTimeout(function() {
-				d(null);
+			t.ok && t.profile && (s(t.profile), f("Saved"), setTimeout(function() {
+				f(null);
 			}, 2e3));
 		} catch {}
 	}
-	async function w(e) {
-		fetch(r + "/api/notifications/prefs", {
+	async function T(e) {
+		fetch(i + "/api/notifications/prefs", {
 			method: "PATCH",
 			credentials: "include",
-			headers: Object.assign({ "Content-Type": "application/json" }, i),
+			headers: Object.assign({ "Content-Type": "application/json" }, a),
 			body: JSON.stringify(e)
 		}).catch(function() {});
 	}
-	if (s) return /* @__PURE__ */ g("div", {
+	if (c) return /* @__PURE__ */ g("div", {
 		style: {
 			display: "flex",
 			justifyContent: "center",
@@ -110204,7 +110206,7 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 			animation: "profilecard-spin 0.8s linear infinite"
 		} }), /* @__PURE__ */ h("style", { children: "@keyframes profilecard-spin { to { transform: rotate(360deg) } }" })]
 	});
-	if (!a) return /* @__PURE__ */ h("div", {
+	if (!o) return /* @__PURE__ */ h("div", {
 		style: {
 			padding: 40,
 			textAlign: "center",
@@ -110213,9 +110215,9 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 		},
 		children: "Could not load profile."
 	});
-	var T = a, E = (T.full_name || T.email || "?").split(" ").map(function(e) {
+	var E = o, D = (E.full_name || E.email || "?").split(" ").map(function(e) {
 		return e[0] || "";
-	}).join("").slice(0, 2).toUpperCase(), D = T.portal_role || T.role || "member";
+	}).join("").slice(0, 2).toUpperCase(), O = E.portal_role || E.role || "member";
 	return /* @__PURE__ */ g("div", {
 		style: { maxWidth: 680 },
 		children: [
@@ -110240,7 +110242,7 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 							color: "var(--foreground, #111)",
 							margin: 0
 						},
-						children: "Profile"
+						children: r || "Profile"
 					}),
 					/* @__PURE__ */ h("p", {
 						style: {
@@ -110261,14 +110263,14 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 						gap: 16
 					},
 					children: [/* @__PURE__ */ h(wNe, {
-						photoUrl: T.photo_url,
-						initials: E,
+						photoUrl: E.photo_url,
+						initials: D,
 						size: 56,
 						editable: !0,
-						apiBase: r,
-						productHeaders: i,
+						apiBase: i,
+						productHeaders: a,
 						onSave: function(e) {
-							return C({ photo_url: e });
+							return w({ photo_url: e });
 						}
 					}), /* @__PURE__ */ g("div", {
 						style: {
@@ -110290,13 +110292,13 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 										fontWeight: 800,
 										color: "var(--foreground, #111)"
 									},
-									children: T.full_name || "--"
+									children: E.full_name || "--"
 								}),
 								/* @__PURE__ */ h(CNe, {
-									role: D,
-									label: T.role_label
+									role: O,
+									label: E.role_label
 								}),
-								l && /* @__PURE__ */ g("span", {
+								d && /* @__PURE__ */ g("span", {
 									style: {
 										fontSize: 12,
 										color: "var(--green, #16a34a)",
@@ -110305,7 +110307,7 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 									children: [
 										"✓",
 										" ",
-										l
+										d
 									]
 								})
 							]
@@ -110314,17 +110316,17 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 								fontSize: 13,
 								color: "var(--muted, #6b7280)"
 							},
-							children: [T.email, T.company_name && /* @__PURE__ */ g(m, { children: [/* @__PURE__ */ h("span", {
+							children: [E.email, E.company_name && /* @__PURE__ */ g(m, { children: [/* @__PURE__ */ h("span", {
 								style: { margin: "0 5px" },
 								children: "·"
-							}), T.company_name] })]
+							}), E.company_name] })]
 						})]
 					})]
 				})
 			}),
 			/* @__PURE__ */ h(jNe, {
-				base: r,
-				productHeaders: i
+				base: i,
+				productHeaders: a
 			}),
 			/* @__PURE__ */ g("div", {
 				style: g9,
@@ -110340,51 +110342,51 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 					children: [
 						/* @__PURE__ */ h(h9, {
 							label: "Full name",
-							value: T.full_name,
+							value: E.full_name,
 							onSave: function(e) {
-								return C({ full_name: e });
+								return w({ full_name: e });
 							}
 						}),
 						/* @__PURE__ */ h(h9, {
 							label: "Title",
-							value: T.title,
+							value: E.title,
 							onSave: function(e) {
-								return C({ title: e });
+								return w({ title: e });
 							},
 							placeholder: "e.g. VP Engineering"
 						}),
 						/* @__PURE__ */ h(h9, {
 							label: "Email",
-							value: T.email,
+							value: E.email,
 							disabled: !0
 						}),
 						/* @__PURE__ */ h(h9, {
 							label: "Phone",
-							value: T.phone,
+							value: E.phone,
 							onSave: function(e) {
-								return C({ phone: e });
+								return w({ phone: e });
 							},
 							type: "tel",
 							placeholder: "+1 (555) 000-0000"
 						}),
-						T.hire_date && /* @__PURE__ */ g("div", { children: [/* @__PURE__ */ h("span", {
+						E.hire_date && /* @__PURE__ */ g("div", { children: [/* @__PURE__ */ h("span", {
 							style: ENe,
 							children: "Hire date"
 						}), /* @__PURE__ */ h("div", {
 							style: DNe,
-							children: m9(T.hire_date)
+							children: m9(E.hire_date)
 						})] })
 					]
 				})]
 			}),
 			/* @__PURE__ */ h(kNe, {
-				base: r,
-				emails: T.emails || [],
-				fallbackEmail: T.email,
+				base: i,
+				emails: E.emails || [],
+				fallbackEmail: E.email,
 				onChanged: function() {
-					S();
+					C();
 				},
-				productHeaders: i
+				productHeaders: a
 			}),
 			/* @__PURE__ */ g("div", {
 				style: g9,
@@ -110401,28 +110403,28 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 						{
 							label: "In-app notifications",
 							sub: "Shown in-app",
-							val: v,
+							val: y,
 							onChange: function() {
-								var e = !v;
-								y(e), w({ app_enabled: e });
+								var e = !y;
+								b(e), T({ app_enabled: e });
 							}
 						},
 						{
 							label: "Email notifications",
 							sub: "Receive by email",
-							val: f,
+							val: _,
 							onChange: function() {
-								var e = !f;
-								_(e), w({ email_enabled: e });
+								var e = !_;
+								v(e), T({ email_enabled: e });
 							}
 						},
 						{
 							label: "Slack notifications",
 							sub: "Receive via Slack DM",
-							val: b,
+							val: x,
 							onChange: function() {
-								var e = !b;
-								x(e), w({ slack_enabled: e });
+								var e = !x;
+								S(e), T({ slack_enabled: e });
 							}
 						}
 					].map(function(e, t) {
@@ -110481,13 +110483,13 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 								fontSize: 12,
 								color: "var(--muted, #6b7280)"
 							},
-							children: ["Magic link to ", T.email]
+							children: ["Magic link to ", E.email]
 						})] })
 					}),
-					/* @__PURE__ */ h(ANe, { base: r })
+					/* @__PURE__ */ h(ANe, { base: i })
 				]
 			}),
-			T.id && T.contact_type === "team" && /* @__PURE__ */ g("div", {
+			E.id && E.contact_type === "team" && /* @__PURE__ */ g("div", {
 				style: {
 					...g9,
 					display: "flex",
@@ -110508,7 +110510,7 @@ function ONe({ apiBase: e, backHref: t, portalSubdomain: n }) {
 					},
 					children: "View your full contact card"
 				})] }), /* @__PURE__ */ g("a", {
-					href: "/crm/contact/" + T.id,
+					href: "/crm/contact/" + E.id,
 					style: {
 						fontSize: 13,
 						fontWeight: 600,
@@ -110994,7 +110996,8 @@ function MNe(e) {
 	return /* @__PURE__ */ h(ONe, {
 		apiBase: e.apiBase,
 		backHref: e.backHref,
-		portalSubdomain: e.portalSubdomain
+		portalSubdomain: e.portalSubdomain,
+		heading: e.heading
 	});
 }
 //#endregion

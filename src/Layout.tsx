@@ -183,6 +183,12 @@ export interface LayoutProps {
   headerIcon?: React.ReactNode
   onLogout?: string
   profilePath?: string
+  /** BUG-4926: label of the profile item in the user menu and the sidebar dropdown.
+   *  Default unchanged ("View Profile" in the menu, "Profile" in the dropdown); PrivacyAI passes "Settings". */
+  profileLabel?: string
+  /** BUG-4926: where the user menu's "Notification Settings" item goes. Omitted: /user/notifications
+   *  (unchanged for portals). null: the item is hidden (sprintmode.ai, which has no such page). */
+  notificationSettingsHref?: string | null
   cmdK?: boolean | { placeholder?: string }
   cmdKItems?: CmdKItem[]
   onSearch?: (query: string) => Promise<{ items: CmdKItem[]; total?: number }>
@@ -617,6 +623,10 @@ export function CmdK(props: CmdKProps) {
 export function HeaderUserMenu(props: {
   session: SessionData | null
   profilePath?: string
+  /** BUG-4926: the profile item's label (default "View Profile"). */
+  profileLabel?: string
+  /** BUG-4926: the "Notification Settings" href; omitted = /user/notifications, null = hidden. */
+  notificationSettingsHref?: string | null
   logoutHref: string
   userMenuExtra?: React.ReactNode
   portalSubdomain?: string
@@ -701,9 +711,9 @@ export function HeaderUserMenu(props: {
         identityEmail ? React.createElement('div', null, identityEmail) : null,
         // UI-POLISH-1: role-name line removed from identity block — title (line above) is the
         // stable identity line; role varies per portal and is shown in the Roles section below.
-        !lens && profilePath ? React.createElement('a', { href: profilePath, style: { display: 'block', marginTop: 6, padding: '5px 0', fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 } }, 'View Profile') : null
+        !lens && profilePath ? React.createElement('a', { href: profilePath, style: { display: 'block', marginTop: 6, padding: '5px 0', fontSize: 13, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 } }, props.profileLabel || 'View Profile') : null
       ),
-      React.createElement('a', { href: '/user/notifications', style: { display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } },
+      props.notificationSettingsHref === null ? null : React.createElement('a', { href: props.notificationSettingsHref || '/user/notifications', style: { display: 'flex', alignItems: 'center', gap: 7, padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } },
         React.createElement('svg', { width: 14, height: 14, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', style: { flexShrink: 0, color: 'var(--muted)' } },
           React.createElement('circle', { cx: 12, cy: 12, r: 3 }),
           React.createElement('path', { d: 'M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z' })
@@ -2237,7 +2247,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
     // TASK-2282: header inbox envelope and Cmd/Ctrl+I shortcut removed across
     // all portals. API surface (notificationHref prop, NotificationBellNav
     // export, /user/updates route) left in place intentionally.
-    React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, logoutHref: logoutHref, userMenuExtra: userMenuExtra, portalSubdomain: portalSubdomain, authBase: props.authBase, apiBase: props.apiBase, mcpKeysPath: props.mcpKeysPath, apiKeysPath: props.apiKeysPath })
+    React.createElement(HeaderUserMenu, { session: session, profilePath: profilePath, profileLabel: props.profileLabel, notificationSettingsHref: props.notificationSettingsHref, logoutHref: logoutHref, userMenuExtra: userMenuExtra, portalSubdomain: portalSubdomain, authBase: props.authBase, apiBase: props.apiBase, mcpKeysPath: props.mcpKeysPath, apiKeysPath: props.apiKeysPath })
   ) : null
 
   return (
@@ -2507,7 +2517,7 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
               <div className="portal-dropdown-name">{session ? (session.name || session.email) : ''}</div>
               <div className="portal-dropdown-company">{session ? ((session as any).company_name || '') : ''}</div>
               <hr />
-              <a href={profilePath || '/client/profile'}>Profile</a>
+              <a href={profilePath || '/client/profile'}>{props.profileLabel || 'Profile'}</a>
               <a href={logoutHref}>Sign out</a>
             </div>
           )}
