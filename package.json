@@ -86,6 +86,7 @@
     "src/shell.css",
     "src/components.css",
     "src/tokens.css",
+    "src/theme-core.css",
     "src/Icons.d.ts",
     "brands",
     "bin",
