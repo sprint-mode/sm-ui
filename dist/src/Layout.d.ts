@@ -161,6 +161,12 @@ export interface LayoutProps {
     headerIcon?: React.ReactNode;
     onLogout?: string;
     profilePath?: string;
+    /** BUG-4926: label of the profile item in the user menu and the sidebar dropdown.
+     *  Default unchanged ("View Profile" in the menu, "Profile" in the dropdown); PrivacyAI passes "Settings". */
+    profileLabel?: string;
+    /** BUG-4926: where the user menu's "Notification Settings" item goes. Omitted: /user/notifications
+     *  (unchanged for portals). null: the item is hidden (sprintmode.ai, which has no such page). */
+    notificationSettingsHref?: string | null;
     cmdK?: boolean | {
         placeholder?: string;
     };
@@ -254,6 +260,10 @@ export declare function CmdK(props: CmdKProps): React.FunctionComponentElement<R
 export declare function HeaderUserMenu(props: {
     session: SessionData | null;
     profilePath?: string;
+    /** BUG-4926: the profile item's label (default "View Profile"). */
+    profileLabel?: string;
+    /** BUG-4926: the "Notification Settings" href; omitted = /user/notifications, null = hidden. */
+    notificationSettingsHref?: string | null;
     logoutHref: string;
     userMenuExtra?: React.ReactNode;
     portalSubdomain?: string;

@@ -15,6 +15,8 @@ export interface ProfileCardProps {
    * sm_client cookie (regression introduced by FLIP-HOTFIX-1 / FEAT-1915).
    */
   portalSubdomain?: string
+  /** BUG-4926: the card's page heading (default "Profile"); PrivacyAI passes "Settings". */
+  heading?: string
 }
 
 export interface ProfileData {
@@ -283,7 +285,7 @@ var SECTION_TITLE: React.CSSProperties = { fontSize: 13, fontWeight: 700, color:
 var LABEL: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: 'var(--muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3, display: 'block' }
 var VAL: React.CSSProperties = { fontSize: 13, color: 'var(--foreground, #111)', lineHeight: 1.4 }
 
-function SelfProfileCard({ apiBase, backHref, portalSubdomain }: { apiBase?: string; backHref?: string; portalSubdomain?: string }) {
+function SelfProfileCard({ apiBase, backHref, portalSubdomain, heading }: { apiBase?: string; backHref?: string; portalSubdomain?: string; heading?: string }) {
   var base = apiBase || DEFAULT_API
   // UI-POLISH-1: X-SM-Product lets sm-api read the correct per-door session
   // cookie (sm_session_<product>) after LOGIN_DOOR_CUTOVER. Omitting it causes
@@ -370,7 +372,7 @@ function SelfProfileCard({ apiBase, backHref, portalSubdomain }: { apiBase?: str
             {'\u2190'} Back
           </a>
         )}
-        <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground, #111)', margin: 0 }}>Profile</h1>
+        <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--foreground, #111)', margin: 0 }}>{heading || 'Profile'}</h1>
         <p style={{ fontSize: 13, color: 'var(--muted, #6b7280)', marginTop: 3 }}>Your account details and preferences</p>
       </div>
 
@@ -752,5 +754,5 @@ function RolesCard({ base, productHeaders }: { base: string; productHeaders?: Re
 }
 
 export function ProfileCard(props: ProfileCardProps) {
-  return <SelfProfileCard apiBase={props.apiBase} backHref={props.backHref} portalSubdomain={props.portalSubdomain} />
+  return <SelfProfileCard apiBase={props.apiBase} backHref={props.backHref} portalSubdomain={props.portalSubdomain} heading={props.heading} />
 }
