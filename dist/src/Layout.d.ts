@@ -1,5 +1,6 @@
 import { default as React } from 'react';
 import { SessionData } from './api.js';
+import { SmLook } from './look.js';
 declare global {
     interface Window {
         __SM_SESSION?: SessionData & {
@@ -133,6 +134,10 @@ export interface LayoutProps {
         requiresModule: string;
         hotkey?: string;
     };
+    /** TASK-4748: the inside look. "sm-core" turns on the sprintmode.ai v2 look
+     *  (theme-core.css) by setting data-sm-look on <html>. Setting it in index.html
+     *  instead avoids a first-paint flash; either works. */
+    look?: SmLook;
     /** Slot rendered at the TOP of the sidebar, directly under the logo/wordmark
      *  and ABOVE the nav rail. For a per-workspace switcher (e.g. Waffle's kitchen
      *  switcher) that must sit above navigation per its frame. Hidden in the

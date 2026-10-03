@@ -1,0 +1,244 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+/* sm-core: the inside look for the core product (Platform) and Studios (TASK-4748).
+ *
+ * RULING (Aaron, 2026-09-30): Platform and Studios share the sprintmode.ai v2 look inside;
+ * Signal, Raise and Waffle keep their own UI. Mock of record:
+ * https://claude.ai/artifact/By9aDNfK9tSgt52tSUUoYJ (v2, passed 2026-09-30).
+ *
+ * Off unless a portal turns it on. Three ways, any one is enough:
+ *   1. index.html:     <html data-sm-look="sm-core">   (no flash; preferred)
+ *   2. Layout prop:    <Layout look="sm-core" ...>
+ *   3. portal config:  look: "sm-core"                  (read by PortalConfigProvider)
+ *
+ * Every rule here is scoped to html[data-sm-look="sm-core"], so a portal that does not turn
+ * it on renders exactly as before. Orange is the one action colour in every sm-core portal;
+ * the portal's own brand_color stays available as --sm-brand, for its mark only.
+ * Tokens come from sm-site styles/site.css (palette PASS 2026-09-25).
+ */
+
+html[data-sm-look="sm-core"] {
+  --bg: #efece5;
+  --bg-subtle: #e6e2d9;
+  --bg-card: #fffdf8;
+  --foreground: #1c1b18;
+  --muted: #5c5a54;
+  /* hairlines; --rule is the 2px ink line that frames the shell, cards and buttons */
+  --border: rgba(28, 27, 24, 0.16);
+  --rule: #1c1b18;
+  /* two oranges: #cc4a1f carries white text (4.6:1); #e4562a is for strokes and marks */
+  --accent: #cc4a1f;
+  --accent-hover: #b8421b;
+  --accent-foreground: #ffffff;
+  --accent-10: rgba(228, 86, 42, 0.12);
+  --accent-20: rgba(228, 86, 42, 0.2);
+  --accent-tint: rgba(228, 86, 42, 0.12);
+  --orange: #e4562a;
+  --blue: #1c1b18;
+  --blue-hover: #1c1b18;
+  --blue-10: #e6e2d9;
+  --blue-20: #d9d4c9;
+  --green: #2f7a4b;
+  --green-light: rgba(47, 122, 75, 0.12);
+  --amber: #a86a00;
+  --amber-light: rgba(168, 106, 0, 0.12);
+  --red: #b3261e;
+  --red-light: rgba(179, 38, 30, 0.1);
+  --font: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-head: 'Space Grotesk', 'Geist', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-sm: none;
+  --shadow-md: 3px 3px 0 var(--rule);
+  --shadow-lg: 4px 4px 0 var(--rule);
+  --shadow-xl: 6px 6px 0 var(--orange);
+  color-scheme: light;
+}
+html[data-sm-look="sm-core"][data-theme="dark"] {
+  --bg: #141311;
+  --bg-subtle: #1b1a17;
+  --bg-card: #1e1d19;
+  --foreground: #efece5;
+  --muted: #a8a49b;
+  --border: rgba(239, 236, 229, 0.16);
+  --rule: #efece5;
+  --accent: #e4562a;
+  --accent-hover: #cc4a1f;
+  --accent-10: rgba(228, 86, 42, 0.2);
+  --accent-20: rgba(228, 86, 42, 0.3);
+  --accent-tint: rgba(228, 86, 42, 0.2);
+  --blue: #efece5;
+  --blue-hover: #efece5;
+  --blue-10: #1b1a17;
+  --blue-20: #2a2824;
+  --green: #5fbf83;
+  --green-light: rgba(95, 191, 131, 0.14);
+  --amber: #e0b44c;
+  --amber-light: rgba(224, 180, 76, 0.14);
+  --red: #ef7a6f;
+  --red-light: rgba(239, 122, 111, 0.14);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-sm-look="sm-core"]:not([data-theme]) {
+    --bg: #141311;
+    --bg-subtle: #1b1a17;
+    --bg-card: #1e1d19;
+    --foreground: #efece5;
+    --muted: #a8a49b;
+    --border: rgba(239, 236, 229, 0.16);
+    --rule: #efece5;
+    --accent: #e4562a;
+    --accent-hover: #cc4a1f;
+    --accent-10: rgba(228, 86, 42, 0.2);
+    --accent-20: rgba(228, 86, 42, 0.3);
+    --accent-tint: rgba(228, 86, 42, 0.2);
+    --blue: #efece5;
+    --blue-hover: #efece5;
+    --blue-10: #1b1a17;
+    --blue-20: #2a2824;
+    --green: #5fbf83;
+    --green-light: rgba(95, 191, 131, 0.14);
+    --amber: #e0b44c;
+    --amber-light: rgba(224, 180, 76, 0.14);
+    --red: #ef7a6f;
+    --red-light: rgba(239, 122, 111, 0.14);
+    color-scheme: dark;
+  }
+}
+
+/* The portal's brand_color is injected on the shell ([data-sm-theme=<subdomain>]) and on
+   per-product sections. Under sm-core it must not take over buttons and links, so the accent
+   set is restated on those elements; the brand colour itself survives as --sm-brand. */
+html[data-sm-look="sm-core"] [data-sm-theme],
+html[data-sm-look="sm-core"] [data-product],
+html[data-sm-look="sm-core"][data-product] {
+  --accent: #cc4a1f;
+  --accent-hover: #b8421b;
+  --accent-foreground: #ffffff;
+  --accent-10: rgba(228, 86, 42, 0.12);
+  --accent-20: rgba(228, 86, 42, 0.2);
+  --accent-tint: rgba(228, 86, 42, 0.12);
+  --section-color: var(--foreground);
+  --section-tint: var(--accent-10);
+}
+html[data-sm-look="sm-core"][data-theme="dark"] [data-sm-theme],
+html[data-sm-look="sm-core"][data-theme="dark"] [data-product],
+html[data-sm-look="sm-core"][data-theme="dark"][data-product] {
+  --accent: #e4562a;
+  --accent-hover: #cc4a1f;
+  --accent-10: rgba(228, 86, 42, 0.2);
+  --accent-20: rgba(228, 86, 42, 0.3);
+  --accent-tint: rgba(228, 86, 42, 0.2);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-sm-look="sm-core"]:not([data-theme]) [data-sm-theme],
+  html[data-sm-look="sm-core"]:not([data-theme]) [data-product],
+  html[data-sm-look="sm-core"]:not([data-theme])[data-product] {
+    --accent: #e4562a;
+    --accent-hover: #cc4a1f;
+    --accent-10: rgba(228, 86, 42, 0.2);
+    --accent-20: rgba(228, 86, 42, 0.3);
+    --accent-tint: rgba(228, 86, 42, 0.2);
+  }
+}
+
+/* ---- page ---- */
+html[data-sm-look="sm-core"] body { background: var(--bg); color: var(--foreground); font-family: var(--font); }
+html[data-sm-look="sm-core"] h1,
+html[data-sm-look="sm-core"] h2,
+html[data-sm-look="sm-core"] h3 { font-family: var(--font-head); letter-spacing: -0.02em; text-wrap: balance; }
+html[data-sm-look="sm-core"] a:not([class]) { color: var(--accent); }
+html[data-sm-look="sm-core"] :focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+html[data-sm-look="sm-core"] .num,
+html[data-sm-look="sm-core"] .sm-num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* ---- shell: sidebar, header, main ---- */
+html[data-sm-look="sm-core"] .portal-main { background: var(--bg); }
+html[data-sm-look="sm-core"] .portal-page-title { font: 700 30px/1.1 var(--font-head); letter-spacing: -0.02em; }
+html[data-sm-look="sm-core"] .portal-sidebar { background: var(--bg-card); border-right: 2px solid var(--rule); }
+html[data-sm-look="sm-core"] .portal-sidebar-logo { border-bottom: 1px solid var(--border); font-family: var(--font-head); font-weight: 700; }
+html[data-sm-look="sm-core"] .ps-section-header { font: 500 10px var(--font-mono); letter-spacing: 0.12em; }
+html[data-sm-look="sm-core"] .ps-item { color: var(--foreground); font-size: 14px; }
+html[data-sm-look="sm-core"] .ps-item svg { opacity: 0.7; }
+html[data-sm-look="sm-core"] .ps-item.active,
+html[data-sm-look="sm-core"] .ps-section[data-product] .ps-item.active { background: var(--accent-10); color: var(--foreground); box-shadow: inset 3px 0 0 var(--orange); }
+html[data-sm-look="sm-core"] .portal-avatar { background: var(--foreground); color: var(--bg); border-radius: 8px; font-family: var(--font-mono); }
+html[data-sm-look="sm-core"] .shell-header { background: var(--bg-card); border-bottom: 2px solid var(--rule); }
+html[data-sm-look="sm-core"] .shell-header-title { font-family: var(--font-head); font-weight: 700; }
+html[data-sm-look="sm-core"] .shell-header-logo-icon { background: transparent; }
+html[data-sm-look="sm-core"] .shell-header-nav-item.active,
+html[data-sm-look="sm-core"] .shell-header-nav-panel-item.active { background: var(--accent-10); color: var(--foreground); box-shadow: inset 0 -2px 0 var(--orange); }
+html[data-sm-look="sm-core"] .portal-dropdown,
+html[data-sm-look="sm-core"] .shell-header-nav-panel { border: 2px solid var(--rule); box-shadow: 4px 4px 0 var(--rule); }
+
+/* ---- components ---- */
+html[data-sm-look="sm-core"] .sm-bc { font: 500 11px var(--font-mono); letter-spacing: 0.12em; }
+html[data-sm-look="sm-core"] .sm-card,
+html[data-sm-look="sm-core"] .sm-stat { background: var(--bg-card); border: 2px solid var(--rule); border-radius: 12px; box-shadow: none; }
+html[data-sm-look="sm-core"] .sm-card-title { font: 700 16px var(--font-head); }
+html[data-sm-look="sm-core"] .sm-stat-label,
+html[data-sm-look="sm-core"] .sm-label { font: 500 11px var(--font-mono); letter-spacing: 0.1em; }
+html[data-sm-look="sm-core"] .sm-stat-value { font: 600 28px/1.1 var(--font-mono); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+
+html[data-sm-look="sm-core"] .sm-btn { font: 600 14px var(--font); border: 2px solid var(--rule); border-radius: 8px; transition: transform 0.12s, box-shadow 0.12s, background 0.12s; }
+html[data-sm-look="sm-core"] .sm-btn-primary { background: var(--accent); color: var(--accent-foreground); }
+html[data-sm-look="sm-core"] .sm-btn-primary:hover { background: var(--accent); transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--rule); }
+html[data-sm-look="sm-core"] .sm-btn-secondary { background: var(--bg-card); color: var(--foreground); }
+html[data-sm-look="sm-core"] .sm-btn-secondary:hover { background: var(--bg-subtle); color: var(--foreground); border-color: var(--rule); }
+html[data-sm-look="sm-core"] .sm-btn-danger { background: var(--bg-card); color: var(--red); }
+html[data-sm-look="sm-core"] .sm-btn-danger:hover { background: var(--red-light); opacity: 1; }
+html[data-sm-look="sm-core"] .sm-btn:active { transform: none; box-shadow: none; }
+html[data-sm-look="sm-core"] .sm-btn:disabled { transform: none; box-shadow: none; }
+
+/* pills: outlined, mono, the colour carries the state and the word says it too */
+html[data-sm-look="sm-core"] .sm-pill,
+html[data-sm-look="sm-core"] .sm-badge { font: 600 10.5px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; background: transparent; border: 2px solid currentColor; border-radius: 999px; padding: 2px 8px; }
+html[data-sm-look="sm-core"] .sm-pill-green,
+html[data-sm-look="sm-core"] .sm-badge-green { color: var(--green); background: transparent; }
+html[data-sm-look="sm-core"] .sm-pill-amber,
+html[data-sm-look="sm-core"] .sm-badge-amber { color: var(--amber); background: transparent; }
+html[data-sm-look="sm-core"] .sm-pill-red,
+html[data-sm-look="sm-core"] .sm-badge-red { color: var(--red); background: transparent; }
+html[data-sm-look="sm-core"] .sm-pill-blue,
+html[data-sm-look="sm-core"] .sm-badge-blue { color: var(--foreground); background: transparent; }
+html[data-sm-look="sm-core"] .sm-pill-gray,
+html[data-sm-look="sm-core"] .sm-badge-gray { color: var(--muted); background: transparent; }
+html[data-sm-look="sm-core"] .sm-pill-accent { color: var(--accent); background: transparent; }
+
+html[data-sm-look="sm-core"] .sm-tabs { background: var(--bg-card); border: 2px solid var(--rule); border-radius: 10px; }
+html[data-sm-look="sm-core"] .sm-tab { color: var(--foreground); font: 500 13px var(--font); border-radius: 7px; }
+html[data-sm-look="sm-core"] .sm-tab.active { background: var(--foreground); color: var(--bg); }
+html[data-sm-look="sm-core"] .sm-tab:hover:not(.active) { background: var(--bg-subtle); }
+
+html[data-sm-look="sm-core"] .sm-progress { background: var(--bg-subtle); border: 1px solid var(--border); border-radius: 999px; }
+html[data-sm-look="sm-core"] .sm-progress-fill { background: var(--orange); }
+
+html[data-sm-look="sm-core"] .sm-table th { font: 500 10.5px var(--font-mono); letter-spacing: 0.1em; padding: 12px 16px; border-bottom: 2px solid var(--rule); white-space: nowrap; }
+html[data-sm-look="sm-core"] .sm-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+
+html[data-sm-look="sm-core"] .sm-input,
+html[data-sm-look="sm-core"] .sm-textarea,
+html[data-sm-look="sm-core"] .sm-select { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+html[data-sm-look="sm-core"] .sm-input:focus,
+html[data-sm-look="sm-core"] .sm-textarea:focus,
+html[data-sm-look="sm-core"] .sm-select:focus { border-color: var(--rule); box-shadow: none; outline: 2px solid var(--orange); outline-offset: 2px; }
+html[data-sm-look="sm-core"] input[type="checkbox"],
+html[data-sm-look="sm-core"] input[type="radio"] { accent-color: var(--orange); }
+
+html[data-sm-look="sm-core"] .sm-empty h3 { font: 700 16px var(--font-head); }
+html[data-sm-look="sm-core"] .sm-score-ring .fill { stroke: var(--orange); }
+html[data-sm-look="sm-core"] .sm-score-number .num { font-family: var(--font-mono); color: var(--foreground); }
+html[data-sm-look="sm-core"] .sm-explainer-drawer { border-bottom: 2px solid var(--rule); box-shadow: none; }
+
+/* phones: iOS Safari zooms into fields under 16px */
+@media (max-width: 760px) {
+  html[data-sm-look="sm-core"] .sm-input,
+  html[data-sm-look="sm-core"] .sm-textarea,
+  html[data-sm-look="sm-core"] .sm-select { font-size: 16px; }
+  html[data-sm-look="sm-core"] .portal-page-title { font-size: 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-sm-look="sm-core"] .sm-btn,
+  html[data-sm-look="sm-core"] .sm-btn:hover { transform: none; transition: none; }
+}

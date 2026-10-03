@@ -3,3 +3,5 @@
 @import './tokens.css';
 @import './shell.css';
 @import './components.css';
+/* sm-core inside look: dormant unless <html data-sm-look="sm-core"> (TASK-4748) */
+@import './theme-core.css';
