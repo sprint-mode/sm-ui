@@ -20,6 +20,21 @@ export function isSmLook(v: unknown): v is SmLook {
 export function applySmLook(look: unknown): void {
   if (typeof document === 'undefined' || !isSmLook(look)) return
   document.documentElement.setAttribute('data-sm-look', look)
+  loadSmLookFonts(look)
+}
+
+/** The sm-core faces (Space Grotesk, IBM Plex Mono). Only portals with the look on load them. */
+export const SM_CORE_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap'
+
+/** Adds the look's font stylesheet to <head> once. Unknown looks are ignored. */
+export function loadSmLookFonts(look: unknown): void {
+  if (typeof document === 'undefined' || !isSmLook(look)) return
+  if (document.querySelector('link[data-sm-look-fonts]')) return
+  var link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = SM_CORE_FONTS_HREF
+  link.setAttribute('data-sm-look-fonts', look)
+  document.head.appendChild(link)
 }
 
 /** The look in force right now, or null. */

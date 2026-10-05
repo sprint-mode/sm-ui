@@ -10,7 +10,7 @@ export { getSession as fetchSession, clearSession, api, formatCurrency, formatDa
 export { NotificationBellNav } from './NotificationBellNav.js';
 export { ProfileCard } from './ProfileCard.js';
 export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.js';
-export { applySmLook, currentSmLook, isSmLook, SM_LOOKS } from './look.js';
+export { applySmLook, currentSmLook, isSmLook, loadSmLookFonts, SM_CORE_FONTS_HREF, SM_LOOKS } from './look.js';
 export type { SmLook } from './look.js';
 export { SiteHeader } from './SiteHeader.js';
 export type { SiteHeaderProps, SiteHeaderNavLink, SiteHeaderConfig } from './SiteHeader.js';

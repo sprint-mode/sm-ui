@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 /* sm-core: the inside look for the core product (Platform) and Studios (TASK-4748).
  *
  * RULING (Aaron, 2026-09-30): Platform and Studios share the sprintmode.ai v2 look inside;
@@ -14,6 +13,10 @@
  * it on renders exactly as before. Orange is the one action colour in every sm-core portal;
  * the portal's own brand_color stays available as --sm-brand, for its mark only.
  * Tokens come from sm-site styles/site.css (palette PASS 2026-09-25).
+ *
+ * Fonts (Space Grotesk, IBM Plex Mono) load only when the look is on: applySmLook() in look.ts
+ * adds the Google Fonts stylesheet. A top-level @import here loaded them for every portal that
+ * imports index.css, look on or off (Control's #406 review Minor).
  */
 
 html[data-sm-look="sm-core"] {

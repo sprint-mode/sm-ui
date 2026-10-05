@@ -8,7 +8,7 @@ import { NoAccessScreen } from './NoAccessScreen.tsx'
 import { usePortalConfig } from './usePortalConfig.jsx'
 import { WhatsNew } from './WhatsNew.tsx'
 import { Tour, triggerTour } from './Tour.tsx'
-import { applySmLook, type SmLook } from './look.ts'
+import { applySmLook, currentSmLook, loadSmLookFonts, type SmLook } from './look.ts'
 
 // ─── Global augmentation for window.__SM_SESSION ───────────────────────────
 
@@ -739,7 +739,10 @@ export function HeaderUserMenu(props: {
       // BUG-2033: the operator's roles, sign-in emails, and Other Accounts
       // never render inside a lensed shell. The AccountSwitcher also guards
       // itself on the fresh /auth/me, but the menu never mounts it lensed.
-      lens ? null : React.createElement(AccountSwitcher, { product: props.portalSubdomain || undefined, session: session, authBase: props.authBase, apiBase: props.apiBase }),
+      // BUG-4926 follow-up: with nothing between the identity block and the switcher (no
+      // Notification Settings, keys or extra items), the identity block's rule is the divider,
+      // so the switcher drops its own leading rule instead of drawing a second line under it.
+      lens ? null : React.createElement(AccountSwitcher, { product: props.portalSubdomain || undefined, session: session, authBase: props.authBase, apiBase: props.apiBase, leadingRule: props.notificationSettingsHref !== null || !!props.mcpKeysPath || !!props.apiKeysPath || !!userMenuExtra }),
       React.createElement('a', { href: logoutHref, style: { display: 'block', padding: '8px 10px', borderRadius: 6, fontSize: 13, color: 'var(--foreground)', textDecoration: 'none' } }, 'Sign out')
     ) : null
   )
@@ -1510,7 +1513,9 @@ const Layout: React.FC<LayoutProps> = function Layout(props: LayoutProps) {
   var viewAsAnyRole = props.viewAsAnyRole
   var portalCfg = usePortalConfig()
   var look = props.look
-  useEffect(function() { if (look) applySmLook(look) }, [look])
+  // A look set in index.html (the preferred, no-flash way) still needs its fonts; the Layout
+  // loads them for whichever look is on, prop or attribute.
+  useEffect(function() { if (look) applySmLook(look); else loadSmLookFonts(currentSmLook()) }, [look])
   // cmdK prop takes priority (explicit true/false/object). If not passed, fall back to
   // config.cmdk from Portal Manager. Default to enabled while config is still loading.
   var cmdKEnabled = props.cmdK !== undefined
