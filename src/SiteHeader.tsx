@@ -29,8 +29,7 @@ type ThemeMode = 'light' | 'dark' | 'auto'
 
 function getStoredTheme(): ThemeMode {
   try {
-    var v = localStorage.getItem('sm-theme')
-    if (v === 'light' || v === 'dark') return v
+    return themeFromStorageValue(localStorage.getItem('sm-theme'))
   } catch (_e) { /* private browsing */ }
   return 'auto'
 }
@@ -55,22 +54,54 @@ function applyThemeAttr(mode: ThemeMode) {
   if (typeof document === 'undefined') return
   var applied = mode === 'auto' ? (resolveIsDark('auto') ? 'dark' : 'light') : mode
   document.documentElement.setAttribute('data-theme', applied)
+  // The chosen mode (not the resolved one), which siteThemeSnippet also sets
+  // before first paint so the prerendered pill can show it (Nikola 54).
+  document.documentElement.setAttribute('data-sm-theme-mode', mode)
+}
+
+function themeFromStorageValue(v: string | null): ThemeMode {
+  return v === 'light' || v === 'dark' ? v : 'auto'
 }
 
 function useSiteTheme() {
-  var _m = useState<ThemeMode>(getStoredTheme)
+  // First render is always 'auto' so the client's first render matches the
+  // prerendered HTML (the server has no localStorage); the stored theme is read
+  // after hydration. Reading it in the useState initializer caused React
+  // hydration error #418 whenever a theme was stored (Nikola 19).
+  var _m = useState<ThemeMode>('auto')
   var mode = _m[0]; var setMode = _m[1]
-  var _d = useState(function() { return resolveIsDark(mode) })
+  var _r = useState(false)
+  var ready = _r[0]; var setReady = _r[1]
+  var _d = useState(false)
   var isDark = _d[0]; var setIsDark = _d[1]
 
   useEffect(function() {
+    setMode(getStoredTheme())
+    setReady(true)
+  }, [])
+
+  useEffect(function() {
+    // Until the stored theme is read, writing would erase it.
+    if (!ready) return
     applyThemeAttr(mode)
     setStoredTheme(mode)
     setIsDark(resolveIsDark(mode))
-  }, [mode])
+  }, [mode, ready])
+
+  // A theme chosen in another tab reaches this one (Nikola 51). The storage
+  // event fires only in the other tabs; key is null when storage is cleared.
+  useEffect(function() {
+    if (typeof window === 'undefined') return
+    function onStorage(e: StorageEvent) {
+      if (e.key !== 'sm-theme' && e.key !== null) return
+      setMode(themeFromStorageValue(e.key === null ? null : e.newValue))
+    }
+    window.addEventListener('storage', onStorage)
+    return function() { window.removeEventListener('storage', onStorage) }
+  }, [])
 
   useEffect(function() {
-    if (mode !== 'auto') return
+    if (!ready || mode !== 'auto') return
     if (typeof window === 'undefined' || !window.matchMedia) return
     var mq = window.matchMedia('(prefers-color-scheme: dark)')
     var handler = function(e: MediaQueryListEvent) { setIsDark(e.matches); applyThemeAttr('auto') }
@@ -80,10 +111,11 @@ function useSiteTheme() {
       if (mq.removeEventListener) mq.removeEventListener('change', handler)
       else if (mq.removeListener) mq.removeListener(handler)
     }
-  }, [mode])
+  }, [mode, ready])
 
   return {
     mode: mode,
+    ready: ready,
     isDark: isDark,
     // Cycle: auto -> dark -> light -> auto (matches Layout useTheme).
     toggle: function() {
@@ -173,6 +205,43 @@ export interface SiteHeaderProps {
   apiBase?: string
   /** Pre-resolved config, to skip the network fetch (e.g. SSR/prerender). */
   config?: SiteHeaderConfig | null
+  /** The current URL path (e.g. Vike's urlPathname), so the prerendered HTML
+   *  already marks the current section. Omit it and the header reads
+   *  window.location after hydration. */
+  currentPath?: string
+}
+
+// ─── Current section ──────────────────────────────────────────────────────────
+// A nav href is "current" when its path (no hash, no query) equals the page
+// path; trailing slashes are ignored. Hash links (/#products, /invest/#ask)
+// point into a page, so they never mark the page itself.
+
+function normPath(p: string): string {
+  var q = p.search(/[?#]/)
+  if (q >= 0) p = p.slice(0, q)
+  if (p.length > 1 && p.charAt(p.length - 1) === '/') p = p.slice(0, -1)
+  return p || '/'
+}
+
+function isCurrentHref(link: SiteHeaderNavLink, path: string): boolean {
+  if (!path || link.external || link.href.indexOf('#') >= 0) return false
+  if (/^[a-z]+:/i.test(link.href) || link.href.indexOf('//') === 0) return false
+  return normPath(link.href) === normPath(path)
+}
+
+// A group is the current section when one of its items is the current page,
+// or the page sits under one of its item paths (/platform/foundry/x).
+function isCurrentGroup(link: SiteHeaderNavLink, path: string): boolean {
+  if (!path || !link.items) return false
+  var here = normPath(path)
+  for (var i = 0; i < link.items.length; i++) {
+    var it = link.items[i]
+    if (isCurrentHref(it, path)) return true
+    if (it.external || it.href.indexOf('#') >= 0 || /^[a-z]+:/i.test(it.href) || it.href.indexOf('//') === 0) continue
+    var base = normPath(it.href)
+    if (base !== '/' && here.indexOf(base + '/') === 0) return true
+  }
+  return false
 }
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -184,19 +253,33 @@ export interface SiteHeaderProps {
 var SITE_HEADER_CSS =
   '.smsh{background:var(--bg-card,var(--bg));border-bottom:1px solid var(--border);position:sticky;top:0;z-index:9000;flex-shrink:0}' +
   '.smsh__inner{display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 20px;gap:16px;max-width:var(--max-w,80rem);margin:0 auto}' +
-  '.smsh__brand{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--foreground);flex-shrink:0;min-width:0}' +
+  '.smsh__brand{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--foreground);flex-shrink:0;min-width:0;transition:opacity .15s}' +
+  '.smsh__brand:hover{opacity:.75}' +
   '.smsh__logo{height:26px;width:auto;display:block}' +
   '.smsh__name{font-size:17px;font-weight:500;letter-spacing:-0.3px}' +
   '.smsh__byline{font-size:13px;font-weight:400;color:var(--muted);white-space:nowrap}' +
   '.smsh__right{display:flex;align-items:center;gap:10px}' +
   '.smsh__nav{display:flex;align-items:center;gap:20px;margin-right:6px}' +
   '.smsh__nav a{font-size:14px;text-decoration:none;font-family:var(--font);color:var(--muted);white-space:nowrap}' +
+  '.smsh__nav a:hover{color:var(--foreground)}' +
   '.smsh__nav a[data-active="true"]{color:var(--foreground);font-weight:600}' +
+  // Current section on a dropdown button: bold without shifting the row. The
+  // hidden bold copy (::after) reserves the bold width in both states.
+  '.smsh__ddlabel{display:inline-flex;flex-direction:column}' +
+  '.smsh__ddlabel::after{content:attr(data-text);height:0;overflow:hidden;visibility:hidden;font-weight:600;pointer-events:none}' +
+  '.smsh__ddbtn[data-active="true"]{color:var(--foreground);font-weight:600}' +
+  '.smsh__ddpanel a[aria-current="page"],.smsh__mnav a[aria-current="page"]{font-weight:700}' +
   '.smsh__pill{height:34px;background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:0 10px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);font-family:var(--font);flex-shrink:0;transition:border-color .2s;box-sizing:border-box}' +
   '.smsh__pill:hover{border-color:var(--accent)}' +
   '.smsh__pill-label{font-size:11px;font-weight:500;letter-spacing:.3px}' +
-  '.smsh__signin{display:flex;align-items:center;height:34px;padding:0 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--font);flex-shrink:0;box-sizing:border-box;white-space:nowrap}' +
-  '.smsh__signin:hover{opacity:.9}' +
+  // Before hydration the pill carries all three modes and shows the one that
+  // siteThemeSnippet put on <html> (data-sm-theme-mode); Auto without it.
+  '.smsh__pm{display:none}' +
+  '.smsh__pm[data-mode="auto"]{display:contents}' +
+  'html[data-sm-theme-mode] .smsh__pm[data-mode]{display:none}' +
+  'html[data-sm-theme-mode="auto"] .smsh__pm[data-mode="auto"],html[data-sm-theme-mode="dark"] .smsh__pm[data-mode="dark"],html[data-sm-theme-mode="light"] .smsh__pm[data-mode="light"]{display:contents}' +
+  '.smsh__signin{display:flex;align-items:center;height:34px;padding:0 14px;border-radius:8px;background:var(--accent);color:#fff;font-size:13px;font-weight:600;text-decoration:none;font-family:var(--font);flex-shrink:0;box-sizing:border-box;white-space:nowrap;transition:box-shadow .15s}' +
+  '.smsh__signin:hover{box-shadow:inset 0 0 0 40px rgba(0,0,0,.14)}' +
   '.smsh__dd{position:relative}' +
   '.smsh__ddbtn{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:14px;font-family:var(--font);color:var(--muted);white-space:nowrap}' +
   '.smsh__ddbtn[aria-expanded="true"],.smsh__ddbtn:hover{color:var(--foreground)}' +
@@ -218,7 +301,18 @@ var SITE_HEADER_CSS =
   '.smsh__menubtn{display:inline-flex}' +
   '.smsh__pill-label{display:none}' +
   '.smsh__pill{padding:0 9px}' +
-  '}'
+  '}' +
+  // Narrow phones (Nikola 11): tighter spacing so logo + controls + Menu fit
+  // without the page scrolling sideways at 320-389px.
+  '@media (max-width:389px){' +
+  '.smsh__inner{padding:0 10px;gap:8px}' +
+  '.smsh__right{gap:6px}' +
+  '.smsh__logo{height:22px}' +
+  '.smsh__pill{padding:0 8px}' +
+  '.smsh__signin{padding:0 10px}' +
+  '.smsh__menubtn{padding:0 8px}' +
+  '}' +
+  '@media (prefers-reduced-motion:reduce){.smsh__brand,.smsh__signin,.smsh__pill{transition:none}}'
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -270,8 +364,28 @@ export function SiteHeader(props: SiteHeaderProps) {
   useEffect(function() { setLogoOk(true) }, [wordmark])
 
   var themeLabel = theme.mode === 'auto' ? 'Auto' : theme.mode === 'dark' ? 'Dark' : 'Light'
-  var themeTitle = theme.mode === 'auto' ? 'Theme: System' : theme.mode === 'dark' ? 'Theme: Dark' : 'Theme: Light'
-  var pathname = typeof window !== 'undefined' ? window.location.pathname : ''
+  // The accessible name says what the pill shows (Nikola 40).
+  var themeTitle = 'Theme: ' + themeLabel
+
+  // Current path: the prop when given (prerender marks the section), else
+  // window.location read after hydration so first render matches the server.
+  // Re-read on every render, so client-side navigation keeps it current.
+  var _path = useState<string>(props.currentPath || '')
+  var locPath = _path[0]; var setLocPath = _path[1]
+  useEffect(function() {
+    if (props.currentPath !== undefined || typeof window === 'undefined') return
+    var p = window.location.pathname
+    if (p !== locPath) setLocPath(p)
+  })
+  var pathname = props.currentPath !== undefined ? props.currentPath : locPath
+
+  // Brand accent scoped to the header, so the prerendered Sign in and pill use
+  // the brand colour before the :root tokens are applied (Nikola 54).
+  var headerStyle: Record<string, string> | undefined
+  if (config && config.brand_color) {
+    headerStyle = { '--accent': String(config.brand_color) }
+    if (config.brand_tint) headerStyle['--accent-10'] = String(config.brand_tint)
+  }
 
   var ThemeIcon = theme.mode === 'light' ? IconSun : theme.mode === 'dark' ? IconMoon : IconDeviceDesktop
 
@@ -299,7 +413,7 @@ export function SiteHeader(props: SiteHeaderProps) {
   var showMobile = hasNav && props.mobileMenu === true
 
   return (
-    <header className="smsh" ref={headerRef}>
+    <header className="smsh" ref={headerRef} style={headerStyle as React.CSSProperties | undefined}>
       <style dangerouslySetInnerHTML={{ __html: SITE_HEADER_CSS }} />
       <div className="smsh__inner">
         {/* Logo lockup: the portal's horizontal wordmark (themed) + "by ..."
@@ -327,6 +441,7 @@ export function SiteHeader(props: SiteHeaderProps) {
                 if (link.items && link.items.length > 0) {
                   var ddId = 'smsh-dd-' + link.label.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
                   var isOpen = openDd === link.label
+                  var groupActive = isCurrentGroup(link, pathname)
                   return (
                     <div className="smsh__dd" key={link.label}>
                       <button
@@ -334,9 +449,10 @@ export function SiteHeader(props: SiteHeaderProps) {
                         className="smsh__ddbtn"
                         aria-expanded={isOpen ? 'true' : 'false'}
                         aria-controls={ddId}
+                        data-active={groupActive ? 'true' : 'false'}
                         onClick={function() { setOpenDd(isOpen ? null : link.label) }}
                       >
-                        {link.label}
+                        <span className="smsh__ddlabel" data-text={link.label}>{link.label}</span>
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
                       </button>
                       <div className="smsh__ddpanel" id={ddId} hidden={!isOpen}>
@@ -345,6 +461,7 @@ export function SiteHeader(props: SiteHeaderProps) {
                             <a
                               key={it.href}
                               href={it.href}
+                              {...(isCurrentHref(it, pathname) ? { 'aria-current': 'page' as const } : {})}
                               {...(it.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                             >
                               {it.label}
@@ -356,12 +473,13 @@ export function SiteHeader(props: SiteHeaderProps) {
                     </div>
                   )
                 }
-                var active = !link.external && pathname === link.href
+                var active = isCurrentHref(link, pathname)
                 return (
                   <a
                     key={link.href}
                     href={link.href}
                     data-active={active ? 'true' : 'false'}
+                    {...(active ? { 'aria-current': 'page' as const } : {})}
                     {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   >
                     {link.label}
@@ -377,8 +495,20 @@ export function SiteHeader(props: SiteHeaderProps) {
             aria-label={themeTitle}
             title={themeTitle}
           >
-            <ThemeIcon />
-            <span className="smsh__pill-label">{themeLabel}</span>
+            {theme.ready ? (
+              <>
+                <ThemeIcon />
+                <span className="smsh__pill-label">{themeLabel}</span>
+              </>
+            ) : (
+              // Prerender / first client render: all three, CSS shows the
+              // stored one (see .smsh__pm) so a slow load does not say Auto.
+              <>
+                <span className="smsh__pm" data-mode="auto"><IconDeviceDesktop /><span className="smsh__pill-label">Auto</span></span>
+                <span className="smsh__pm" data-mode="dark"><IconMoon /><span className="smsh__pill-label">Dark</span></span>
+                <span className="smsh__pm" data-mode="light"><IconSun /><span className="smsh__pill-label">Light</span></span>
+              </>
+            )}
           </button>
 
           {props.signInHref ? (
@@ -413,6 +543,7 @@ export function SiteHeader(props: SiteHeaderProps) {
                         key={it.href}
                         className="smsh__msub"
                         href={it.href}
+                        {...(isCurrentHref(it, pathname) ? { 'aria-current': 'page' as const } : {})}
                         {...(it.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                       >
                         {it.label}
@@ -426,6 +557,7 @@ export function SiteHeader(props: SiteHeaderProps) {
               <a
                 key={link.href}
                 href={link.href}
+                {...(isCurrentHref(link, pathname) ? { 'aria-current': 'page' as const } : {})}
                 {...(link.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
               >
                 {link.label}

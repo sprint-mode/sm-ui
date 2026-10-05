@@ -45,6 +45,10 @@ export interface SiteHeaderProps {
     apiBase?: string;
     /** Pre-resolved config, to skip the network fetch (e.g. SSR/prerender). */
     config?: SiteHeaderConfig | null;
+    /** The current URL path (e.g. Vike's urlPathname), so the prerendered HTML
+     *  already marks the current section. Omit it and the header reads
+     *  window.location after hydration. */
+    currentPath?: string;
 }
 export declare function SiteHeader(props: SiteHeaderProps): React.JSX.Element;
 export default SiteHeader;
