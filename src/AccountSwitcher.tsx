@@ -24,6 +24,10 @@ import { themedMarkFromLogoUrl } from './dark-mode'
 import type { SessionData } from './api.js'
 
 export interface AccountSwitcherProps {
+  /** BUG-4926 follow-up: false drops the rule above the first section, for a menu that
+   *  already draws one right above the switcher (the user menu with no items between its
+   *  identity block and the switcher). Default true: unchanged. */
+  leadingRule?: boolean
   /** API base URL for the same-origin proxy paths (empty string = same origin) */
   apiBase?: string
   /** Portal subdomain — sent as X-SM-Product so the API resolves THIS
@@ -434,8 +438,14 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var portalDisplayName = (currentPortalInfo && currentPortalInfo.name) ||
     (product ? (product.charAt(0).toUpperCase() + product.slice(1)) : 'this portal')
 
+  // The rule above a section; leadingRule === false drops it on the first section shown.
+  var noLead = props.leadingRule === false
+  function rule(isFirst: boolean) {
+    return noLead && isFirst ? null : React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } })
+  }
+
   var rolesSection = myRoles.length > 0 ? React.createElement(React.Fragment, null,
-    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+    rule(true),
     sectionHeader('roles', 'Roles on ' + portalDisplayName, myRoles.length),
     expandedSection === 'roles' ? React.createElement('div', null,
       myRoles.map(function(r: any) {
@@ -518,7 +528,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   var accessCount = accessPortals.length + (ownWaffleNested ? 1 : 0)
 
   var accessSection = accessCount > 0 ? React.createElement(React.Fragment, null,
-    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+    rule(myRoles.length === 0),
     sectionHeader('access', 'Portal access', accessCount),
     expandedSection === 'access' ? React.createElement('div', null,
       accessPortals.map(function(p) {
@@ -614,7 +624,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
       ? expandedAccount.portals.filter(function(p) { return p.subdomain !== 'waffle' })
       : expandedAccount.portals
     return React.createElement(React.Fragment, null,
-      React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+      rule(true),
       React.createElement('button', {
         onClick: function() { setExpanded(null) },
         style: {
@@ -655,7 +665,7 @@ export function AccountSwitcher(props: AccountSwitcherProps) {
   }
 
   var linkedSection = React.createElement(React.Fragment, null,
-    React.createElement('div', { style: { height: 1, background: 'var(--border)', margin: '4px 0' } }),
+    rule(myRoles.length === 0 && accessCount === 0),
     sectionHeader('linked', 'Linked accounts', otherAccounts.length, 'separate sign-ins'),
     expandedSection === 'linked' ? React.createElement('div', null,
       otherAccounts.map(function(account) {
