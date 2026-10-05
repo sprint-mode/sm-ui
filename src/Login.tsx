@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ReactNode } from "react";
+import React, { useState, useEffect, useId, ReactNode } from "react";
 import {
   isDarkMode,
   themedMarkFromLogoUrl,
@@ -53,6 +53,12 @@ const Login: React.FC<LoginProps> = function Login({
   portal: portalProp,
 }: LoginProps) {
   var _portalCfg = usePortalConfig();
+  // Ids that tie labels and error messages to their fields (Nikola 171).
+  var fieldId = useId();
+  var emailId = fieldId + "-email";
+  var errorId = fieldId + "-error";
+  var codeId = fieldId + "-code";
+  var codeErrorId = fieldId + "-code-error";
   var _email = useState("");
   var email = _email[0];
   var setEmail = _email[1];
@@ -465,9 +471,10 @@ const Login: React.FC<LoginProps> = function Login({
     boxSizing: "border-box" as const,
   };
 
+  // Focus ring follows the portal accent, not a fixed blue (Nikola 171).
   function handleInputFocus(e: React.FocusEvent<HTMLInputElement>) {
-    e.target.style.borderColor = "var(--blue)";
-    e.target.style.boxShadow = "0 0 0 3px var(--blue-10)";
+    e.target.style.borderColor = "var(--accent)";
+    e.target.style.boxShadow = "0 0 0 3px var(--accent-10)";
   }
   function handleInputBlur(e: React.FocusEvent<HTMLInputElement>) {
     e.target.style.borderColor = "var(--border)";
@@ -620,6 +627,8 @@ const Login: React.FC<LoginProps> = function Login({
 
           {error && (
             <div
+              id={errorId}
+              role="alert"
               style={{
                 background: "var(--red-light)",
                 color: "var(--red)",
@@ -638,6 +647,7 @@ const Login: React.FC<LoginProps> = function Login({
               <div style={{ display: "flex", gap: 12, marginBottom: 0 }}>
                 <div style={{ flex: 1 }}>
                   <label
+                    htmlFor={fieldId + "-first"}
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
@@ -649,6 +659,7 @@ const Login: React.FC<LoginProps> = function Login({
                     First name
                   </label>
                   <input
+                    id={fieldId + "-first"}
                     type="text"
                     value={firstName}
                     onChange={function (e) {
@@ -665,6 +676,7 @@ const Login: React.FC<LoginProps> = function Login({
                 </div>
                 <div style={{ flex: 1 }}>
                   <label
+                    htmlFor={fieldId + "-last"}
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
@@ -676,6 +688,7 @@ const Login: React.FC<LoginProps> = function Login({
                     Last name
                   </label>
                   <input
+                    id={fieldId + "-last"}
                     type="text"
                     value={lastName}
                     onChange={function (e) {
@@ -694,6 +707,7 @@ const Login: React.FC<LoginProps> = function Login({
               {showCompanyField && (
                 <div>
                   <label
+                    htmlFor={fieldId + "-company"}
                     style={{
                       fontSize: 12,
                       fontWeight: 600,
@@ -706,6 +720,7 @@ const Login: React.FC<LoginProps> = function Login({
                       (cfMode === "optional" ? " (optional)" : "")}
                   </label>
                   <input
+                    id={fieldId + "-company"}
                     type="text"
                     value={companyName}
                     onChange={function (e) {
@@ -732,6 +747,7 @@ const Login: React.FC<LoginProps> = function Login({
                 </div>
               )}
               <label
+                htmlFor={emailId}
                 style={{
                   fontSize: 12,
                   fontWeight: 600,
@@ -745,7 +761,11 @@ const Login: React.FC<LoginProps> = function Login({
                 Email address
               </label>
               <input
+                id={emailId}
+                name="email"
                 type="email"
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 value={email}
                 onChange={function (e) {
                   setEmail(e.target.value);
@@ -938,6 +958,10 @@ const Login: React.FC<LoginProps> = function Login({
                 </strong>
               </div>
               <input
+                id={codeId}
+                aria-label="Verification code"
+                aria-invalid={codeError ? true : undefined}
+                aria-describedby={codeError ? codeErrorId : undefined}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -995,6 +1019,8 @@ const Login: React.FC<LoginProps> = function Login({
               </button>
               {codeError && (
                 <div
+                  id={codeErrorId}
+                  role="alert"
                   style={{
                     fontSize: 13,
                     color: "var(--red)",

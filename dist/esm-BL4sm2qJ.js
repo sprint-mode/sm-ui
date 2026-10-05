@@ -1,24 +1,24 @@
-//#region node_modules/@simplewebauthn/browser/esm/helpers/bufferToBase64URLString.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/bufferToBase64URLString.js
 function e(e) {
 	let t = new Uint8Array(e), n = "";
 	for (let e of t) n += String.fromCharCode(e);
 	return btoa(n).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/base64URLStringToBuffer.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/base64URLStringToBuffer.js
 function t(e) {
 	let t = e.replace(/-/g, "+").replace(/_/g, "/"), n = (4 - t.length % 4) % 4, r = t.padEnd(t.length + n, "="), i = atob(r), a = new ArrayBuffer(i.length), o = new Uint8Array(a);
 	for (let e = 0; e < i.length; e++) o[e] = i.charCodeAt(e);
 	return a;
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/browserSupportsWebAuthn.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/browserSupportsWebAuthn.js
 function n() {
 	return r.stubThis(globalThis?.PublicKeyCredential !== void 0 && typeof globalThis.PublicKeyCredential == "function");
 }
 var r = { stubThis: (e) => e };
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/toPublicKeyCredentialDescriptor.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/toPublicKeyCredentialDescriptor.js
 function i(e) {
 	let { id: n } = e;
 	return {
@@ -28,12 +28,12 @@ function i(e) {
 	};
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/isValidDomain.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/isValidDomain.js
 function a(e) {
 	return e === "localhost" || /^((xn--[a-z0-9-]+|[a-z0-9]+(-[a-z0-9]+)*)\.)+([a-z]{2,}|xn--[a-z0-9-]+)$/i.test(e);
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/webAuthnError.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/webAuthnError.js
 var o = class extends Error {
 	constructor({ message: e, code: t, cause: n, name: r }) {
 		super(e, { cause: n }), Object.defineProperty(this, "code", {
@@ -45,7 +45,7 @@ var o = class extends Error {
 	}
 };
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/identifyRegistrationError.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/identifyRegistrationError.js
 function s({ error: e, options: t }) {
 	let { publicKey: n } = t;
 	if (!n) throw Error("options was missing required publicKey property");
@@ -143,7 +143,7 @@ function u(e) {
 	if (e && !(l.indexOf(e) < 0)) return e;
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/methods/startRegistration.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/methods/startRegistration.js
 async function d(r) {
 	!r.optionsJSON && r.challenge && (console.warn("startRegistration() was not called correctly. It will try to continue with the provided options, but this call should be refactored to use the expected call structure instead. See https://simplewebauthn.dev/docs/packages/browser#typeerror-cannot-read-properties-of-undefined-reading-challenge for more information."), r = { optionsJSON: r });
 	let { optionsJSON: a, useAutoRegister: o = !1 } = r;
@@ -209,7 +209,7 @@ function f(e, t) {
 	console.warn(`The browser extension that intercepted this WebAuthn API call incorrectly implemented ${e}. You should report this error to them.\n`, t);
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/browserSupportsWebAuthnAutofill.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/browserSupportsWebAuthnAutofill.js
 function p() {
 	if (!n()) return m.stubThis(new Promise((e) => e(!1)));
 	let e = globalThis.PublicKeyCredential;
@@ -217,7 +217,7 @@ function p() {
 }
 var m = { stubThis: (e) => e };
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/helpers/identifyAuthenticationError.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/helpers/identifyAuthenticationError.js
 function h({ error: e, options: t }) {
 	let { publicKey: n } = t;
 	if (!n) throw Error("options was missing required publicKey property");
@@ -252,7 +252,7 @@ function h({ error: e, options: t }) {
 	return e;
 }
 //#endregion
-//#region node_modules/@simplewebauthn/browser/esm/methods/startAuthentication.js
+//#region ../wt-ui/node_modules/@simplewebauthn/browser/esm/methods/startAuthentication.js
 async function g(r) {
 	!r.optionsJSON && r.challenge && (console.warn("startAuthentication() was not called correctly. It will try to continue with the provided options, but this call should be refactored to use the expected call structure instead. See https://simplewebauthn.dev/docs/packages/browser#typeerror-cannot-read-properties-of-undefined-reading-challenge for more information."), r = { optionsJSON: r });
 	let { optionsJSON: a, useBrowserAutofill: o = !1, verifyBrowserAutofillInput: s = !0 } = r;

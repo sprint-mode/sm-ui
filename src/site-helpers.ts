@@ -15,11 +15,16 @@ import { useEffect } from 'react'
 // or in JSX:
 //   <script dangerouslySetInnerHTML={{ __html: siteThemeSnippet }} />
 
+// It also sets data-sm-theme-mode to the chosen mode ('auto'|'dark'|'light'),
+// which SiteHeader's prerendered theme pill reads so it shows the stored theme
+// before hydration (Nikola 54).
 export var siteThemeSnippet =
   "(function(){try{var t=localStorage.getItem('sm-theme');" +
-  "var d=(t==='dark'||t==='light')?t:" +
+  "var s=(t==='dark'||t==='light');" +
+  "var d=s?t:" +
   "((window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light');" +
-  "document.documentElement.setAttribute('data-theme',d);}catch(e){}})();"
+  "document.documentElement.setAttribute('data-theme',d);" +
+  "document.documentElement.setAttribute('data-sm-theme-mode',s?t:'auto');}catch(e){}})();"
 
 // Apply the resolved theme attribute imperatively (e.g. from an SSR entry that
 // cannot inline a script). Idempotent with the snippet above.
@@ -31,6 +36,7 @@ export function applySiteTheme(): void {
     ? t
     : (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
   document.documentElement.setAttribute('data-theme', applied)
+  document.documentElement.setAttribute('data-sm-theme-mode', (t === 'dark' || t === 'light') ? t : 'auto')
 }
 
 // ─── Per-page title helper ────────────────────────────────────────────────────
