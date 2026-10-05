@@ -61,7 +61,7 @@ export { NotificationBellNav } from './NotificationBellNav.tsx'
 export { ProfileCard } from './ProfileCard.tsx'
 export { usePortalConfig, PortalConfigProvider } from './usePortalConfig.tsx'
 // TASK-4748: the sm-core inside look (Platform, Studios)
-export { applySmLook, currentSmLook, isSmLook, SM_LOOKS } from './look.ts'
+export { applySmLook, currentSmLook, isSmLook, loadSmLookFonts, SM_CORE_FONTS_HREF, SM_LOOKS } from './look.ts'
 export type { SmLook } from './look.ts'
 
 // Public marketing-site shell (FEAT-2997). Session-free; a marketing site should

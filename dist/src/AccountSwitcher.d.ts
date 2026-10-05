@@ -1,6 +1,10 @@
 import { default as React } from 'react';
 import { SessionData } from './api.js';
 export interface AccountSwitcherProps {
+    /** BUG-4926 follow-up: false drops the rule above the first section, for a menu that
+     *  already draws one right above the switcher (the user menu with no items between its
+     *  identity block and the switcher). Default true: unchanged. */
+    leadingRule?: boolean;
     /** API base URL for the same-origin proxy paths (empty string = same origin) */
     apiBase?: string;
     /** Portal subdomain — sent as X-SM-Product so the API resolves THIS
