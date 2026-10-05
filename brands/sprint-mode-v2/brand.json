@@ -1,0 +1,23 @@
+{
+  "name": "sprint-mode-v2",
+  "displayNames": [
+    "Sprint Mode"
+  ],
+  "color": "#e4562a",
+  "tint": "#efece5",
+  "font": "Geist",
+  "fontMono": "Geist Mono",
+  "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
+  "css": {
+    "--accent": "#e4562a",
+    "--accent-hover": "#e4562a",
+    "--accent-10": "rgba(228, 86, 42, 0.1)",
+    "--accent-20": "rgba(228, 86, 42, 0.2)",
+    "--tint": "#efece5"
+  },
+  "source": "sm-site origin/main public/brand",
+  "ink": "#1c1b18",
+  "paper": "#efece5",
+  "coral": "#e4562a",
+  "darkBackground": "#141311"
+}

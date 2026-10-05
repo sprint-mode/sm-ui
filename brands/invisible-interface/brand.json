@@ -1,0 +1,22 @@
+{
+  "name": "invisible-interface",
+  "displayNames": [
+    "Invisible Interface"
+  ],
+  "color": "#6B7280",
+  "tint": "#f0f1f2",
+  "font": "Geist",
+  "fontMono": "Geist Mono",
+  "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
+  "css": {
+    "--accent": "#6B7280",
+    "--accent-hover": "#6B7280",
+    "--accent-10": "rgba(107, 114, 128, 0.1)",
+    "--accent-20": "rgba(107, 114, 128, 0.2)",
+    "--tint": "#f0f1f2"
+  },
+  "source": "sm-site origin/main public/brand",
+  "darkColor": "#C0C4CC",
+  "text": "#1A1208",
+  "textDark": "#F5EFE4"
+}

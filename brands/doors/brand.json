@@ -1,0 +1,22 @@
+{
+  "name": "doors",
+  "displayNames": [
+    "Doors"
+  ],
+  "color": "#111111",
+  "tint": "#e7e7e7",
+  "font": "Geist",
+  "fontMono": "Geist Mono",
+  "fontUrl": "https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=Geist+Mono:wght@100..900&display=swap",
+  "css": {
+    "--accent": "#111111",
+    "--accent-hover": "#111111",
+    "--accent-10": "rgba(17, 17, 17, 0.1)",
+    "--accent-20": "rgba(17, 17, 17, 0.2)",
+    "--tint": "#e7e7e7"
+  },
+  "source": "sm-site origin/main public/brand",
+  "darkColor": "#F5EFE4",
+  "text": "#1A1208",
+  "textDark": "#F5EFE4"
+}
