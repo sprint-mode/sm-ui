@@ -57,3 +57,28 @@
 /scripts/migration-dupe-allowlist.txt  @sprint-mode/reviewers
 wrangler.toml                          @sprint-mode/reviewers
 # sm-workflow:end
+
+# Human review (Aaron, 2026-10-08): a member of @sprint-mode/reviewers approves changes to the
+# paths below; the evaluator approves every other path. Keep this section BELOW "# sm-workflow:end".
+# Workflows and repository automation
+/.github/                     @sprint-mode/reviewers
+/.githooks/                   @sprint-mode/reviewers
+/.claude/settings.json        @sprint-mode/reviewers
+/.mcp.json                    @sprint-mode/reviewers
+# Bindings and production runtime config
+wrangler*.toml                @sprint-mode/reviewers
+wrangler*.json                @sprint-mode/reviewers
+wrangler*.jsonc               @sprint-mode/reviewers
+railway.toml                  @sprint-mode/reviewers
+railway.json                  @sprint-mode/reviewers
+Dockerfile*                   @sprint-mode/reviewers
+# Secrets: committed environment files
+.env*                         @sprint-mode/reviewers
+.dev.vars*                    @sprint-mode/reviewers
+# Auth: page permission-key coverage check and its exemptions
+check-page-permkeys.cjs       @sprint-mode/reviewers
+.permkey-allowlist.json       @sprint-mode/reviewers
+# Repository-specific paths
+/src/auth.ts                           @sprint-mode/reviewers
+/dist/auth.js                          @sprint-mode/reviewers
+/runtime/                              @sprint-mode/reviewers
