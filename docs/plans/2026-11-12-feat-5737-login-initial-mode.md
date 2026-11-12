@@ -2,7 +2,7 @@
 
 Plan for FEAT-5737 in sprint-mode/sm-ui (one of the square's five PRs, by Nikola's ruling 2026-11-12, "Add it to sm-ui"; it lands before the sm-raise-dash PR, which pins the released version for raise.sprintmode.ai/auth/signup).
 
-- Item binding: `sha256:0000000000000000000000000000000000000000000000000000000000000000`.
+- Item binding: `sha256:a5146dd0912b9a2bc12a4ed5ccb825cb457db2251d522d910751fb9feb0e83e1`.
 - Waffle source revision: `updated_at` `2026-11-12 09:58:05`
 
 Design binding: none. The item decides the work (Scope 3a to 3c).
