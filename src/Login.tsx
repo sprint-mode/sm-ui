@@ -35,6 +35,10 @@ export interface LoginProps {
   linkTo?: string;
   /** Optional cancel URL shown in link mode. Defaults to '/'. */
   cancelHref?: string;
+  /** Which form to open on. "signup" opens on the sign-up fields, but only
+   *  when signupParams is also set; otherwise the sign-in form opens. The
+   *  "Create an account" / "Sign in" toggle still switches either way. */
+  initialMode?: "signin" | "signup";
 }
 
 const Login: React.FC<LoginProps> = function Login({
@@ -51,6 +55,7 @@ const Login: React.FC<LoginProps> = function Login({
   linkTo,
   cancelHref,
   portal: portalProp,
+  initialMode,
 }: LoginProps) {
   var _portalCfg = usePortalConfig();
   // Ids that tie labels and error messages to their fields (Nikola 171).
@@ -71,7 +76,9 @@ const Login: React.FC<LoginProps> = function Login({
   var _sent = useState(false);
   var sent = _sent[0];
   var setSent = _sent[1];
-  var _mode = useState<"signin" | "signup">("signin");
+  var _mode = useState<"signin" | "signup">(
+    initialMode === "signup" && signupParams ? "signup" : "signin",
+  );
   var mode = _mode[0];
   var setMode = _mode[1];
   var _firstName = useState("");

@@ -28,6 +28,10 @@ export interface LoginProps {
     linkTo?: string;
     /** Optional cancel URL shown in link mode. Defaults to '/'. */
     cancelHref?: string;
+    /** Which form to open on. "signup" opens on the sign-up fields, but only
+     *  when signupParams is also set; otherwise the sign-in form opens. The
+     *  "Create an account" / "Sign in" toggle still switches either way. */
+    initialMode?: "signin" | "signup";
 }
 declare const Login: React.FC<LoginProps>;
 export default Login;
