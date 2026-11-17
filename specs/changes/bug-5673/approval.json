@@ -1,0 +1,9 @@
+{
+  "change": "bug-5673",
+  "approved_by": "Claude (orchestrator, for Eugenio de Tomaso)",
+  "approved_at": "2026-11-17T02:05:49+00:00",
+  "commit": "500b7f1a2cbf180774b16bb0e4fb080130ef0ac0",
+  "tests": {
+    "src/__tests__/bug-5673.acceptance.test.jsx": "3513a4aa8dbefbf05ecb2f0b3191bdd2e85285ac729aeea3858a265fa111ef7e"
+  }
+}

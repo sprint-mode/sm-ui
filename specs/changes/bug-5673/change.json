@@ -5,7 +5,7 @@
   "repo": "sprint-mode/sm-ui",
   "area": "search-palette",
   "branch": "factory/bug-5673",
-  "step": "plan",
+  "step": "approved",
   "acceptance_tests": [
     "src/__tests__/bug-5673.acceptance.test.jsx"
   ],
