@@ -105767,7 +105767,7 @@ function e9(e) {
 	function F(e, t, n) {
 		var r = e.meta || {}, i = X7[r.badgeColor || ""] || X7.gray, a = e.subsection ? e.section + " > " + e.subsection : "", s = r.breadcrumbs && r.breadcrumbs.length > 0;
 		return o.createElement("a", {
-			key: e.to || e.label || t,
+			key: (e.to || e.label || "") + "#" + t,
 			href: e.to || "#",
 			onClick: function(t) {
 				t.preventDefault(), P(e);
