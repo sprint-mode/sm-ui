@@ -482,7 +482,7 @@ export function CmdK(props: CmdKProps) {
     var hasBreadcrumbs = meta.breadcrumbs && meta.breadcrumbs.length > 0
 
     return React.createElement('a', {
-      key: item.to || item.label || idx,
+      key: (item.to || item.label || '') + '#' + idx,
       href: item.to || '#',
       onClick: function(e: React.MouseEvent) { e.preventDefault(); selectItem(item) },
       onMouseEnter: function() { setHi(idx) },
