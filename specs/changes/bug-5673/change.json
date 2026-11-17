@@ -5,8 +5,10 @@
   "repo": "sprint-mode/sm-ui",
   "area": "search-palette",
   "branch": "factory/bug-5673",
-  "step": "spec",
-  "acceptance_tests": [],
+  "step": "plan",
+  "acceptance_tests": [
+    "src/__tests__/bug-5673.acceptance.test.jsx"
+  ],
   "pr": null,
   "readiness": {
     "artifact_id": "sha256:48068d3938b8ec5355b60fd3641dcb2ca3b9ff4ee1139625de89dd9b1d93615d",
