@@ -1,0 +1,15 @@
+{
+  "id": "bug-5673",
+  "source": "waffle:BUG-5673",
+  "title": "Search palette keeps stale rows when two results share a link",
+  "repo": "sprint-mode/sm-ui",
+  "area": null,
+  "branch": "factory/bug-5673",
+  "step": "intake",
+  "acceptance_tests": [],
+  "pr": null,
+  "readiness": {
+    "artifact_id": "sha256:48068d3938b8ec5355b60fd3641dcb2ca3b9ff4ee1139625de89dd9b1d93615d",
+    "item_binding": "sha256:b387ff8b660c7863ed0c7bb5e28f610612a0df58353e17cacf2b5992f5e55f46"
+  }
+}
